@@ -1,9 +1,9 @@
 def method_default_args(prob_type):
     defaults = {}
-    defaults['simpleVar'] = 8
+    defaults['simpleVar'] = 3
     defaults['simpleIneq'] = 2
     defaults['simpleEq'] = 0
-    defaults['simpleEx'] = 10000
+    defaults['simpleEx'] = 10
     #defaults['nonconvexVar'] = 100
     #defaults['nonconvexIneq'] = 50
     #defaults['nonconvexEq'] = 50

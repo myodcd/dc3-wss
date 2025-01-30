@@ -166,7 +166,6 @@ def train_net(data, args, save_dir):
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset))
 
     solver_net = NNSolver(data, args)
-    print('#### ', solver_net)
     solver_net.to(DEVICE)
     solver_opt = optim.Adam(solver_net.parameters(), lr=solver_step)
 
@@ -411,9 +410,9 @@ def grad_steps(data, X, Y, args):
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:                
                 ineq_step = data.ineq_grad(X, Y_new)                
-                eq_step = data.eq_grad(X, Y_new)
+                #eq_step = data.eq_grad(X, Y_new)
                                 
-                Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
+                Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] #* eq_step
                 
 
             new_Y_step = lr * Y_step + momentum * old_Y_step

@@ -521,8 +521,17 @@ def conversor(x,pumps,d,speed): #conversor variaveis de decisão --> pump status
             idx=0
             time_epanet=np.zeros(n_var_pump[p]+1)
             s_epanet=np.zeros(n_var_pump[p]+1)
+            
+            tamanho = len(x)
+            
+            
             x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
             # x_p=x[int(p*n_var_pump):int(n_var_pump*(p+1))]
+            
+            
+            
+            
+            
             for i in range(0,int(len(time_epanet)/2)):
                 if(x_p[i] < 0): x_p[i]=0 
                 if(x_p[i] > 24): x_p[i]=24
