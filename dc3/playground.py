@@ -3,13 +3,13 @@ import pickle
 import sys
 
 
-#sys.path.append('"C:\\Users\\mtcd\\Documents\\Codes\\dc3-wss\\dc3\\datasets\\dc-wss\\data_system.py"')
+#sys.path.append('"C:\\Users\\mtcd\\Documents\\Codes\\dc3-wss\\dc3\\datasets\\dc_wss\\data_system.py"')
 from data_system import data_system
 
 
 
 
-filepath = os.path.join('datasets', 'dc-wss', 'dc_wss_dataset_dc_6')
+filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_6')
 
 with open(filepath, 'rb') as f:
     problem = pickle.load(f)

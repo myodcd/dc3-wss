@@ -28,7 +28,7 @@ def method_default_args(prob_type):
         defaults['corrEps'] = 1e-4
         defaults['corrLr'] = 1e-7
         defaults['corrMomentum'] = 0.5                    
-    elif 'dc-wss' in prob_type:
+    elif 'dc_wss' in prob_type:
         defaults['epochs'] = 10
         defaults['batchSize'] = 200
         defaults['lr'] = 1e-3

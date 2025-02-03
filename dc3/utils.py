@@ -17,6 +17,8 @@ import hashlib
 import scipy.io as spio
 import time
 
+
+
 #from pypower.api import case57
 #from pypower.api import opf, makeYbus
 #from pypower import idx_bus, idx_gen, ppoption
@@ -240,94 +242,102 @@ def eps_definition_F3(x_matrix, d): # definição do eps para a 3a formulação 
 
     return eps_matrix
 
-def h_red3_acordeao(x_matrix, htank, timeInc, d, n_points):
-    # Transpor matriz para garantir alinhamento correto
-    h = np.transpose(htank)
+def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
+    h=np.transpose(htank)
+    n_arranques=int(len(x)/2)
+    time_seg=np.zeros(n_arranques*(2+n_points) + 1)
     
-    n_pumps = len(x_matrix)
-    h_min_list = []
-    
-    for p in range(n_pumps):
-        x = x_matrix[p]  # Acessa a linha p da matriz x_matrix
-        n_arranques = int(len(x) / 2)
-        time_seg = np.zeros(n_arranques * (2 + n_points) + 1)
+    idx=0
+    for i in range(0,n_arranques): #ordenar tempos e verificar questão de arredondamentos de segundos
+        #Correção do tempo de inicio e fim (7h-0h-7h)
+        if(d.flag_t_inicio!=0):
+            if(x[i] < 0): x[i]=0 
+            if(x[i] > 24): x[i]=24
+
+            #START TIME
+            start=(x[i]+d.flag_t_inicio)*(60*60)
+            if(start>=(24*(60*60))):
+                start-=(24*(60*60))
         
-        idx = 0
-        for i in range(n_arranques):
-            if d.flag_t_inicio != 0:
-                x_i = max(0, min(24, x[i]))
-                start = (x_i + d.flag_t_inicio) * 3600
-                start = start - 24 * 3600 if start >= 24 * 3600 else start
-                
-                end_at = (x_i + x[i + n_arranques] + d.flag_t_inicio) * 3600
-                end_dv = (x_i + x[i + n_arranques]) * 3600
-                
-                if end_dv > 24 * 3600:
-                    end = d.flag_t_inicio
-                else:
-                    end = end_at - 24 * 3600 if end_at >= 24 * 3600 else end_at
-                
-                total_time_hor = d.flag_t_inicio * 3600
+            #END TIME
+            end_at=(x[i]+x[i+n_arranques]+d.flag_t_inicio)*(60*60) # tempo final com a atualização da hora
+            end_dv=(x[i]+x[i+n_arranques])*(60*60) #tempo final pelas variáveis de decisão
+            if(end_dv>(24*60*60)):
+                end=d.flag_t_inicio
             else:
-                start = x[i] * 3600
-                end = (x[i] + x[i + n_arranques]) * 3600
-                total_time_hor = 24 * 3600
-
-            time_seg[idx] = math.floor(start + 0.5)
-            idx += 1
-
-            if n_points != 0:
-                deltaT = (x[i + n_arranques] * 3600) / (n_points + 1)
-                for k in range(1, n_points + 1):
-                    interv = start + k * deltaT
-                    interv = interv - 24 * 3600 if interv >= 24 * 3600 else interv
-                    time_seg[idx] = math.floor(interv + 0.5)
-                    idx += 1
-
-            time_seg[idx] = math.floor(end + 0.5)
-            idx += 1
-
-        h_min = np.ones(len(time_seg)) * 999
-        time_seg[-1] = total_time_hor
-
-        for i in range(0, len(time_seg) - 1, 2 + n_points):
-            idx = np.where(timeInc['StartTime'] == time_seg[i])[0]
-            if idx.size != 0:
-                h_min[i] = h[idx]
-
-            if n_points != 0:
-                for k in range(i + 1, i + 1 + n_points):
-                    idx2 = np.where(timeInc['StartTime'] == time_seg[k])[0]
-                    if idx2.size != 0:
-                        h_min[k] = h[idx2[0]]
-
-        for i in range(1 + n_points, len(time_seg) - 1, 2 + n_points):
-            idx = np.where(timeInc['EndTime'] == time_seg[i])[0]
-            if idx.size != 0:
-                h_min[i] = h[idx[0] + 1]
-
-        idx = np.where(timeInc['EndTime'] == time_seg[-1])[0]
-        if idx.size != 0:
-            h_min[-1] = h[idx[0] + 1]
-        
-        idx_zero = np.where(h_min == 999)[0]
-        if idx_zero.size != 0:
-            for i in idx_zero:
-                idx_end = set(np.where(time_seg[i] <= timeInc['EndTime'])[0])
-                idx_start = set(np.where(time_seg[i] >= timeInc['StartTime'])[0])
-                aux = list(idx_end.intersection(idx_start))
-                if len(aux) != 0:
-                    h_min[i] = h[aux[0] + 1]
+                if(end_at>=24*(60*60)):
+                    end=end_at-(24*(60*60))
                 else:
-                    if total_time_hor <= time_seg[i] <= total_time_hor + 3600:
-                        h_min[i] = h[-1]
-                        print(f'ERROR: WATER LEVEL EXTRAPOLATED -> {time_seg[i] / 3600}')
-                    else:
-                        print(f'ERROR: WATER LEVEL NOT FOUND -> {time_seg[i] / 3600}')
+                    end=end_at
+            total_time_hor=d.flag_t_inicio*(60*60)
+        else:
+            start=x[i]*(60*60)
+            end=(x[i]+x[i+n_arranques])*(60*60)
+            total_time_hor=24*(60*60)
+
+        #guardar tempo de inicio de op.
+        time_seg[idx]=math.floor(start + 0.5)
+        idx+=1
+
+        if(n_points!=0):
+            #tempo de intermédio de cada DC 
+            deltaT=(x[i+n_arranques]*(60*60))/(n_points+1)
+            for k in range(1,n_points+1):
+                interv=start+k*deltaT
+                if(interv>=24*60*60):
+                    interv-=(24*60*60)
+                time_seg[idx]=math.floor(interv + 0.5)
+                idx+=1
         
-        h_min_list.append(h_min)
+        #tempo de fim
+        time_seg[idx]=math.floor(end + 0.5)
+        idx+=1
+
+    h_min=np.ones(len(time_seg))*999
+    time_seg[len(time_seg)-1]=total_time_hor
+
+    # guardar valores no inicio do duty cycle
+    for i in range(0,len(time_seg)-1,2+n_points): 
+        idx = (np.where(timeInc['StartTime']==time_seg[i]))[0]
+        if (idx.size != 0):
+            h_min[i]=h[idx[0]]
+        
+        # guardar valores nos pontos intermédios do duty-cycle
+        if(n_points!=0):
+            for k in range(i+1,i+1+n_points):
+                idx2 = (np.where(timeInc['StartTime']==time_seg[k]))[0]
+                if (idx2.size != 0):
+                    h_min[k]=h[idx2[0]]
+
+    # guardar valores no final do duty cycle
+    for i in range(1+n_points,len(time_seg)-1,2+n_points): 
+        idx = (np.where(timeInc['EndTime']==time_seg[i]))[0]
+        if (idx.size != 0):
+                h_min[i]=h[idx[0]+1]
+
+    #guardar valores nas 24h
+    idx = (np.where(timeInc['EndTime']==time_seg[len(time_seg)-1]))[0]
+    if (idx.size != 0):
+        h_min[len(time_seg)-1]=h[idx[0]+1]       
     
-    return np.array(h_min_list)
+    #CASO HAJAM NIVEIS POR DEFINIR
+    idx_zero=(np.where(h_min==999))[0] #h_min=999 --> Não existe incremento com o tempo que queriamos
+    if (idx_zero.size != 0):
+        for i in range(0,len(idx_zero)):
+            idx_end=set((np.where(time_seg[idx_zero[i]]<=timeInc['EndTime']))[0])
+            idx_start=set((np.where(time_seg[idx_zero[i]]>=timeInc['StartTime']))[0])
+            aux=list(idx_end.intersection(idx_start))
+            if(len(aux)!=0):
+                h_min[idx_zero[i]]=h[aux[0]+1] 
+            else:
+                if(time_seg[idx_zero[i]] >= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor + 1*60*60): #supostamente nunca acontece
+                    h_min[idx_zero[i]]=h[len(h)-1]
+                    print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
+                # elif(time_seg[idx_zero[i]] <= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor +)
+                     
+                else:                    
+                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
+    return h_min
 
 def round_x(x,d): #arredondar aos segundos    
     x_round=[]
@@ -412,7 +422,7 @@ def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
 
 ###################################################################
 
-# PROBLEM DC-WSS
+# PROBLEM DC_WSS
 
 ###################################################################
 
@@ -429,17 +439,16 @@ class Problem_DC_WSS:
         self._controls_epanet = controls_epanet
         self._d = d
         
-
         self._costTariff = 0
 
         self._num_dc = d.num_dc
         
         self._X = torch.tensor(x)
-        self._xdim = len(x)
-        self._ydim = len(x)
+        self._xdim = self._X.shape[1]
+        self._ydim = self._X.shape[1]
         self._num = len(x)
-        self._neq = 0
-        self._ineq = 2
+        #self._neq = 0
+        #self._ineq = 2
         self._nknowns = 0
         self._valid_frac = valid_frac
         self._test_frac = test_frac
@@ -494,13 +503,13 @@ class Problem_DC_WSS:
     def nknowns(self):
         return self._nknowns
 
-    @property
-    def neq(self):
-        return self._neq
-    
-    @property
-    def ineq(self):
-        return self._ineq
+#    @property
+#    def neq(self):
+#        return self._neq
+#    
+#    @property
+#    def ineq(self):
+#        return self._ineq
 
     @property
     def xdim(self):
@@ -539,47 +548,78 @@ class Problem_DC_WSS:
         return self.X[int(self.num * (self.train_frac + self.valid_frac)) :]
 
     
+    
 
-    def Cost(self, x ,d, pumps, tanks, pipes, valves, timeInc):
+    
+    
+    # def Cost
+    def obj_fn(self, all_dutycycle): # ,d, pumps, tanks, pipes, valves, timeInc):
             # COM EFICIÊNCIA
-        cost_pump=[]
-        for p in range (0,d.n_pumps):
-            cp=0
-            for i in range (0,len(timeInc['StartTime'])):
-                tariffpriceInc=(timeInc['duration'][i]/3600)*timeInc['Tariff'][i]
-                if(pumps["pump"+str(p)+"_sp"][i]!=0 and pumps["pump"+str(p)+"_sp"][i]!=1):
-                    eff=linear_interpolation(d.eff_flow_points,d.eff_points,pumps["pump"+str(p)+"_q"][i])
-                    n2=1-(1-eff)*((1/pumps["pump"+str(p)+"_sp"][i])**0.1)
-                    up=(abs(pumps["pump"+str(p)+"_h"][i]) * (pumps["pump"+str(p)+"_q"][i]) * 9.81)/1000 # Q-> m3/s ; H->m ; P-> kW
-                    # up=(pumps["pump"+str(p)+"_p"][i]*eff) -> o de cima dá valores mais próximos
-                    cost1=tariffpriceInc*up/n2
-                else:
-                    cost1=(tariffpriceInc*pumps["pump"+str(p)+"_p"][i])
 
-                cp+=cost1
-            cost_pump.append(cp)        
-        CostT=sum(cost_pump)
-
-        return CostT
-
-
-
-
-            
-    def gT(self, x,d,id,tanks, timeInc): #Lower and Higher Water Level 
-
-        g1 = np.array([])
-        for i in range(0,len(d.dc_pos)-1):
-            ini=d.dc_pos[i]
-            fin=d.dc_pos[i+1]
-            g1_aux=h_red3_acordeao(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc,d,d.n_points_tank[id])
-            g1_aux = np.ravel(g1_aux) 
-            g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque 
-
-        g1=np.concatenate((g1, [g1_aux[-1]])) #Acrescentar as 24h
-
+        d = self.d
+        pumps = self.pumps
+        timeInc = self.timeInc
         
-        return g1        
+        total_cost = []
+    
+        for dutycycle in all_dutycycle:
+                
+            cost_pump=[]
+            for p in range (0,d.n_pumps):
+                cp=0
+                for i in range (0,len(timeInc['StartTime'])):
+                    tariffpriceInc=(timeInc['duration'][i]/3600)*timeInc['Tariff'][i]
+                    if(pumps["pump"+str(p)+"_sp"][i]!=0 and pumps["pump"+str(p)+"_sp"][i]!=1):
+                        eff=linear_interpolation(d.eff_flow_points,d.eff_points,pumps["pump"+str(p)+"_q"][i])
+                        n2=1-(1-eff)*((1/pumps["pump"+str(p)+"_sp"][i])**0.1)
+                        up=(abs(pumps["pump"+str(p)+"_h"][i]) * (pumps["pump"+str(p)+"_q"][i]) * 9.81)/1000 # Q-> m3/s ; H->m ; P-> kW
+                        # up=(pumps["pump"+str(p)+"_p"][i]*eff) -> o de cima dá valores mais próximos
+                        cost1=tariffpriceInc*up/n2
+                    else:
+                        cost1=(tariffpriceInc*pumps["pump"+str(p)+"_p"][i])
+
+                    cp+=cost1
+                cost_pump.append(cp)        
+            CostT=sum(cost_pump)
+
+            total_cost.append(CostT)
+
+        total_cost
+
+        #return CostT
+
+        return torch.tensor(total_cost) 
+
+
+                
+
+    def gT(self, x, d, id, tanks, timeInc):  # Lower and Higher Water Level
+        g1 = np.array([])  # Inicializa g1 corretamente
+        g1_ = []  # Lista para armazenar as matrizes individuais
+
+        for i in range(len(d.dc_pos) - 1):
+            ini = d.dc_pos[i]
+            fin = d.dc_pos[i + 1]
+
+            for x_ in x:
+                g1_aux = h_red3_acordeao(x_[ini:fin], tanks['tank' + str(id) + '_h'], timeInc, d, 0)
+
+                # Armazena cada matriz separadamente dentro do tensor
+                g1_.append(g1_aux[:-1])  # Cada matriz será um "bloco" dentro do tensor final
+
+                # Ajuste para garantir que g1 tenha a forma correta
+                if g1.size == 0:
+                    g1 = g1_aux[:-1]
+                else:
+                    g1 = np.concatenate((g1, g1_aux[:-1]))
+
+        # Converte g1_ para um tensor (lista de matrizes individuais)
+        #g1_ = np.array(g1_, dtype=object)  # dtype=object mantém a estrutura das submatrizes
+
+        # Acrescentar a última linha do último g1_aux às 24h
+        g1 = np.concatenate((g1, [g1_aux[-1]]))
+
+        return torch.tensor(g1_)       
 
 
 
@@ -599,7 +639,7 @@ class Problem_DC_WSS:
                     
             g5 = np.concatenate((g5, g5_F33))
 
-        # print(x_matrix)
+        print(x_matrix)
         # print(g5)
         return g5
     
@@ -637,12 +677,12 @@ class Problem_DC_WSS:
             else:
                 jac=jac_aux
 
-        if(len(x)>d.dc_pos[d.n_pumps]): #VSP
-            jac_vsp=np.zeros((len(jac), sum(d.n_dc)), dtype=int)  
-            jac=np.concatenate((jac,jac_vsp),axis=1)
+#        if(len(x)>d.dc_pos[d.n_pumps]): #VSP
+#            jac_vsp=np.zeros((len(jac), sum(d.n_dc)), dtype=int)  
+#            jac=np.concatenate((jac,jac_vsp),axis=1)
         
         # mod=np.linalg.norm(jac)
-        return jac
+        return torch.tensor(jac)
 
 
     def jac_gT(self, x, d):
@@ -674,14 +714,12 @@ class Problem_DC_WSS:
 #        # print(g5)
 #        return g5     
 
-
-
     
     def g_TempLog_dist(self, x, d):
         
         resid = self.g_TempLog(x, d)
     
-        resid_tensor = torch.tensor(resid, dtype=torch.float32)
+        resid_tensor = torch.tensor(resid)
 
         #  Aplica clamp para limitar os valores ao intervalo [0, +inf]
         return torch.clamp(resid_tensor, min=0)
@@ -694,12 +732,8 @@ class Problem_DC_WSS:
         # min tank = 2
         # max tank = 7
         
-        
-        
         return torch.clamp(resids, 2, 7)
         
-        
-    
     def ineq_resid(self, x, y):
         
         return self.gT(x, self.d, 0, self.tanks, self.timeInc)
@@ -709,19 +743,24 @@ class Problem_DC_WSS:
     def ineq_grad(self, X, Y):
         
         
-        #ineq_jac = self.jac_gT(X, self.d)
-        ineq_dist = self.ineq_dist(X, Y)
-        
-        #return ineq_jac * ineq_dist.unsqueeze(1)
+        ineq_jac = self.ineq_jac(X)
 
-        #return ineq_dist.unsqueeze(1)
+        ineq_dist = self.ineq_dist(X, Y)
     
-        return ineq_dist
+        return ineq_jac * ineq_dist.unsqueeze(1)
 
     def process_output(self, X, Y):
         return Y        
     
     
+    
+    def ineq_jac(self, X):
+        
+        jac_TempLog = self.jac_TempLog(X, self.d)
+        
+        jac_gT = self.jac_gT(X, self.d)
+        
+        return torch.cat((jac_TempLog, jac_gT), dim=1)
     
     
 
@@ -844,13 +883,6 @@ class Problem_Non_Linear:
         """
         resids = self.ineq_resid(x)
 
-        #print('resultado ineq_resid (resids)', resids)
-        #print('***')
-        #print(resids.unsqueeze(1))
-        #print('***')
-        #print('antes de mandar para total_loss: ', torch.clamp(resids, 0))
-        #print('***')
-        
         resids = resids.unsqueeze(1)
         
         return torch.clamp(resids, 0)
