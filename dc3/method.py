@@ -362,8 +362,21 @@ def total_loss(data, X, Y, args):
     ineq_dist = data.ineq_dist(X, Y)
     
     ineq_cost = torch.norm(ineq_dist, dim=1)
-    #eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
-    result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] #* eq_cost
+    
+    
+    if args['probType'] == 'dc_wss':
+        
+        
+    
+    #   Somente com restricao de desigualdade
+        result = obj_cost + args['softWeight'] * ineq_cost 
+    
+    else:
+    
+            # Com equações de igualdade e desigualdade
+        eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+    
     return result
 
 def grad_steps(data, X, Y, args):
@@ -383,11 +396,22 @@ def grad_steps(data, X, Y, args):
         for i in range(num_steps):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
-            else:                
-                ineq_step = data.ineq_grad(X, Y_new)                
-                #eq_step = data.eq_grad(X, Y_new)
+            else:       
+                
+                
+                if args['probType'] == 'dc_wss': 
+                    Y_step = data.ineq_grad(X, Y_new)     
+
+                else:
+
+
+                    ineq_step = data.ineq_grad(X, Y_new)                
+                    eq_step = data.eq_grad(X, Y_new)
                                 
-                Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] #* eq_step
+                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
+                
+                    
+                
                 
             new_Y_step = lr * Y_step + momentum * old_Y_step
             Y_new = Y_new - new_Y_step

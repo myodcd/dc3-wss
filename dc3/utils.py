@@ -549,9 +549,6 @@ class Problem_DC_WSS:
 
     
     
-
-    
-    
     # def Cost
     def obj_fn(self, all_dutycycle): # ,d, pumps, tanks, pipes, valves, timeInc):
             # COM EFICIÊNCIA
@@ -639,7 +636,7 @@ class Problem_DC_WSS:
                     
             g5 = np.concatenate((g5, g5_F33))
 
-        print(x_matrix)
+        #print(x_matrix)
         # print(g5)
         return g5
     
@@ -740,14 +737,25 @@ class Problem_DC_WSS:
     
 
 
-    def ineq_grad(self, X, Y):
+    def ineq_grad(self, x, y):
         
+        ineq_dist = self.ineq_dist(x, y)
         
-        ineq_jac = self.ineq_jac(X)
+        return ineq_dist
 
-        ineq_dist = self.ineq_dist(X, Y)
+
+    # Verificar pois este deverá ser utilizado
+#    def ineq_grad(self, X, Y):
+#        
+#        
+#        ineq_jac = self.ineq_jac(X)
+#
+#        ineq_dist = self.ineq_dist(X, Y)
+#    
+#        return ineq_jac * ineq_dist.unsqueeze(1)
     
-        return ineq_jac * ineq_dist.unsqueeze(1)
+    
+    
 
     def process_output(self, X, Y):
         return Y        
