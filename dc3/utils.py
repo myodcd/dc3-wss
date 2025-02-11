@@ -16,9 +16,10 @@ import hashlib
 #from copy import deepcopy
 import scipy.io as spio
 import time
+import EPANET_API as EPA_API
 
 
-
+import random
 #from pypower.api import case57
 #from pypower.api import opf, makeYbus
 #from pypower import idx_bus, idx_gen, ppoption
@@ -159,14 +160,15 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
 #                 print('WARNING: VPS eps is too low!') 
 #     return eps 
 
-def eps_definition_F3(x_matrix, d): # definição do eps para a 3a formulação (DC) + VSPs
+def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + VSPs
     # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
     epsF_i = d.epsF_i # % de perturbação para inicio
     epsF_d = d.epsF_d # % de perturbação para duração
-    eps_matrix = np.zeros_like(x_matrix)
+    x = x.detach().cpu().numpy()
+    eps_matrix = np.zeros_like(x)
 
     for p in range(d.n_pumps):
-        x_p = x_matrix[p]  # operação por bomba
+        x_p = x[p]  # operação por bomba
         n_dc = d.n_dc[p]
         eps_aux = np.zeros_like(x_p)
         
@@ -428,15 +430,8 @@ def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
 
 
 class Problem_DC_WSS:
-    def __init__(self, d,pumps,tanks,pipes,valves,timeInc,controls_epanet, x, valid_frac=0.0833, test_frac=0.0833):
+    def __init__(self, d,x, valid_frac=0.0833, test_frac=0.0833):
         
-        
-        self._pumps = pumps
-        self._tanks = tanks
-        self._pipes = pipes
-        self._valves = valves
-        self._timeInc = timeInc
-        self._controls_epanet = controls_epanet
         self._d = d
         
         self._costTariff = 0
@@ -463,30 +458,6 @@ class Problem_DC_WSS:
     def X(self):
         return self._X
 
-    @property
-    def pumps(self):
-        return self._pumps
-    
-    @property
-    def tanks(self):
-        return self._tanks
-    
-    @property
-    def pipes(self):
-        return self._pipes
-    
-    @property
-    def valves(self):
-        return self._valves
-    
-    @property
-    def timeInc(self):
-        return self._timeInc
-    
-    @property
-    def controls_epanet(self):
-        return self._controls_epanet
-    
     @property
     def d(self):
         return self._d
@@ -550,17 +521,21 @@ class Problem_DC_WSS:
     
     
     # def Cost
-    def obj_fn(self, all_dutycycle): # ,d, pumps, tanks, pipes, valves, timeInc):
+    def obj_fn(self, y): # ,d, pumps, tanks, pipes, valves, timeInc):
             # COM EFICIÊNCIA
 
         d = self.d
-        pumps = self.pumps
-        timeInc = self.timeInc
+
         
         total_cost = []
     
-        for dutycycle in all_dutycycle:
+        for y_ in y:
                 
+            d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(
+            y_, d, 0
+            )
+
+
             cost_pump=[]
             for p in range (0,d.n_pumps):
                 cp=0
@@ -590,60 +565,79 @@ class Problem_DC_WSS:
 
                 
 
-    def gT(self, x, d, id, tanks, timeInc):  # Lower and Higher Water Level
-        g1 = np.array([])  # Inicializa g1 corretamente
-        g1_ = []  # Lista para armazenar as matrizes individuais
+    def gT(self, x, y):
+        
+        d = self.d
+        # Lower and Higher Water Level
 
-        for i in range(len(d.dc_pos) - 1):
-            ini = d.dc_pos[i]
-            fin = d.dc_pos[i + 1]
+        g1_total = []
 
-            for x_ in x:
-                g1_aux = h_red3_acordeao(x_[ini:fin], tanks['tank' + str(id) + '_h'], timeInc, d, 0)
+        for y_ in y:
+        
 
-                # Armazena cada matriz separadamente dentro do tensor
-                g1_.append(g1_aux[:-1])  # Cada matriz será um "bloco" dentro do tensor final
+            d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(
+            y_, d, 0
+            )
+            g1 = []
+            for i in range(len(d.dc_pos) - 1):
+                ini = d.dc_pos[i]
+                fin = d.dc_pos[i + 1]
 
-                # Ajuste para garantir que g1 tenha a forma correta
-                if g1.size == 0:
-                    g1 = g1_aux[:-1]
-                else:
-                    g1 = np.concatenate((g1, g1_aux[:-1]))
+                # por tratar-se de um único tank, o id é 0
+                id = 0
+                #g1_matriz = []
+                
+                g1_aux = h_red3_acordeao(y_[ini:fin], tanks['tank' + str(id) + '_h'], timeInc, d, 0)
+                
+                #g1 = g1.clone()
 
-        # Converte g1_ para um tensor (lista de matrizes individuais)
-        #g1_ = np.array(g1_, dtype=object)  # dtype=object mantém a estrutura das submatrizes
-
-        # Acrescentar a última linha do último g1_aux às 24h
-        g1 = np.concatenate((g1, [g1_aux[-1]]))
-
-        return torch.tensor(g1_)       
-
-
-
-    def g_TempLog(self, x_matrix, d): #tstart(n+1) > tstop(n)  (várias bombas)
-        # print('Temporal Logic Const. --> x(start-stop)')
-        g5 = []
-        for p in range(0, d.n_pumps): #d.n_pumps
-            g5_F33 = np.zeros(d.n_dc[p])
-            x_p = x_matrix[p]  # Acessa a linha p da matriz x_matrix
+                g1.append(g1_aux[:-1])  # Adiciona os valores, removendo o último elemento
             
-            if d.n_dc[p] != 1:
-                for i in range(0, d.n_dc[p] - 1):
-                    g5_F33[i] = x_p[i + 1] - (x_p[i] + x_p[i + d.n_dc[p]])
-                g5_F33[i + 1] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)]) # garantir que a ultima duração não é superior a T
-            else:
-                g5_F33[0] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)]) # garantir que a ultima duração não é superior a T
-                    
-            g5 = np.concatenate((g5, g5_F33))
+            g1_total.append(g1[0])  
+            
+        return torch.tensor(g1_total) 
 
-        #print(x_matrix)
-        # print(g5)
-        return g5
-    
+
+
+    def g_TempLog(self, x,d): #tstart(n+1) > tstop(n)  (várias bombas)
+        # print('Temporal Logic Const. --> x(start-stop)')
+        
+        g5_total = []        
+        
+        for x_ in x:
+        
+        
+            g5=[]
+        
+            
+            for p in range(0,d.n_pumps): #d.n_pumps
+                g5_F33=np.zeros(d.n_dc[p])
+                x_p=x_[d.dc_pos[p]:d.dc_pos[p+1]]
+
+
+
+                
+                if(d.n_dc[p]!=1):
+                    for i in range(0,d.n_dc[p]-1):
+                        g5_F33[i]=x_p[i+1]-(x_p[i]+x_p[i+d.n_dc[p]])
+                    g5_F33[i+1]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
+                else:
+                    g5_F33[0]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
+                        
+                g5=np.concatenate((g5,g5_F33))
+                
+            g5_total.append(g5)
+            
+        return torch.tensor(g5_total)
+
         
     def jac_TempLog(self, x,d):
         # eps_aux=AF.eps_definition_F3(x,d) 
         # jac=approx_fprime(x, g5_F3, eps_aux)
+        
+        
+        # NAO ESTÁ A USAR O X
+        
         
         n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
         for p in range(0,d.n_pumps):
@@ -674,11 +668,6 @@ class Problem_DC_WSS:
             else:
                 jac=jac_aux
 
-#        if(len(x)>d.dc_pos[d.n_pumps]): #VSP
-#            jac_vsp=np.zeros((len(jac), sum(d.n_dc)), dtype=int)  
-#            jac=np.concatenate((jac,jac_vsp),axis=1)
-        
-        # mod=np.linalg.norm(jac)
         return torch.tensor(jac)
 
 
@@ -690,28 +679,6 @@ class Problem_DC_WSS:
         
         return jac
 
-#    CODIGO ORIGINAL
-#    def g_TempLog(self, x,d): #tstart(n+1) > tstop(n)  (várias bombas)
-#        # print('Temporal Logic Const. --> x(start-stop)')
-#        g5=[]
-#        for p in range(0,d.n_pumps): #d.n_pumps
-#            g5_F33=np.zeros(d.n_dc[p])
-#            x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-#            
-#            if(d.n_dc[p]!=1):
-#                for i in range(0,d.n_dc[p]-1):
-#                    g5_F33[i]=x_p[i+1]-(x_p[i]+x_p[i+d.n_dc[p]])
-#                g5_F33[i+1]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-#            else:
-#                g5_F33[0]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-#                    
-#            g5=np.concatenate((g5,g5_F33))
-#
-#        # print(x)
-#        # print(g5)
-#        return g5     
-
-    
     def g_TempLog_dist(self, x, d):
         
         resid = self.g_TempLog(x, d)
@@ -725,25 +692,47 @@ class Problem_DC_WSS:
     def ineq_dist(self, x, y):
         
         resids = torch.tensor(self.ineq_resid(x, y))
+
+        # Divide resids em duas metades
+        #mid = resids.shape[1] // 2  
+        #first_half = resids[:, :mid] 
+        #second_half = torch.clamp(resids[:, mid:], 2, 8)  
+
+
+        #return torch.cat([first_half, second_half], dim=1)
         
-        # min tank = 2
-        # max tank = 7
+        return torch.clamp(resids, 0)
         
-        return torch.clamp(resids, 2, 7)
         
     def ineq_resid(self, x, y):
-        
-        return self.gT(x, self.d, 0, self.tanks, self.timeInc)
-    
+
+        gt = self.gT(x, y)
+        g_templog = self.g_TempLog(x, self.d)
+
+        return torch.cat([gt[:,:5], g_templog], dim=1)
 
 
     def ineq_grad(self, x, y):
         
         ineq_dist = self.ineq_dist(x, y)
         
+        ineq_jac = self.ineq_jac(y)
+        
+        
+        
+        
         return ineq_dist
 
-
+    def ineq_jac(self, X):
+        
+        jac_TempLog = self.jac_TempLog(X, self.d)
+        
+        #jac_gT = self.jac_gT(X, self.d)
+        
+        #return torch.cat((jac_TempLog, jac_gT), dim=1)
+    
+        return jac_TempLog
+    
     # Verificar pois este deverá ser utilizado
 #    def ineq_grad(self, X, Y):
 #        
@@ -753,22 +742,60 @@ class Problem_DC_WSS:
 #        ineq_dist = self.ineq_dist(X, Y)
 #    
 #        return ineq_jac * ineq_dist.unsqueeze(1)
-    
-    
+        
+
+
+
+    def process_output(self, X, out):
+        qty = out.shape[1] // 2  # Divide entre horários e durações
+
+        # Multiplica horários por 24 e durações por 5
+        out[:, :qty] *= 24  
+        out[:, qty:] *= 5  
+
+        # Arredonda horários e os mantém entre 0 e 23
+        out[:, :qty] = torch.round(out[:, :qty])
+        out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
+
+        # Ordena os horários para garantir que estejam crescentes
+        out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
+
+        # Garante que não haja horários repetidos
+        for i in range(1, qty):
+            out[:, i] = torch.where(out[:, i] == out[:, i - 1], out[:, i] + 1, out[:, i])
+        
+        # Mantém os horários dentro do intervalo válido (0 a 23)
+        out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
+
+        # O primeiro horário não pode ser entre 20 e 23
+        out[:, 0] = torch.where((out[:, 0] >= 20), 19, out[:, 0])
+
+        # Recalcula para garantir que os horários sejam crescentes após os ajustes
+        out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
+
+        # Cálculo da duração máxima permitida para cada intervalo
+        max_duration_1 = torch.where(out[:, 0] == 23, 1, out[:, 1] - out[:, 0])  # d1 <= h2 - h1
+        max_duration_2 = out[:, 2] - out[:, 1]  # d2 <= h3 - h2
+        max_duration_3 = out[:, 3] - out[:, 2]  # d3 <= h4 - h3
+        max_duration_4 = out[:, 4] - out[:, 3]  # d4 <= h5 - h4
+        max_duration_5 = torch.where(out[:, 4] == 23, 1, 24 - out[:, 4])  # Última duração até o fim do dia
+
+        # Ajusta as durações para respeitar os horários disponíveis
+        out[:, qty] = torch.min(out[:, qty], max_duration_1)
+        out[:, qty+1] = torch.min(out[:, qty+1], max_duration_2)
+        out[:, qty+2] = torch.min(out[:, qty+2], max_duration_3)
+        out[:, qty+3] = torch.min(out[:, qty+3], max_duration_4)
+        out[:, qty+4] = torch.min(out[:, qty+4], max_duration_5)
+
+        # Garante que as durações sejam valores inteiros positivos (mínimo 1)
+        out[:, qty:] = torch.clamp(torch.round(out[:, qty:]), min=1)
+
+        return out
+
+
     
 
-    def process_output(self, X, Y):
-        return Y        
     
-    
-    
-    def ineq_jac(self, X):
-        
-        jac_TempLog = self.jac_TempLog(X, self.d)
-        
-        jac_gT = self.jac_gT(X, self.d)
-        
-        return torch.cat((jac_TempLog, jac_gT), dim=1)
     
     
 
@@ -926,6 +953,7 @@ class Problem_Non_Linear:
 
         grad_x1 = (1.5 * x1)
         grad_x2 = (0.5 * x2)
+        
         
         y1 = y[:, 0].unsqueeze(1)
         y2 = y[:, 1].unsqueeze(1)
