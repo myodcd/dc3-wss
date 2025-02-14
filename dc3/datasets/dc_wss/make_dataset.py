@@ -9,7 +9,7 @@ torch.set_default_dtype(torch.float64)
 sys.path.insert(1, os.path.join(sys.path[0], os.pardir, os.pardir))
 from utils import Problem_DC_WSS
 from data_system import data_system
-
+from tqdm import tqdm
 
 def generate_time():
     while True:
@@ -25,7 +25,7 @@ def generate_duration(i_list):
     
     for idx, i in enumerate(i_list):
         if i == 23:
-            duration = random.choice([0.5, 1])
+            duration = random.choice([0.1, 1])
         else:
             next_i = i_list[idx + 1] if idx + 1 < len(i_list) else 23
             max_value = min(5, next_i - i)
@@ -81,7 +81,7 @@ def main():
     X = []
 
 
-    for i in range(20):
+    for i in tqdm(range(16)):
         
         time = generate_time()
 

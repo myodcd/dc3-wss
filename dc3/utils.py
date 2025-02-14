@@ -675,7 +675,7 @@ class Problem_DC_WSS:
         
         eps_aux = torch.tensor(eps_definition_F3(x, d))
         jac = eps_aux
-        #jac = approx_fprime(x, self.gT, eps_aux)
+        #jac = approx_fprime(x, self.gT, eps_aux.cpu().detach().numpy()) 
         
         return jac
 
@@ -701,15 +701,20 @@ class Problem_DC_WSS:
 
         #return torch.cat([first_half, second_half], dim=1)
         
-        return torch.clamp(resids, 0)
+        return resids
         
         
     def ineq_resid(self, x, y):
-
-        gt = self.gT(x, y)
+        gt_temp = self.gT(x, y)
+        gt = torch.clamp(self.gT(x, y), 2, 7)
+        
+        #print(gt[0])
+        
         g_templog = self.g_TempLog(x, self.d)
+        # Interpolação para 10 elementos
+        g_templog_expanded = g_templog.repeat_interleave(2, dim=1)
 
-        return torch.cat([gt[:,:5], g_templog], dim=1)
+        return gt - g_templog_expanded 
 
 
     def ineq_grad(self, x, y):
@@ -721,17 +726,23 @@ class Problem_DC_WSS:
         
         
         
-        return ineq_dist
+#        return ineq_dist
+
+
+        return torch.cat([ineq_dist * ineq_jac], dim=1)
 
     def ineq_jac(self, X):
         
         jac_TempLog = self.jac_TempLog(X, self.d)
         
-        #jac_gT = self.jac_gT(X, self.d)
+        jac_gT = self.jac_gT(X, self.d)
         
         #return torch.cat((jac_TempLog, jac_gT), dim=1)
     
-        return jac_TempLog
+#        return jac_TempLog
+    
+    
+        return jac_gT * jac_TempLog.unsqueeze(1)
     
     # Verificar pois este deverá ser utilizado
 #    def ineq_grad(self, X, Y):
@@ -751,7 +762,7 @@ class Problem_DC_WSS:
 
         # Multiplica horários por 24 e durações por 5
         out[:, :qty] *= 24  
-        out[:, qty:] *= 5  
+        out[:, qty:] *= 6 
 
         # Arredonda horários e os mantém entre 0 e 23
         out[:, :qty] = torch.round(out[:, :qty])
@@ -787,8 +798,8 @@ class Problem_DC_WSS:
         out[:, qty+3] = torch.min(out[:, qty+3], max_duration_4)
         out[:, qty+4] = torch.min(out[:, qty+4], max_duration_5)
 
-        # Garante que as durações sejam valores inteiros positivos (mínimo 1)
-        out[:, qty:] = torch.clamp(torch.round(out[:, qty:]), min=1)
+        # Garante que as durações sejam valores inteiros positivos 
+        out[:, qty:] = torch.clamp(torch.round(out[:, qty:]), min=0.1)
 
         return out
 

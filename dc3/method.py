@@ -124,7 +124,7 @@ def main():
     if prob_type == 'nonlinear':
         filepath = os.path.join('datasets', 'nonlinear', "random_nonlinear_dataset_ex{}".format(args['simpleEx']))      
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_500')
+        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_100')
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -198,6 +198,13 @@ def train_net(data, args, save_dir):
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
             train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss            
             train_loss.requires_grad = True
+            
+            #print('Xtrain ', Xtrain[0].detach().cpu().numpy())
+            #print('Yhat ', Yhat_train[0].detach().cpu().numpy())
+            #print('Ynew ', Ynew_train[0].detach().cpu().numpy())
+            #print('Loss ', train_loss[0].detach().cpu().numpy())
+            #print('- - - - ')
+            
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
             solver_opt.step() # 4. Performe gradiente descent
             train_time = time.time() - start_time
@@ -416,8 +423,10 @@ def grad_steps(data, X, Y, args):
         
     else:
         return Y
-        
+        500
 def total_loss(data, X, Y, args):
+    
+    
 
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_ex2' else 1
 
@@ -429,7 +438,7 @@ def total_loss(data, X, Y, args):
     ineq_cost = torch.norm(ineq_dist, dim=1)    
     
     if args['probType'] == 'dc_wss':
-
+        
     #   Somente com restricao de desigualdade
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
     
@@ -526,6 +535,10 @@ class NNSolver(nn.Module):
             result = self._data.complete_partial(x, out)
             return result
         else:
+            
+            if self._args['probType'] == 'dc_wss':
+                out = nn.Sigmoid()(out)
+            
             result = self._data.process_output(x, out)
 
             return result
