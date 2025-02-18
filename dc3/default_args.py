@@ -30,7 +30,7 @@ def method_default_args(prob_type):
         defaults['corrMomentum'] = 0.5     
         defaults['useCompl'] = True               
     elif 'dc_wss' in prob_type:
-        defaults['epochs'] = 20
+        defaults['epochs'] = 10
         defaults['batchSize'] = 200
         defaults['lr'] = 1e-3
         defaults['hiddenSize'] = 200

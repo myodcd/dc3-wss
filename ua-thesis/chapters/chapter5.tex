@@ -1,0 +1,86 @@
+\chapter{Introdução}%
+\label{chapter:introduction}
+
+\begin{introduction}
+A short description of the chapter.
+
+A memorable quote can also be used.
+\end{introduction}
+
+
+
+\section{Acrónimos}
+
+Primeira e seguintes referências: \ac{h2o}, \ac{h2o}
+
+Plural, acrónimo expandido e curto: \acp{h2o}, \acl{h2o}, \acs{h2o}
+
+Com citação\footnote{Necessária entrada na bibliografia}: \ac{adsl}, \ac{adsl}
+
+
+\section{Fontes}
+
+\begin{itemize}
+\item{\tiny Tiny}
+\item{\scriptsize Scriptsize}
+\item{\footnotesize Footnotes}
+\item{\small Small}
+\item{\normalsize Normal}
+\item{\large large}
+\item{\Large Large}
+\item{\LARGE LARGE}
+\item{\huge huge}
+\item{\Huge Huge}
+\end{itemize}
+
+\section{Unidades}
+
+Utilizando o pacote \verb|siunitx| é possível utilizar unidades do Sistema Internacional. Exemplo: a aceleração da gravidade é de \SI{9.8}{\metre\per\second\squared} e um ficheiro ocupa \SI{1}{\mebi\byte}. 
+
+\section{Code Blocks}
+%\lipsum[5]
+Uma listagem pode ser apresentada com o ambiente \texttt{listing}, que é um float (objeto flutuante, tal como uma figura ou uma tabela).
+
+A listagem em Código~\ref{lbl:snippet-test} mostra um exemplo em C.
+
+\begin{listing}[h]
+\begin{minted}{c}
+
+#include <stdio.h>
+#define N 10
+/* Block
+ * comment */
+ 
+int main()
+{
+    int i;
+ 
+    // Line comment.
+    puts("Hello world!");
+ 
+    for (i = 0; i < N; i++)
+    {
+        puts("LaTeX is also great for programmers!");
+    }
+ 
+    return 0;
+}
+\end{minted}
+\caption{This caption appears below the code.}
+\label{lbl:snippet-test}
+\end{listing}
+
+%\lipsum[5]
+
+\section{Citações}
+
+Algumas formas distintas de citar:
+
+\begin{itemize}
+    \item \textbf{Apenas referência}:~\cite{rfc44}
+    \item \textbf{Apenas data}:~\citedate{rfc44}
+    \item \textbf{Apenas ano}:~\citeyear{rfc44}
+    \item \textbf{Apenas autor}:~\citeauthor{rfc44}
+    \item \textbf{Apenas editor}:\citelist{rfc44}{organization}
+    \item \textbf{Autor e referência}:\citet{rfc44}
+\end{itemize}

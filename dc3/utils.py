@@ -708,11 +708,19 @@ class Problem_DC_WSS:
         gt_temp = self.gT(x, y)
         gt = torch.clamp(self.gT(x, y), 2, 7)
         
+        
+        gt_T = gt.reshape(gt.shape[0], gt.shape[1], 1)
         #print(gt[0])
         
         g_templog = self.g_TempLog(x, self.d)
         # Interpolação para 10 elementos
         g_templog_expanded = g_templog.repeat_interleave(2, dim=1)
+
+        g_templog_T = g_templog.reshape(g_templog.shape[0], g_templog.shape[1], 1)
+
+        g = torch.cat((gt_T, g_templog_T), 1)
+        #gt = torch.transpose(gt, g_templog)
+
 
         return gt - g_templog_expanded 
 
@@ -740,6 +748,9 @@ class Problem_DC_WSS:
         #return torch.cat((jac_TempLog, jac_gT), dim=1)
     
 #        return jac_TempLog
+
+
+        
     
     
         return jac_gT * jac_TempLog.unsqueeze(1)
