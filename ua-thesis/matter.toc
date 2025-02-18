@@ -35,4 +35,4 @@
 \contentsline {section}{\numberline {6.4}Code Blocks}{11}{section.6.4}%
 \contentsline {section}{\numberline {6.5}Citações}{11}{section.6.5}%
 \contentsline {chapter}{Bibiliography}{12}{chapter*.7}%
-\contentsline {appendix}{\chapternumberline {A}Additional content}{12}{appendix.A}%
+\contentsline {appendix}{\chapternumberline {A}Additional content}{13}{appendix.A}%

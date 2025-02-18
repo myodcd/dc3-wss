@@ -392,6 +392,55 @@
       \verb 10.2166/aqua.2023.134
       \endverb
     \endentry
+    \entry{rfc19}{article}{}
+      \name{author}{3}{}{%
+        {{hash=cee6b3a2d22fb5be9e12550ce7a1f9dd}{%
+           family={Awe},
+           familyi={A\bibinitperiod},
+           given={O.M.},
+           giveni={O\bibinitperiod}}}%
+        {{hash=41f2084372aaf47330fe5b0cb7c68a38}{%
+           family={Okolie},
+           familyi={O\bibinitperiod},
+           given={S.T.A.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=96cfbfbfe18d3b1db713b8ce444a2c65}{%
+           family={Fayomi},
+           familyi={F\bibinitperiod},
+           given={O.S.I.},
+           giveni={O\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IOP Publishing}%
+      }
+      \strng{namehash}{044f192918ed0033db99dbc8282c38da}
+      \strng{fullhash}{0f01e03ccc5889aa98d327cbc3269373}
+      \strng{bibnamehash}{0f01e03ccc5889aa98d327cbc3269373}
+      \strng{authorbibnamehash}{0f01e03ccc5889aa98d327cbc3269373}
+      \strng{authornamehash}{044f192918ed0033db99dbc8282c38da}
+      \strng{authorfullhash}{0f01e03ccc5889aa98d327cbc3269373}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Physics: Conference Series}
+      \field{month}{12}
+      \field{number}{2}
+      \field{title}{Optimization of Water Distribution Systems: A Review}
+      \field{volume}{1378}
+      \field{year}{2019}
+      \field{pages}{022068}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1088/1742-6596/1378/2/022068
+      \endverb
+      \verb{urlraw}
+      \verb https://dx.doi.org/10.1088/1742-6596/1378/2/022068
+      \endverb
+      \verb{url}
+      \verb https://dx.doi.org/10.1088/1742-6596/1378/2/022068
+      \endverb
+    \endentry
     \entry{rfc7}{misc}{}
       \name{author}{2}{}{%
         {{hash=0bc913a3b94ecf69ee3938768b4cc586}{%
@@ -411,8 +460,8 @@
       \strng{authorbibnamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authornamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authorfullhash}{61c0982d10c14a6096141d88c826f9c0}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{issn}{1996-1073}
@@ -649,6 +698,35 @@
       \verb https://arxiv.org/abs/2306.08943
       \endverb
     \endentry
+    \entry{rfc18}{misc}{}
+      \name{author}{2}{}{%
+        {{hash=88a342d927bf795b0d92af8a5613da31}{%
+           family={Nocedal},
+           familyi={N\bibinitperiod},
+           given={Jorge},
+           giveni={J\bibinitperiod}}}%
+        {{hash=c49efb16d3fa7eef002cc3620d42ab8a}{%
+           family={Wright},
+           familyi={W\bibinitperiod},
+           given={Stephen\bibnamedelima J},
+           giveni={S\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \strng{fullhash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \strng{bibnamehash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \strng{authorbibnamehash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \strng{authornamehash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \strng{authorfullhash}{5b8fd28f6245ae8b0af119560622fa4f}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Numerical Optimization}
+      \field{year}{1999}
+    \endentry
     \entry{rfc17}{article}{}
       \name{author}{2}{}{%
         {{hash=5e86f4bf1c71b1695329bc18a107e57e}{%
@@ -668,8 +746,8 @@
       \strng{authorbibnamehash}{926e9e44699c6471afc361a5e7447838}
       \strng{authornamehash}{926e9e44699c6471afc361a5e7447838}
       \strng{authorfullhash}{926e9e44699c6471afc361a5e7447838}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{IEEE Transactions on Control of Network Systems}
