@@ -61,7 +61,6 @@
       <file>numeric-comp.cbx</file>
       <file>ieee.cbx</file>
       <file>biblatex.cfg</file>
-      <file>portuguese.lbx</file>
       <file>english.lbx</file>
     </requires>
   </internal>

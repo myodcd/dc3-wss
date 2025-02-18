@@ -19,7 +19,7 @@
 
 \refsection{0}
   \datalist[entry]{none/global//global/global}
-    \entry{rfc1}{misc}{}
+    \entry{rfc1}{article}{}
       \name{author}{3}{}{%
         {{hash=eabb0e3822b29c1b5779c8bdeda3a283}{%
            family={Paluszczyszyn},
@@ -47,74 +47,84 @@
       \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{CCWI 2015}
-      \field{number}{1}
-      \field{title}{{Modelling and simulation of water distribution systems with quantised state system methods}}
+      \field{issn}{1877-7058}
+      \field{journaltitle}{Procedia Engineering}
+      \field{note}{Computing and Control for the Water Industry (CCWI2015) Sharing the best practice in water management}
+      \field{title}{Modelling and Simulation of Water Distribution Systems with Quantised State System Methods}
+      \field{volume}{119}
       \field{year}{2015}
+      \field{pages}{554\bibrangedash 563}
+      \range{pages}{10}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.proeng.2015.08.908
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S1877705815025783
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S1877705815025783
+      \endverb
     \endentry
     \entry{rfc4}{misc}{}
       \name{author}{1}{}{%
-        {{hash=9d922ff1064bd0befe75502a12ab6489}{%
-           family={Agency},
-           familyi={A\bibinitperiod},
-           given={United\bibnamedelimb States\bibnamedelimb Environment\bibnamedelima Protection},
-           giveni={U\bibinitperiod\bibinitdelim S\bibinitperiod\bibinitdelim E\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=16d2b59f99e765d37f78c08def42787e}{%
+           family={Rossman},
+           familyi={R\bibinitperiod},
+           given={L.\bibnamedelimi A.},
+           giveni={L\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
       }
-      \strng{namehash}{9d922ff1064bd0befe75502a12ab6489}
-      \strng{fullhash}{9d922ff1064bd0befe75502a12ab6489}
-      \strng{bibnamehash}{9d922ff1064bd0befe75502a12ab6489}
-      \strng{authorbibnamehash}{9d922ff1064bd0befe75502a12ab6489}
-      \strng{authornamehash}{9d922ff1064bd0befe75502a12ab6489}
-      \strng{authorfullhash}{9d922ff1064bd0befe75502a12ab6489}
+      \strng{namehash}{16d2b59f99e765d37f78c08def42787e}
+      \strng{fullhash}{16d2b59f99e765d37f78c08def42787e}
+      \strng{bibnamehash}{16d2b59f99e765d37f78c08def42787e}
+      \strng{authorbibnamehash}{16d2b59f99e765d37f78c08def42787e}
+      \strng{authornamehash}{16d2b59f99e765d37f78c08def42787e}
+      \strng{authorfullhash}{16d2b59f99e765d37f78c08def42787e}
       \field{sortinit}{2}
       \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{EPA}
-      \field{number}{4}
-      \field{title}{{EPANET 2.2 User Manual}}
+      \field{note}{Risk Reduction Engineering Laboratory. Office of Research and Development. Environmental Protection Agency}
+      \field{title}{EPANET User’s Manual. Version 2.2}
       \field{year}{2000}
     \endentry
     \entry{rfc5}{misc}{}
       \name{author}{3}{}{%
-        {{hash=db51aa8e9da469b3a32eee12fbcfad1f}{%
+        {{hash=4c089f435be08225365f7e6c5f42526e}{%
            family={Davis},
            familyi={D\bibinitperiod},
-           given={M.\bibnamedelimi J.},
-           giveni={M\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
-        {{hash=4d7c7b7a9898191ee921f354fae8b8f6}{%
+           given={Michael},
+           giveni={M\bibinitperiod}}}%
+        {{hash=9ae2d6a8a3f3cde93ce73b32db61002c}{%
            family={Janke},
            familyi={J\bibinitperiod},
-           given={R.},
+           given={Robert},
            giveni={R\bibinitperiod}}}%
-        {{hash=1f8ead3f8dbe726aa89f07f476ce9b77}{%
+        {{hash=a23f2b17ed30b9ad645613bf7ac98d62}{%
            family={Taxon},
            familyi={T\bibinitperiod},
-           given={T.\bibnamedelimi N.},
-           giveni={T\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+           given={Thomas},
+           giveni={T\bibinitperiod}}}%
       }
-      \list{publisher}{2}{%
-        {Drinking water engineering}%
-        {science, 11(1), 25–47}%
-      }
-      \strng{namehash}{0d42d969c803a4309b1100f8b588ac0c}
-      \strng{fullhash}{94a909d1d980679c1e5207a75a207b98}
-      \strng{bibnamehash}{94a909d1d980679c1e5207a75a207b98}
-      \strng{authorbibnamehash}{94a909d1d980679c1e5207a75a207b98}
-      \strng{authornamehash}{0d42d969c803a4309b1100f8b588ac0c}
-      \strng{authorfullhash}{94a909d1d980679c1e5207a75a207b98}
+      \strng{namehash}{14ddcc2c0bc5795fd0237b391c0817b8}
+      \strng{fullhash}{f46281a25032ba165ce8fbf968364e4b}
+      \strng{bibnamehash}{f46281a25032ba165ce8fbf968364e4b}
+      \strng{authorbibnamehash}{f46281a25032ba165ce8fbf968364e4b}
+      \strng{authornamehash}{14ddcc2c0bc5795fd0237b391c0817b8}
+      \strng{authorfullhash}{f46281a25032ba165ce8fbf968364e4b}
       \field{sortinit}{3}
       \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{number}{5}
-      \field{title}{{Mass imbalances in EPANET water-quality simulations}}
+      \field{journaltitle}{Drinking Water Engineering and Science}
+      \field{month}{04}
+      \field{title}{Mass imbalances in EPANET water-quality simulations}
+      \field{volume}{11}
       \field{year}{2018}
-      \verb{urlraw}
-      \verb https://doi.org/10.5194/dwes-11-25-2018
-      \endverb
-      \verb{url}
-      \verb https://doi.org/10.5194/dwes-11-25-2018
+      \field{pages}{25\bibrangedash 47}
+      \range{pages}{23}
+      \verb{doi}
+      \verb 10.5194/dwes-11-25-2018
       \endverb
     \endentry
     \entry{rfc6}{misc}{}
@@ -150,9 +160,237 @@
       \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{number}{6}
-      \field{title}{{Advantages of the Event Method for the Simulation of Water Quality in Pressurised Water Systems}}
+      \field{issn}{2073-4441}
+      \field{journaltitle}{Water}
+      \field{number}{4}
+      \field{title}{Advantages of the Event Method for the Simulation of Water Quality in Pressurised Water Systems}
+      \field{volume}{16}
       \field{year}{2024}
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2073-4441/16/4/599
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2073-4441/16/4/599
+      \endverb
+    \endentry
+    \entry{rfc12}{misc}{}
+      \name{author}{4}{}{%
+        {{hash=81e718542697d8cb9b28022566aa3a73}{%
+           family={Qian},
+           familyi={Q\bibinitperiod},
+           given={Kai},
+           giveni={K\bibinitperiod}}}%
+        {{hash=ed3d50682be1b60ad0b74dbf2a18717c}{%
+           family={Jiang},
+           familyi={J\bibinitperiod},
+           given={Jie},
+           giveni={J\bibinitperiod}}}%
+        {{hash=99b1a0fc8e5caa53e55853480637d0c9}{%
+           family={Ding},
+           familyi={D\bibinitperiod},
+           given={Yulong},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=9e20d984f5eacf3ee710d004deab5554}{%
+           family={Yang},
+           familyi={Y\bibinitperiod},
+           given={Shuanghua},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{0c415dbc73de4cfd4cfd1bbee206fdf4}
+      \strng{fullhash}{923dfd518a1581ae9afcd38f8fd858b5}
+      \strng{bibnamehash}{923dfd518a1581ae9afcd38f8fd858b5}
+      \strng{authorbibnamehash}{923dfd518a1581ae9afcd38f8fd858b5}
+      \strng{authornamehash}{0c415dbc73de4cfd4cfd1bbee206fdf4}
+      \strng{authorfullhash}{923dfd518a1581ae9afcd38f8fd858b5}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{2020 IEEE International Conference on Networking, Sensing and Control (ICNSC)}
+      \field{title}{Deep Learning Based Anomaly Detection in Water Distribution Systems}
+      \field{year}{2020}
+      \field{pages}{1\bibrangedash 6}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.1109/ICNSC48988.2020.9238099
+      \endverb
+      \keyw{Deep learning;Training data;Data models;Task analysis;Anomaly detection;Monitoring;Water resources;water quality;anomaly detection;sensor network;deep learning;sequence-to-point learning}
+    \endentry
+    \entry{rfc11}{misc}{}
+      \name{author}{6}{}{%
+        {{hash=c0e0c3dd01a89eafd39ca5a08e7b649d}{%
+           family={Zhao},
+           familyi={Z\bibinitperiod},
+           given={Shuaikang},
+           giveni={S\bibinitperiod}}}%
+        {{hash=2ef14fa4e26ca1d12e9a5b86f152c9c3}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Zhiwei},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=61a8301abdec570e6b40676cdef6d2d5}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Feifei},
+           giveni={F\bibinitperiod}}}%
+        {{hash=e9a87cd1e75c288c7553dad00ec6ba7c}{%
+           family={Sun},
+           familyi={S\bibinitperiod},
+           given={Bin},
+           giveni={B\bibinitperiod}}}%
+        {{hash=6e52363d30fe22ed335e416fd6501899}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Liutao},
+           giveni={L\bibinitperiod}}}%
+        {{hash=a0484cb7d05509640954429962ad4a56}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Haifeng},
+           giveni={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{442a232b27875bfcdce95cc06693c9b3}
+      \strng{fullhash}{900553b801109eac0b690c04f77d8478}
+      \strng{bibnamehash}{900553b801109eac0b690c04f77d8478}
+      \strng{authorbibnamehash}{900553b801109eac0b690c04f77d8478}
+      \strng{authornamehash}{442a232b27875bfcdce95cc06693c9b3}
+      \strng{authorfullhash}{900553b801109eac0b690c04f77d8478}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Water Supply}
+      \field{number}{8}
+      \field{title}{Pressure prediction of water supply network based on 1DCNN-GRU-multi-head attention}
+      \field{volume}{24}
+      \field{year}{2024}
+      \field{pages}{2688\bibrangedash 2703}
+      \range{pages}{16}
+      \verb{urlraw}
+      \verb https://doi.org/10.2166/ws.2024.169
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.2166/ws.2024.169
+      \endverb
+    \endentry
+    \entry{rfc13}{misc}{}
+      \name{author}{6}{}{%
+        {{hash=65682a2e31340e35269561d70034d1ff}{%
+           family={Yu},
+           familyi={Y\bibinitperiod},
+           given={Huimin},
+           giveni={H\bibinitperiod}}}%
+        {{hash=36595e014ac713cb3bf1ba2df20fa26a}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Sen},
+           giveni={S\bibinitperiod}}}%
+        {{hash=3f02bc00143af94c15aadb2ba5b62ad2}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Hua},
+           giveni={H\bibinitperiod}}}%
+        {{hash=4524a955fd972c794533b52052aaabbe}{%
+           family={Weng},
+           familyi={W\bibinitperiod},
+           given={Xiaodan},
+           giveni={X\bibinitperiod}}}%
+        {{hash=9f17a564391eddd6a51d15c0675cfc02}{%
+           family={Chu},
+           familyi={C\bibinitperiod},
+           given={Shipeng},
+           giveni={S\bibinitperiod}}}%
+        {{hash=5dcd107de3371de7c6c88077d7ceff08}{%
+           family={Yu},
+           familyi={Y\bibinitperiod},
+           given={Tingchao},
+           giveni={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{aa64b45f7abf042f5df6a75bf13f9cff}
+      \strng{fullhash}{7784fb5ed7b4aa062c377803c1967f4c}
+      \strng{bibnamehash}{7784fb5ed7b4aa062c377803c1967f4c}
+      \strng{authorbibnamehash}{7784fb5ed7b4aa062c377803c1967f4c}
+      \strng{authornamehash}{aa64b45f7abf042f5df6a75bf13f9cff}
+      \strng{authorfullhash}{7784fb5ed7b4aa062c377803c1967f4c}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{AQUA - Water Infrastructure, Ecosystems and Society}
+      \field{number}{8}
+      \field{title}{Leak detection in water distribution networks based on deep learning and kriging interpolation method}
+      \field{volume}{73}
+      \field{year}{2024}
+      \field{pages}{1741\bibrangedash 1753}
+      \range{pages}{13}
+      \verb{urlraw}
+      \verb https://doi.org/10.2166/aqua.2024.184
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.2166/aqua.2024.184
+      \endverb
+    \endentry
+    \entry{rfc9}{misc}{}
+      \name{author}{8}{}{%
+        {{hash=63d351003172db668e3d7f6d5234a97f}{%
+           family={Pu},
+           familyi={P\bibinitperiod},
+           given={Zhengheng},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=dff54992c937379981fe46fd92a33771}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Minghai},
+           giveni={M\bibinitperiod}}}%
+        {{hash=11fea995a03b35d3bf225e113cca1135}{%
+           family={Ji},
+           familyi={J\bibinitperiod},
+           given={Xuanting},
+           giveni={X\bibinitperiod}}}%
+        {{hash=0d38213af0b7cad2dcf841c3f4a4f49a}{%
+           family={Fu},
+           familyi={F\bibinitperiod},
+           given={Yanfu},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=7941992dfc95bc6dc4f6d73849698592}{%
+           family={Tian},
+           familyi={T\bibinitperiod},
+           given={Wenchong},
+           giveni={W\bibinitperiod}}}%
+        {{hash=abf175e842153a989730fa5bad5c9509}{%
+           family={Lei},
+           familyi={L\bibinitperiod},
+           given={Chen},
+           giveni={C\bibinitperiod}}}%
+        {{hash=6a682c70a15cb41aca725fdd10a82bce}{%
+           family={Tao},
+           familyi={T\bibinitperiod},
+           given={Tao},
+           giveni={T\bibinitperiod}}}%
+        {{hash=283ac3b38047d193abefba29e2979b16}{%
+           family={信昆仑},
+           familyi={信\bibinitperiod},
+           given={Kun-lun},
+           giveni={K\bibinithyphendelim l\bibinitperiod}}}%
+      }
+      \strng{namehash}{92d742d7c3132603a82fc7c3d02b6bcb}
+      \strng{fullhash}{d9705b772770fce674d01d188f644926}
+      \strng{bibnamehash}{269839b637a27221d62c7d9ccab20f60}
+      \strng{authorbibnamehash}{269839b637a27221d62c7d9ccab20f60}
+      \strng{authornamehash}{92d742d7c3132603a82fc7c3d02b6bcb}
+      \strng{authorfullhash}{d9705b772770fce674d01d188f644926}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{AQUA - Water Infrastructure Ecosystems and Society}
+      \field{month}{11}
+      \field{title}{Intelligent real-time scheduling of water supply network based on deep learning}
+      \field{volume}{72}
+      \field{year}{2023}
+      \verb{doi}
+      \verb 10.2166/aqua.2023.134
+      \endverb
     \endentry
     \entry{rfc7}{misc}{}
       \name{author}{2}{}{%
@@ -173,12 +411,15 @@
       \strng{authorbibnamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authornamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authorfullhash}{61c0982d10c14a6096141d88c826f9c0}
-      \field{sortinit}{6}
-      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{number}{7}
-      \field{title}{{Optimization of Energy Consumption in the Pumping Station Supplying Two Zones of the Water Supply System}}
+      \field{issn}{1996-1073}
+      \field{journaltitle}{Energies}
+      \field{number}{1}
+      \field{title}{Optimization of Energy Consumption in the Pumping Station Supplying Two Zones of the Water Supply System}
+      \field{volume}{15}
       \field{year}{2022}
       \verb{urlraw}
       \verb https://www.mdpi.com/1996-1073/15/1/310
@@ -187,39 +428,39 @@
       \verb https://www.mdpi.com/1996-1073/15/1/310
       \endverb
     \endentry
-    \entry{rfc2}{misc}{}
+    \entry{rfc2}{inproceedings}{}
       \name{author}{2}{}{%
-        {{hash=39c2d7fd170040f9f370f1a361d8d8ba}{%
-           family={Abiodun},
-           familyi={A\bibinitperiod},
-           given={Folorunso\bibnamedelima Taliha},
-           giveni={F\bibinitperiod\bibinitdelim T\bibinitperiod}}}%
+        {{hash=e414e3c6d03f23ad118317d88823c974}{%
+           family={Folorunso},
+           familyi={F\bibinitperiod},
+           given={Taliha},
+           giveni={T\bibinitperiod}}}%
         {{hash=165bfcaa1898c9bad17ba97c68927bc7}{%
            family={Ismail},
            familyi={I\bibinitperiod},
            given={Fatimah\bibnamedelima Sham},
            giveni={F\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
       }
-      \list{organization}{1}{%
-        {Internet Engineering Task Force}%
-      }
-      \list{publisher}{1}{%
-        {IEEE}%
-      }
-      \strng{namehash}{4559a13fe16cb3463ce4ece54eae293f}
-      \strng{fullhash}{4559a13fe16cb3463ce4ece54eae293f}
-      \strng{bibnamehash}{4559a13fe16cb3463ce4ece54eae293f}
-      \strng{authorbibnamehash}{4559a13fe16cb3463ce4ece54eae293f}
-      \strng{authornamehash}{4559a13fe16cb3463ce4ece54eae293f}
-      \strng{authorfullhash}{4559a13fe16cb3463ce4ece54eae293f}
-      \field{sortinit}{7}
-      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \strng{namehash}{ef119c3eb4edd452577e891097486ca7}
+      \strng{fullhash}{ef119c3eb4edd452577e891097486ca7}
+      \strng{bibnamehash}{ef119c3eb4edd452577e891097486ca7}
+      \strng{authorbibnamehash}{ef119c3eb4edd452577e891097486ca7}
+      \strng{authornamehash}{ef119c3eb4edd452577e891097486ca7}
+      \strng{authorfullhash}{ef119c3eb4edd452577e891097486ca7}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{2013 IEEE Symposium on Computers & Informatics (ISCI)}
-      \field{number}{2}
-      \field{title}{{Pump Scheduling Optimization Model for Water Supply System Using AWGA}}
+      \field{isbn}{978-1-4799-0209-5}
+      \field{journaltitle}{IEEE Symposium on Computers and Informatics, ISCI 2013}
+      \field{month}{04}
+      \field{title}{Pump scheduling optimization model for water supply system using AWGA}
       \field{year}{2013}
+      \field{pages}{12\bibrangedash 17}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.1109/ISCI.2013.6612367
+      \endverb
     \endentry
     \entry{rfc8}{misc}{}
       \name{author}{1}{}{%
@@ -235,12 +476,15 @@
       \strng{authorbibnamehash}{302a3c89f84128e1d4d5a404036ef5a5}
       \strng{authornamehash}{302a3c89f84128e1d4d5a404036ef5a5}
       \strng{authorfullhash}{302a3c89f84128e1d4d5a404036ef5a5}
-      \field{sortinit}{8}
-      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{number}{8}
+      \field{issn}{2073-4441}
+      \field{journaltitle}{Water}
+      \field{number}{12}
       \field{title}{A Study of Energy Optimisation of Urban Water Distribution Systems Using Potential Elements}
+      \field{volume}{8}
       \field{year}{2016}
       \verb{urlraw}
       \verb https://www.mdpi.com/2073-4441/8/12/593
@@ -249,51 +493,194 @@
       \verb https://www.mdpi.com/2073-4441/8/12/593
       \endverb
     \endentry
-    \entry{rfc44}{misc}{}
+    \entry{rfc16}{misc}{}
       \name{author}{3}{}{%
-        {{hash=926ce54a324eb311972e8bd4c43515db}{%
-           family={Shoshani},
+        {{hash=89ab12fb82ecf0c12dcef79f7d2ad5eb}{%
+           family={Min},
+           familyi={M\bibinitperiod},
+           given={Youngjae},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=1f069cd18cd36d0848a197b9c628d3f7}{%
+           family={Sonar},
            familyi={S\bibinitperiod},
-           given={A.},
+           given={Anoopkumar},
            giveni={A\bibinitperiod}}}%
-        {{hash=093c307c676bd27c4da352e69288ecb2}{%
-           family={Long},
-           familyi={L\bibinitperiod},
-           given={R.},
-           giveni={R\bibinitperiod}}}%
-        {{hash=0e7f17dc01edb68a1b5ff0ded07ffbff}{%
-           family={Landsberg},
-           familyi={L\bibinitperiod},
-           given={A.},
-           giveni={A\bibinitperiod}}}%
+        {{hash=6c6d65b6479aac3bd5d40dc60379e15b}{%
+           family={Azizan},
+           familyi={A\bibinitperiod},
+           given={Navid},
+           giveni={N\bibinitperiod}}}%
       }
-      \list{organization}{1}{%
-        {Internet Engineering Task Force}%
-      }
-      \list{publisher}{1}{%
-        {IETF}%
-      }
-      \strng{namehash}{d7b814bd8eac52bb497f229573b09bd8}
-      \strng{fullhash}{8efa45e9700b1dcd8ce0d667e63afe9c}
-      \strng{bibnamehash}{8efa45e9700b1dcd8ce0d667e63afe9c}
-      \strng{authorbibnamehash}{8efa45e9700b1dcd8ce0d667e63afe9c}
-      \strng{authornamehash}{d7b814bd8eac52bb497f229573b09bd8}
-      \strng{authorfullhash}{8efa45e9700b1dcd8ce0d667e63afe9c}
+      \strng{namehash}{e03d15934ef64467d65583e1480f8a0f}
+      \strng{fullhash}{eb400fb536575868f43d0e004b374353}
+      \strng{bibnamehash}{eb400fb536575868f43d0e004b374353}
+      \strng{authorbibnamehash}{eb400fb536575868f43d0e004b374353}
+      \strng{authornamehash}{e03d15934ef64467d65583e1480f8a0f}
+      \strng{authorfullhash}{eb400fb536575868f43d0e004b374353}
       \field{sortinit}{1}
       \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{howpublished}{RFC 44}
-      \field{month}{4}
-      \field{number}{44}
-      \field{series}{Request for Comments}
-      \field{title}{{Comments on NWG/RFC 33 and 36}}
-      \field{year}{1970}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Hard-Constrained Neural Networks with Universal Approximation Guarantees}
+      \field{year}{2024}
+      \verb{eprint}
+      \verb 2410.10807
+      \endverb
       \verb{urlraw}
-      \verb http://www.ietf.org/rfc/rfc44.txt
+      \verb https://arxiv.org/abs/2410.10807
       \endverb
       \verb{url}
-      \verb http://www.ietf.org/rfc/rfc44.txt
+      \verb https://arxiv.org/abs/2410.10807
+      \endverb
+    \endentry
+    \entry{rfc15}{misc}{}
+      \name{author}{3}{}{%
+        {{hash=7da26d5f916cadd49dcef56a9134a79f}{%
+           family={Misra},
+           familyi={M\bibinitperiod},
+           given={Sidhant},
+           giveni={S\bibinitperiod}}}%
+        {{hash=1b87953629c58f81157d82fdca0d577a}{%
+           family={Roald},
+           familyi={R\bibinitperiod},
+           given={Line},
+           giveni={L\bibinitperiod}}}%
+        {{hash=8773ccc22cb2ecf28b1809a75adaeef8}{%
+           family={Ng},
+           familyi={N\bibinitperiod},
+           given={Yeesian},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{6dba18a1e10a5395d150d365b31ce62f}
+      \strng{fullhash}{de33042881a67f217b46ca467699a34b}
+      \strng{bibnamehash}{de33042881a67f217b46ca467699a34b}
+      \strng{authorbibnamehash}{de33042881a67f217b46ca467699a34b}
+      \strng{authornamehash}{6dba18a1e10a5395d150d365b31ce62f}
+      \strng{authorfullhash}{de33042881a67f217b46ca467699a34b}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{math.OC}
+      \field{eprinttype}{arXiv}
+      \field{title}{Learning for Constrained Optimization: Identifying Optimal Active Constraint Sets}
+      \field{year}{2019}
+      \verb{eprint}
+      \verb 1802.09639
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1802.09639
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1802.09639
+      \endverb
+    \endentry
+    \entry{rfc10}{misc}{}
+      \name{author}{9}{}{%
+        {{hash=023be64723749692864acfac370b717c}{%
+           family={Zhong},
+           familyi={Z\bibinitperiod},
+           given={Fangcheng},
+           giveni={F\bibinitperiod}}}%
+        {{hash=7a4f93ca2ab3fae5d0d1e205242df07f}{%
+           family={Fogarty},
+           familyi={F\bibinitperiod},
+           given={Kyle},
+           giveni={K\bibinitperiod}}}%
+        {{hash=c48bc2a459a03720519742e285243bfb}{%
+           family={Hanji},
+           familyi={H\bibinitperiod},
+           given={Param},
+           giveni={P\bibinitperiod}}}%
+        {{hash=67026dda42a3f4e378c02a75ea2cca4d}{%
+           family={Wu},
+           familyi={W\bibinitperiod},
+           given={Tianhao},
+           giveni={T\bibinitperiod}}}%
+        {{hash=b17e38f31355fb9a3be853cbdc5b092a}{%
+           family={Sztrajman},
+           familyi={S\bibinitperiod},
+           given={Alejandro},
+           giveni={A\bibinitperiod}}}%
+        {{hash=6c31048128dc2e129ab0c2c7da93a57f}{%
+           family={Spielberg},
+           familyi={S\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod}}}%
+        {{hash=35f61b9b6f1205b7024a5dad3ed76ac6}{%
+           family={Tagliasacchi},
+           familyi={T\bibinitperiod},
+           given={Andrea},
+           giveni={A\bibinitperiod}}}%
+        {{hash=931996c945e2fc0ddb278202dea6a93e}{%
+           family={Bosilj},
+           familyi={B\bibinitperiod},
+           given={Petra},
+           giveni={P\bibinitperiod}}}%
+        {{hash=77334b774d3bf4b2c47c2ba2136542bf}{%
+           family={Oztireli},
+           familyi={O\bibinitperiod},
+           given={Cengiz},
+           giveni={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{1999d5878f52cfca87dfc0d5d4ccf210}
+      \strng{fullhash}{db35e32ac0e407361a92ac595295f168}
+      \strng{bibnamehash}{7f5b530e23cc02997b1f6f85f860d449}
+      \strng{authorbibnamehash}{7f5b530e23cc02997b1f6f85f860d449}
+      \strng{authornamehash}{1999d5878f52cfca87dfc0d5d4ccf210}
+      \strng{authorfullhash}{db35e32ac0e407361a92ac595295f168}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Neural Fields with Hard Constraints of Arbitrary Differential Order}
+      \field{year}{2023}
+      \verb{eprint}
+      \verb 2306.08943
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2306.08943
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2306.08943
+      \endverb
+    \endentry
+    \entry{rfc17}{article}{}
+      \name{author}{2}{}{%
+        {{hash=5e86f4bf1c71b1695329bc18a107e57e}{%
+           family={Singh},
+           familyi={S\bibinitperiod},
+           given={Manish\bibnamedelima K.},
+           giveni={M\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=76ef2b72f263530137083e1e2f3fcc03}{%
+           family={Kekatos},
+           familyi={K\bibinitperiod},
+           given={Vassilis},
+           giveni={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{926e9e44699c6471afc361a5e7447838}
+      \strng{fullhash}{926e9e44699c6471afc361a5e7447838}
+      \strng{bibnamehash}{926e9e44699c6471afc361a5e7447838}
+      \strng{authorbibnamehash}{926e9e44699c6471afc361a5e7447838}
+      \strng{authornamehash}{926e9e44699c6471afc361a5e7447838}
+      \strng{authorfullhash}{926e9e44699c6471afc361a5e7447838}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Control of Network Systems}
+      \field{number}{2}
+      \field{title}{Optimal Scheduling of Water Distribution Systems}
+      \field{volume}{7}
+      \field{year}{2020}
+      \field{pages}{711\bibrangedash 723}
+      \range{pages}{13}
+      \verb{doi}
+      \verb 10.1109/TCNS.2019.2939651
       \endverb
     \endentry
   \enddatalist

@@ -12,27 +12,7 @@ Atualmente no mercado existem diversos simuladores hidráulicos que são utiliza
 
 A crescente demanda por eficiência e sustentabilidade nos sistemas de abastecimento de água tem impulsionado o uso de Machine Learning (ML) e Deep Learning (DL) como ferramentas inovadoras para otimização, monitoramento e controle dessas redes. Com os dados obtidos por ferramentas como EPANET, é possível treinar modelos de aprendizado de máquina para prever o comportamento do sistema e otimizar o uso de recursos.
 
-
-
-
-O método de operação tradicional baseado na experiência humana precisa que operadores para regular os equipamentos presentes nos sistemas de abastecimento de água. Geralmente leva-se muito tempo para sua conclusão.  (Artificial neural network-based water distribution scheme in real-time in long-distance water supply systems).
-
-Além disso, um processo de calibração é necessário antes de usar modelos hidráulicos, o que envolve ajustar repetidamente muitos parãmetros para minimizar o erro entre os valores simulados e observados (Meirelles et al. 2017; Lima et al. 2018).
-
-Com o progresso contínuo da tecnologia de inteligência artificial e métodos de aprendizado de máquina (ML), 
-recorre-se cada vez mais a metamodelos, que também são conhecidos como modelos substitutos (Razavi et al. 2012). Estes modelos podem substituir modelos computacionais custosos uma vez que as correlaçoes entre entradas e saídas são estabelecidas com base em dados disponíveis (Broad et al. 2010). O principal objetivo dos metamodelos é reduzir o esforço computacional necessário pelos modelos hidráulicos (Pasha and Lansey, 2014; Dini and Tabesh, 2019)
-
-Inicialmente, a regressão linear era usada para estimar essas correlações, mas abordagens modernas agora utilizam redes neurais artificiais (ANNs) e teorias de ML, devido à sua forte capacidade de expressão não-linear (Romano and Kapelan, 2014; LeCun et al., 2015). O modelo de ANN mais amplamente usado atualmente é o multi-layer perceptron (MLP), que consiste em camadas totalmente conectadas (Hu et al., 2019; Garzon et al., 2022).
-
-
-
-
-%%%%%%%
-
-
-
-Um dos usos de Deep Learning em sistemas de abastecimento de água pode ser em um agendamento inteligente para ligar e desligar a bomba, de acordo com o monitoramento em tempo real.\cite{}
-
+Há diversos papers abordando o uso de Deep Learning em sistemas de abastecimento e distribuição de água para prever detecção de anomalias\cite{rfc12}, prever pressão na rede de suprimento de água\cite{rfc11}, detecção de vazamentos\cite{rfc13}, agendamento inteligente para ligar e desligar a bomba, de acordo com o monitoramento em tempo real\cite{rfc9} entre outros.
 
 
 \section{Optimization in WSS}
@@ -52,9 +32,17 @@ As variações horárias na demanda de água durante o dia são muito maiores em
 Uma solução técnica para essa redução pode ser uma diminuição na potência de bombeamento (mesmo parando bombas se for possível) durante os horários de pico, juntamente com uma entrega extensiva fora desses horários. Consequentemente, os sistemas de distribuição devem ser equipados com tanques de armazenamento.
 
 
-(...continuar)
-
 \section{Hard Constraints}
+
+Hard constraints é um termo utilizado para verificar se certas propriedades são satisfeitas para resolução de problemas de otimização.\cite{rfc16} São como regras não negociáveis.
+
+A satisfação das restrições corresponde à aplicação dos limites de segurança operacional e à adesão às leis físicas, sendo de suma importância\cite{rfc15}.
+
+Algoritmos de aprendizado baseados em gradiente permitem otimizar os parâmetros de redes para aproximar qualquer modelo desejado. No entanto, apesar da existência de vários algoritmos avançados de otimização, a questão de impor restrições estritas de igualdade durante o treinamento não foi suficientemente abordada\cite{rfc10}.
+
+Aplicar solucionadores tradicionais para otimização geral restrita, como SQP\cite{rfc18}, a redes neurais pode ser não trivial. Como os métodos tradicionais expressam restrições como uma função de parâmetros aprendíveis, essa formulação se torna extremamente dimensional, não linear e não convexa no contexto de redes neurais\cite{rfc10}.
+
+Em operações de sistemas de abastecimento de água é restringida por requisitos mínimos de pressão; limitações de capacidade impostas por bombas, dutos e tanques; e um conjunto de restriçõies hidráulicas. As restrições hidráulicas que dão origem a complexas formulações mistas inteiras e não lineares. A primeira classe de métodos impõe restrições de pressão e capacidade explicitamente, enquanto as restrições hidráulicas são inlcuídas implicitamente por meio de ferramentas de simulação de rede de água, como o EPANET. \cite{rfc17}
 
 \section{Optimization Process}
 

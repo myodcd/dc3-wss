@@ -159,7 +159,7 @@
     </bcf:option>
     <bcf:option type="singlevalued">
       <bcf:key>sortlocale</bcf:key>
-      <bcf:value>portuguese</bcf:value>
+      <bcf:value>english</bcf:value>
     </bcf:option>
     <bcf:option type="singlevalued">
       <bcf:key>sortingtemplatename</bcf:key>
@@ -2352,26 +2352,51 @@
     <bcf:citekey order="2">rfc4</bcf:citekey>
     <bcf:citekey order="3">rfc5</bcf:citekey>
     <bcf:citekey order="4">rfc6</bcf:citekey>
-    <bcf:citekey order="6">rfc7</bcf:citekey>
-    <bcf:citekey order="7">rfc2</bcf:citekey>
-    <bcf:citekey order="8">rfc8</bcf:citekey>
+    <bcf:citekey order="5">rfc12</bcf:citekey>
+    <bcf:citekey order="6">rfc11</bcf:citekey>
+    <bcf:citekey order="7">rfc13</bcf:citekey>
+    <bcf:citekey order="8">rfc9</bcf:citekey>
     <bcf:citekey order="9">rfc7</bcf:citekey>
-    <bcf:citekey order="10">rfc8</bcf:citekey>
-    <bcf:citekey order="11">rfc44</bcf:citekey>
-    <bcf:citekey order="12">rfc44</bcf:citekey>
-    <bcf:citekey order="13">rfc44</bcf:citekey>
-    <bcf:citekey order="14">rfc44</bcf:citekey>
-    <bcf:citekey order="15">rfc44</bcf:citekey>
-    <bcf:citekey order="16">rfc44</bcf:citekey>
-    <bcf:citekey order="17">rfc44</bcf:citekey>
-    <bcf:citekey order="18">rfc1</bcf:citekey>
-    <bcf:citekey order="19">rfc4</bcf:citekey>
-    <bcf:citekey order="20">rfc5</bcf:citekey>
-    <bcf:citekey order="21">rfc6</bcf:citekey>
-    <bcf:citekey order="22">rfc7</bcf:citekey>
-    <bcf:citekey order="23">rfc2</bcf:citekey>
-    <bcf:citekey order="24">rfc8</bcf:citekey>
-    <bcf:citekey order="25">rfc44</bcf:citekey>
+    <bcf:citekey order="10">rfc2</bcf:citekey>
+    <bcf:citekey order="11">rfc8</bcf:citekey>
+    <bcf:citekey order="12">rfc7</bcf:citekey>
+    <bcf:citekey order="13">rfc8</bcf:citekey>
+    <bcf:citekey order="14">rfc16</bcf:citekey>
+    <bcf:citekey order="15">rfc15</bcf:citekey>
+    <bcf:citekey order="16">rfc10</bcf:citekey>
+    <bcf:citekey order="17">rfc18</bcf:citekey>
+    <bcf:citekey order="18">rfc10</bcf:citekey>
+    <bcf:citekey order="19">rfc17</bcf:citekey>
+    <bcf:citekey order="20">rfc1</bcf:citekey>
+    <bcf:citekey order="21">rfc1</bcf:citekey>
+    <bcf:citekey order="22">rfc1</bcf:citekey>
+    <bcf:citekey order="23">rfc1</bcf:citekey>
+    <bcf:citekey order="24">rfc1</bcf:citekey>
+    <bcf:citekey order="25">rfc1</bcf:citekey>
+    <bcf:citekey order="26">rfc1</bcf:citekey>
+    <bcf:citekey order="27">rfc2</bcf:citekey>
+    <bcf:citekey order="28">rfc2</bcf:citekey>
+    <bcf:citekey order="29">rfc2</bcf:citekey>
+    <bcf:citekey order="30">rfc2</bcf:citekey>
+    <bcf:citekey order="31">rfc2</bcf:citekey>
+    <bcf:citekey order="32">rfc2</bcf:citekey>
+    <bcf:citekey order="33">rfc2</bcf:citekey>
+    <bcf:citekey order="34">rfc1</bcf:citekey>
+    <bcf:citekey order="35">rfc4</bcf:citekey>
+    <bcf:citekey order="36">rfc5</bcf:citekey>
+    <bcf:citekey order="37">rfc6</bcf:citekey>
+    <bcf:citekey order="38">rfc12</bcf:citekey>
+    <bcf:citekey order="39">rfc11</bcf:citekey>
+    <bcf:citekey order="40">rfc13</bcf:citekey>
+    <bcf:citekey order="41">rfc9</bcf:citekey>
+    <bcf:citekey order="42">rfc7</bcf:citekey>
+    <bcf:citekey order="43">rfc2</bcf:citekey>
+    <bcf:citekey order="44">rfc8</bcf:citekey>
+    <bcf:citekey order="45">rfc16</bcf:citekey>
+    <bcf:citekey order="46">rfc15</bcf:citekey>
+    <bcf:citekey order="47">rfc10</bcf:citekey>
+    <bcf:citekey order="48">rfc18</bcf:citekey>
+    <bcf:citekey order="49">rfc17</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">
