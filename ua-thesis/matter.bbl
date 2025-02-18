@@ -75,42 +75,117 @@
       \field{title}{{EPANET 2.2 User Manual}}
       \field{year}{2000}
     \endentry
-    \entry{rfc3}{misc}{}
-      \name{author}{4}{}{%
-        {{hash=a394a4660b9bd0922737c3327d5e7a3a}{%
-           family={Rathi},
-           familyi={R\bibinitperiod},
-           given={Shweta},
-           giveni={S\bibinitperiod}}}%
-        {{hash=e8df3c5f9637ed517e6ac49527dae617}{%
-           family={Gupta},
-           familyi={G\bibinitperiod},
-           given={Rajesh},
+    \entry{rfc5}{misc}{}
+      \name{author}{3}{}{%
+        {{hash=db51aa8e9da469b3a32eee12fbcfad1f}{%
+           family={Davis},
+           familyi={D\bibinitperiod},
+           given={M.\bibnamedelimi J.},
+           giveni={M\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=4d7c7b7a9898191ee921f354fae8b8f6}{%
+           family={Janke},
+           familyi={J\bibinitperiod},
+           given={R.},
            giveni={R\bibinitperiod}}}%
-        {{hash=0717c380999b05a1112c95b362944122}{%
-           family={Labhasetwar},
-           familyi={L\bibinitperiod},
-           given={Pawan},
-           giveni={P\bibinitperiod}}}%
-        {{hash=832efb9466055df35bd95490dde5153e}{%
-           family={Nagarnaik},
-           familyi={N\bibinitperiod},
-           given={Pranav},
-           giveni={P\bibinitperiod}}}%
+        {{hash=1f8ead3f8dbe726aa89f07f476ce9b77}{%
+           family={Taxon},
+           familyi={T\bibinitperiod},
+           given={T.\bibnamedelimi N.},
+           giveni={T\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
       }
-      \strng{namehash}{c2068d3deacd73de13217d1153e4535f}
-      \strng{fullhash}{5cda20e1bfd5731b56bde91185ec7c4c}
-      \strng{bibnamehash}{5cda20e1bfd5731b56bde91185ec7c4c}
-      \strng{authorbibnamehash}{5cda20e1bfd5731b56bde91185ec7c4c}
-      \strng{authornamehash}{c2068d3deacd73de13217d1153e4535f}
-      \strng{authorfullhash}{5cda20e1bfd5731b56bde91185ec7c4c}
+      \list{publisher}{2}{%
+        {Drinking water engineering}%
+        {science, 11(1), 25–47}%
+      }
+      \strng{namehash}{0d42d969c803a4309b1100f8b588ac0c}
+      \strng{fullhash}{94a909d1d980679c1e5207a75a207b98}
+      \strng{bibnamehash}{94a909d1d980679c1e5207a75a207b98}
+      \strng{authorbibnamehash}{94a909d1d980679c1e5207a75a207b98}
+      \strng{authornamehash}{0d42d969c803a4309b1100f8b588ac0c}
+      \strng{authorfullhash}{94a909d1d980679c1e5207a75a207b98}
       \field{sortinit}{3}
       \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{number}{3}
-      \field{title}{{Challenges in calibration of water distribution network: a case study of Ramnagar Elevated Service Reservoir command area in Nagpur City, India}}
-      \field{year}{2020}
+      \field{number}{5}
+      \field{title}{{Mass imbalances in EPANET water-quality simulations}}
+      \field{year}{2018}
+      \verb{urlraw}
+      \verb https://doi.org/10.5194/dwes-11-25-2018
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.5194/dwes-11-25-2018
+      \endverb
+    \endentry
+    \entry{rfc6}{misc}{}
+      \name{author}{4}{}{%
+        {{hash=49eaef81f9d76191ae8c9c7e9f932f8b}{%
+           family={Hervás},
+           familyi={H\bibinitperiod},
+           given={Marta},
+           giveni={M\bibinitperiod}}}%
+        {{hash=69c75fd60dac0ba98ba0ff7c5f5edf81}{%
+           family={Martínez-Alzamora},
+           familyi={M\bibinithyphendelim A\bibinitperiod},
+           given={Fernando},
+           giveni={F\bibinitperiod}}}%
+        {{hash=700a177b6fb19e4ca65ea469be3c57a4}{%
+           family={Conejos},
+           familyi={C\bibinitperiod},
+           given={Pilar},
+           giveni={P\bibinitperiod}}}%
+        {{hash=33c06a677d494691143405523df9a22c}{%
+           family={Alonso},
+           familyi={A\bibinitperiod},
+           given={Joan\bibnamedelima Carles},
+           giveni={J\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+      }
+      \strng{namehash}{7594e1208bff7d966d3e8c8a2348f3d3}
+      \strng{fullhash}{830cdd6c915d2b98c363ab8a92a8f8e8}
+      \strng{bibnamehash}{830cdd6c915d2b98c363ab8a92a8f8e8}
+      \strng{authorbibnamehash}{830cdd6c915d2b98c363ab8a92a8f8e8}
+      \strng{authornamehash}{7594e1208bff7d966d3e8c8a2348f3d3}
+      \strng{authorfullhash}{830cdd6c915d2b98c363ab8a92a8f8e8}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{6}
+      \field{title}{{Advantages of the Event Method for the Simulation of Water Quality in Pressurised Water Systems}}
+      \field{year}{2024}
+    \endentry
+    \entry{rfc7}{misc}{}
+      \name{author}{2}{}{%
+        {{hash=0bc913a3b94ecf69ee3938768b4cc586}{%
+           family={Świętochowska},
+           familyi={Ś\bibinitperiod},
+           given={Martyna},
+           giveni={M\bibinitperiod}}}%
+        {{hash=32f9c53ff4ee4d9f45743bcbbfc855ce}{%
+           family={Bartkowska},
+           familyi={B\bibinitperiod},
+           given={Izabela},
+           giveni={I\bibinitperiod}}}%
+      }
+      \strng{namehash}{61c0982d10c14a6096141d88c826f9c0}
+      \strng{fullhash}{61c0982d10c14a6096141d88c826f9c0}
+      \strng{bibnamehash}{61c0982d10c14a6096141d88c826f9c0}
+      \strng{authorbibnamehash}{61c0982d10c14a6096141d88c826f9c0}
+      \strng{authornamehash}{61c0982d10c14a6096141d88c826f9c0}
+      \strng{authorfullhash}{61c0982d10c14a6096141d88c826f9c0}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{7}
+      \field{title}{{Optimization of Energy Consumption in the Pumping Station Supplying Two Zones of the Water Supply System}}
+      \field{year}{2022}
+      \verb{urlraw}
+      \verb https://www.mdpi.com/1996-1073/15/1/310
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/1996-1073/15/1/310
+      \endverb
     \endentry
     \entry{rfc2}{misc}{}
       \name{author}{2}{}{%
@@ -137,14 +212,42 @@
       \strng{authorbibnamehash}{4559a13fe16cb3463ce4ece54eae293f}
       \strng{authornamehash}{4559a13fe16cb3463ce4ece54eae293f}
       \strng{authorfullhash}{4559a13fe16cb3463ce4ece54eae293f}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{2013 IEEE Symposium on Computers & Informatics (ISCI)}
       \field{number}{2}
       \field{title}{{Pump Scheduling Optimization Model for Water Supply System Using AWGA}}
       \field{year}{2013}
+    \endentry
+    \entry{rfc8}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=302a3c89f84128e1d4d5a404036ef5a5}{%
+           family={Sarbu},
+           familyi={S\bibinitperiod},
+           given={Ioan},
+           giveni={I\bibinitperiod}}}%
+      }
+      \strng{namehash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \strng{fullhash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \strng{bibnamehash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \strng{authorbibnamehash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \strng{authornamehash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \strng{authorfullhash}{302a3c89f84128e1d4d5a404036ef5a5}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{8}
+      \field{title}{A Study of Energy Optimisation of Urban Water Distribution Systems Using Potential Elements}
+      \field{year}{2016}
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2073-4441/8/12/593
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2073-4441/8/12/593
+      \endverb
     \endentry
     \entry{rfc44}{misc}{}
       \name{author}{3}{}{%
@@ -176,8 +279,8 @@
       \strng{authorbibnamehash}{8efa45e9700b1dcd8ce0d667e63afe9c}
       \strng{authornamehash}{d7b814bd8eac52bb497f229573b09bd8}
       \strng{authorfullhash}{8efa45e9700b1dcd8ce0d667e63afe9c}
-      \field{sortinit}{6}
-      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{howpublished}{RFC 44}

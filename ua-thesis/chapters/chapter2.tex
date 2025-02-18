@@ -5,14 +5,15 @@
 
 \section{Hydraulic Simulation}
 
-Atualmente no mercado existem diversos simuladores hidráulicos que são utilizados para modelar sistemas de abastecimento de água. Dentre eles, podemos citar o EPANET, WaterGEMS, WaterCAD, entre outros. A simulação permite oferecer soluções rápidas e precisas para equações algébricas diferenciais usadas para desenvolver a representação matemática de um sistema de abastecimento de água \cite{rfc1}. E o EPANET é um dos mais reconhecidos aplicativos na área de distribuição de água \cite{rfc4}, e é esta ferramenta a ser utilizada na simulação.
-
-A calibração de um modelo hidráulico é uma tarefa desafiadora pois necessita de um grande número de parâmetros incertos\cite{rfc3}. Isto é necessário para possibilitar que os resultados obtidos sejam confiáveis. 
-
-As simulações hidráulicas demandam muitos mais dados para o ajuste no processo de calibração dos componentes. 
+Atualmente no mercado existem diversos simuladores hidráulicos que são utilizados para modelar sistemas de abastecimento de água. Dentre eles, podemos citar o EPANET, WaterGEMS, WaterCAD, entre outros. A simulação permite oferecer soluções rápidas e precisas para equações algébricas diferenciais usadas para desenvolver a representação matemática de um sistema de abastecimento de água\cite{rfc1}. O EPANET é um dos mais reconhecidos aplicativos na área de distribuição de água\cite{rfc4}, amplamente utilizaddo e com muito sucesso\cite{rfc5} há mais de 20 anos\cite{rfc6} e é esta ferramenta a ser utilizada na simulação para obtenção dos dados necessários para a otimização.
 
 
 \section{Deep Leaning in WSS}
+
+A crescente demanda por eficiência e sustentabilidade nos sistemas de abastecimento de água tem impulsionado o uso de Machine Learning (ML) e Deep Learning (DL) como ferramentas inovadoras para otimização, monitoramento e controle dessas redes. Com os dados obtidos por ferramentas como EPANET, é possível treinar modelos de aprendizado de máquina para prever o comportamento do sistema e otimizar o uso de recursos.
+
+
+
 
 O método de operação tradicional baseado na experiência humana precisa que operadores para regular os equipamentos presentes nos sistemas de abastecimento de água. Geralmente leva-se muito tempo para sua conclusão.  (Artificial neural network-based water distribution scheme in real-time in long-distance water supply systems).
 
@@ -26,18 +27,30 @@ Inicialmente, a regressão linear era usada para estimar essas correlações, ma
 
 
 
+%%%%%%%
+
+
+
+Um dos usos de Deep Learning em sistemas de abastecimento de água pode ser em um agendamento inteligente para ligar e desligar a bomba, de acordo com o monitoramento em tempo real.\cite{}
+
+
 
 \section{Optimization in WSS}
 
-O principal objetivo para otimização é o custo operacional, que compreende o custo da energia elétrica e o custo de manutenção das bombas \cite{rfc2} (Pump Scheduling Optimization Model for Water Supply System Using AWGA). Os sistemas de bombeamento consomem a maior quantidade de energia em sistemas de abastecimento de água, geralmente respondendo por mais de 80\% do consumo total de energia, de acordo com Sarbu (2016).
+Estações de bombeamento de abastecimento de água são um elemento indispensável de qualquer sistema de abastecimento de água. Elas fornecem não apenas o suprimento de água para cada recipiente, mas também a pressão necessária na rede de abastecimento de água para fins de combate a incêndio. O custo da energia é um dos componentes mais importantes do preço da água tratada.\cite{rfc7}
 
+O principal objetivo para otimização é o custo operacional, que compreende o custo da energia elétrica e o custo de manutenção das bombas.\cite{rfc2} Os sistemas de bombeamento consomem a maior quantidade de energia em sistemas de abastecimento de água, geralmente respondendo por mais de 80\% do consumo total de energia.\cite{rfc8}
 
-A otimização do custo de energia em sistemas de abastecimento de água pode ser alcançada por meio de várias medidas, como substituição de bombas, mudança na operação da estação de bombeamento, modernização do sistema de tubulações, modelagem computacional de mudanças na operação da rede e seleção de soluções que garantam os melhores efeitos econômicos e técnicos (Świe¸tochowska and Bartkowska, 2022).
-
-
-teste~\cite{rfc1}
+A otimização do custo de energia em sistemas de abastecimento de água pode ser alcançada por meio de várias medidas, como substituição de bombas, mudança na operação da estação de bombeamento, modernização do sistema de tubulações, modelagem computacional de mudanças na operação da rede e seleção de soluções que garantam os melhores efeitos econômicos e técnicos.\cite{rfc7}
 
 A otimização dos WSS apresenta inúmeras aplicações, mas é crucial enfatizar a importância da otimização do agendamento de bombas devido ao considerável consumo de energia associado a este componente essencial do WSS (Cost efficiency in water supply systems: An applied review on optimization models for the pump scheduling problem)
+
+Os sistemas de bombeamento têm um potencial significativo para melhorias de eficiência energética. Em muitos casos, a otimização das operações consideram a velocidade dixa da bombas e a economia de custos pode ser obtida utilizando o padrão de variação do custo da tarifa de energia elétrica ao longo do dia.\cite{rfc8}
+
+As variações horárias na demanda de água durante o dia são muito maiores em comparação à demanda média diária. Para um consumidor doméstico, a necessidade de água é maior durante as horas da manhã e da noite do que a demanda do meio-dia. Durante os horários de pico, o custo de energia é 2 a 3 vezes mais caro do que durante os horários de consumo mínimo.
+
+Uma solução técnica para essa redução pode ser uma diminuição na potência de bombeamento (mesmo parando bombas se for possível) durante os horários de pico, juntamente com uma entrega extensiva fora desses horários. Consequentemente, os sistemas de distribuição devem ser equipados com tanques de armazenamento.
+
 
 (...continuar)
 
