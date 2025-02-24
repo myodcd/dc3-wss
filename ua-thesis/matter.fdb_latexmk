@@ -1,15 +1,15 @@
 # Fdb version 3
-["biber matter"] 1739890317 "matter.bcf" "matter.bbl" "matter" 1739890525
-  "matter.bcf" 1739890339 108726 e3020735cefbcf68d3c891a1c87db071 "pdflatex"
+["biber matter"] 1740412682 "matter.bcf" "matter.bbl" "matter" 1740412984
+  "matter.bcf" 1740412955 109542 536c9c5229141f3850666279495a1878 "pdflatex"
   (generated)
   "matter.bbl"
   "matter.blg"
-["makeindex lines.idx"] 1739890520 "lines.idx" "lines.ind" "lines" 1739890525
+["makeindex lines.idx"] 1740412981 "lines.idx" "lines.ind" "lines" 1740412984
   "lines.idx" 0 -1 0 "pdflatex"
   (generated)
   "lines.ilg"
   "lines.ind"
-["pdflatex"] 1739890525 "/Users/mtcd/@codes/dc3-wss/ua-thesis/matter.tex" "matter.pdf" "matter" 1739890525
+["pdflatex"] 1740412984 "/Users/mtcd/@codes/dc3-wss/ua-thesis/matter.tex" "matter.pdf" "matter" 1740412984
   "/Users/mtcd/@codes/dc3-wss/ua-thesis/matter.tex" 1739880109 10863 b30ad111105ccf83dcac62876afd5d55 ""
   "/dev/null" 0 -1 0 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
@@ -306,28 +306,28 @@
   "/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1647878959 4410336 7d30a02e9fa9a16d7d1f8d037ba69641 ""
   "/usr/local/texlive/2022/texmf-var/web2c/pdftex/pdflatex.fmt" 1664636250 2826433 ae9aad0cce7e4d9c0cc4d2ec7180a6ca ""
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
-  "chapters/appendix-more.aux" 1739890529 6058 96714500fa996416a26e7089cdcdb6b7 "pdflatex"
+  "chapters/appendix-more.aux" 1740412986 6058 5a3362d2883305f3c345732a21945eae "pdflatex"
   "chapters/appendix-more.tex" 1739867101 29 60068b747f1dc8198a50d5d0177e5bed ""
-  "chapters/chapter1.aux" 1739890528 6254 a010d29238574d7228b72b9cf8d9c54f "pdflatex"
-  "chapters/chapter1.tex" 1739867101 2119 3196daaadd0de4ad9ebef3739f8a5a40 ""
-  "chapters/chapter2.aux" 1739890528 7025 5ffd04e28411966fe0d9a98fda35a510 "pdflatex"
-  "chapters/chapter2.tex" 1739888721 6186 7ca770dcdad7dbad717b5b3722e470d8 ""
-  "chapters/chapter3.aux" 1739890528 6642 e0129f59f395e9f94e0627aab2ca36e0 "pdflatex"
+  "chapters/chapter1.aux" 1740412985 6368 c00a13f4c1f08aba51360035d049ebc1 "pdflatex"
+  "chapters/chapter1.tex" 1740392992 4682 0683bf09b1cd16b5702f9a318eb5987c ""
+  "chapters/chapter2.aux" 1740412986 7398 03fedee2c4cd459211363cba33f76bce "pdflatex"
+  "chapters/chapter2.tex" 1740412981 15018 dfaf61bee200007f0985c1df4725f6a0 ""
+  "chapters/chapter3.aux" 1740412986 6642 dfdc79377f8dff557bd14ff12217bbd7 "pdflatex"
   "chapters/chapter3.tex" 1739867101 441 24db896caf14744f5b2b4a9d69d39fff ""
-  "chapters/chapter4.aux" 1739890528 6237 204593f1a2ca8e4850885f38c6bea3d2 "pdflatex"
+  "chapters/chapter4.aux" 1740412986 6237 280e634a234c06e1fec45366d104ffe2 "pdflatex"
   "chapters/chapter4.tex" 1739867101 68 48c3115101c85e448944a9ee2ab6a97d ""
-  "chapters/chapter5.aux" 1739890528 7433 9e786a1ab2ab225239618f84558710da "pdflatex"
+  "chapters/chapter5.aux" 1740412986 7437 998da89c9afe118e93c34a5cf335219f "pdflatex"
   "chapters/chapter5.tex" 1739878071 1942 f74f4a0a34e5153226e172325f6ea379 ""
-  "chapters/chapter6.aux" 1739890528 7131 fb8821242c2003ed98da5068fd3ceced "pdflatex"
+  "chapters/chapter6.aux" 1740412986 7131 f8fbe41dde95929ec7ac1c23a03b3dfc "pdflatex"
   "chapters/chapter6.tex" 1739878091 1933 fd873b94b668978778af6f505cfd87e9 ""
   "cover.pdf" 1739867101 43361 8b0e5b7043dbdee6666c3e0726f47874 ""
-  "glossary.aux" 1739890528 6132 dc094a464c369ff9df8d241b33214c57 "pdflatex"
+  "glossary.aux" 1740412985 6132 dc094a464c369ff9df8d241b33214c57 "pdflatex"
   "glossary.tex" 1739867101 209 79d432e5b753d28fc43cfdd2052591e8 ""
   "lines.ind" 0 -1 0 "makeindex lines.idx"
-  "matter.aux" 1739890525 32 3985256e7290058c681f74d7a3565a19 "pdflatex"
-  "matter.bbl" 1739890330 29596 140036cb9892d3389f2be8736ff80af2 "biber matter"
+  "matter.aux" 1740412984 32 3985256e7290058c681f74d7a3565a19 "pdflatex"
+  "matter.bbl" 1740412685 39134 7fd9203add75a515e16fb67f53a0b62e "biber matter"
   "matter.mw" 0 -1 0 "pdflatex"
-  "matter.run.xml" 1739890524 2447 d86257dee3640444283fc1ee4e717ece "pdflatex"
+  "matter.run.xml" 1740412984 2447 d86257dee3640444283fc1ee4e717ece "pdflatex"
   "matter.tex" 1739880109 10863 b30ad111105ccf83dcac62876afd5d55 ""
   (generated)
   "chapters/appendix-more.aux"

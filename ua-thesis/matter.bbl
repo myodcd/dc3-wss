@@ -173,6 +173,218 @@
       \verb https://www.mdpi.com/2073-4441/16/4/599
       \endverb
     \endentry
+    \entry{rfc23}{book}{}
+      \name{author}{1}{}{%
+        {{hash=cff345717bb23fc133779963a843770d}{%
+           family={Subramanian},
+           familyi={S\bibinitperiod},
+           given={Vishnu},
+           giveni={V\bibinitperiod}}}%
+      }
+      \name{editor}{1}{}{%
+        {{hash=a97ecfe73f8595921b87389426a1009c}{%
+           family={Publishing},
+           familyi={P\bibinitperiod},
+           given={Packt},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{cff345717bb23fc133779963a843770d}
+      \strng{fullhash}{cff345717bb23fc133779963a843770d}
+      \strng{bibnamehash}{cff345717bb23fc133779963a843770d}
+      \strng{authorbibnamehash}{cff345717bb23fc133779963a843770d}
+      \strng{authornamehash}{cff345717bb23fc133779963a843770d}
+      \strng{authorfullhash}{cff345717bb23fc133779963a843770d}
+      \strng{editorbibnamehash}{a97ecfe73f8595921b87389426a1009c}
+      \strng{editornamehash}{a97ecfe73f8595921b87389426a1009c}
+      \strng{editorfullhash}{a97ecfe73f8595921b87389426a1009c}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{978-78862-433-6}
+      \field{title}{Deep Learning with PyTorch}
+      \field{year}{2018}
+    \endentry
+    \entry{rfc27}{book}{}
+      \name{author}{3}{}{%
+        {{hash=40fcfc051d7dc0fbe68768aa68db6d6b}{%
+           family={Roberts},
+           familyi={R\bibinitperiod},
+           given={Daniel\bibnamedelima A.},
+           giveni={D\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=e6298db1e9255387e706dbd94dbdcac7}{%
+           family={Yaida},
+           familyi={Y\bibinitperiod},
+           given={Sho},
+           giveni={S\bibinitperiod}}}%
+        {{hash=cf9a954bd1391f7be502bbdd80737355}{%
+           family={Hanin},
+           familyi={H\bibinitperiod},
+           given={Boris},
+           giveni={B\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Cambridge University Press}%
+      }
+      \strng{namehash}{8ffc5d24bb93237b721880086c9081bb}
+      \strng{fullhash}{cec8f867b6165785086af7a899b2ab9a}
+      \strng{bibnamehash}{cec8f867b6165785086af7a899b2ab9a}
+      \strng{authorbibnamehash}{cec8f867b6165785086af7a899b2ab9a}
+      \strng{authornamehash}{8ffc5d24bb93237b721880086c9081bb}
+      \strng{authorfullhash}{cec8f867b6165785086af7a899b2ab9a}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{9781316519332}
+      \field{month}{5}
+      \field{title}{The Principles of Deep Learning Theory: An Effective Theory Approach to Understanding Neural Networks}
+      \field{year}{2022}
+      \verb{doi}
+      \verb 10.1017/9781009023405
+      \endverb
+      \verb{urlraw}
+      \verb http://dx.doi.org/10.1017/9781009023405
+      \endverb
+      \verb{url}
+      \verb http://dx.doi.org/10.1017/9781009023405
+      \endverb
+    \endentry
+    \entry{rfc22}{book}{}
+      \name{author}{1}{}{%
+        {{hash=ea31d01d9b31998a42272078cf6dca89}{%
+           family={Skansi},
+           familyi={S\bibinitperiod},
+           given={Sandro},
+           giveni={S\bibinitperiod}}}%
+      }
+      \name{editor}{1}{}{%
+        {{hash=c79e6794d92b660604601937a9b1c766}{%
+           family={Springer},
+           familyi={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{fullhash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{bibnamehash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{authorbibnamehash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{authornamehash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{authorfullhash}{ea31d01d9b31998a42272078cf6dca89}
+      \strng{editorbibnamehash}{c79e6794d92b660604601937a9b1c766}
+      \strng{editornamehash}{c79e6794d92b660604601937a9b1c766}
+      \strng{editorfullhash}{c79e6794d92b660604601937a9b1c766}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2197-1781}
+      \field{title}{Introduction to Deep Learning}
+      \field{year}{2018}
+    \endentry
+    \entry{rfc24}{article}{}
+      \name{author}{8}{}{%
+        {{hash=c5cca4d18a4b08406db28a32d53a5edc}{%
+           family={Sengupta},
+           familyi={S\bibinitperiod},
+           given={Saptarshi},
+           giveni={S\bibinitperiod}}}%
+        {{hash=c1c11de3d86529bd8e87cd945e7ce24a}{%
+           family={Basak},
+           familyi={B\bibinitperiod},
+           given={Sanchita},
+           giveni={S\bibinitperiod}}}%
+        {{hash=9bab6264f6d781c80cb5147e7fd1f7a5}{%
+           family={Saikia},
+           familyi={S\bibinitperiod},
+           given={Pallabi},
+           giveni={P\bibinitperiod}}}%
+        {{hash=fb7943e6e099c88adaabeed21555cafd}{%
+           family={Paul},
+           familyi={P\bibinitperiod},
+           given={Sayak},
+           giveni={S\bibinitperiod}}}%
+        {{hash=8499bb63184d4140aa2c5beeb9d974e6}{%
+           family={Tsalavoutis},
+           familyi={T\bibinitperiod},
+           given={Vasilios},
+           giveni={V\bibinitperiod}}}%
+        {{hash=f62a4a34c5d1ac84e2f6d46850acb7a9}{%
+           family={Atiah},
+           familyi={A\bibinitperiod},
+           given={Frederick},
+           giveni={F\bibinitperiod}}}%
+        {{hash=dc28b75bdf389a89251bb9a705deb6ab}{%
+           family={Ravi},
+           familyi={R\bibinitperiod},
+           given={Vadlamani},
+           giveni={V\bibinitperiod}}}%
+        {{hash=46514ac97a637f36528bdadab31d4068}{%
+           family={Peters},
+           familyi={P\bibinitperiod},
+           given={Alan},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{78b28a498e074251c1673725c95496f7}
+      \strng{fullhash}{f64676271d6991cec27ae0f79a6c7d83}
+      \strng{bibnamehash}{52858fa2b2f9bce58541c8e1894ecc5f}
+      \strng{authorbibnamehash}{52858fa2b2f9bce58541c8e1894ecc5f}
+      \strng{authornamehash}{78b28a498e074251c1673725c95496f7}
+      \strng{authorfullhash}{f64676271d6991cec27ae0f79a6c7d83}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{0950-7051}
+      \field{journaltitle}{Knowledge-Based Systems}
+      \field{title}{A review of deep learning with special emphasis on architectures, applications and recent trends}
+      \field{volume}{194}
+      \field{year}{2020}
+      \field{pages}{105596}
+      \range{pages}{1}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.knosys.2020.105596
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S095070512030071X
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S095070512030071X
+      \endverb
+    \endentry
+    \entry{rfc26}{article}{}
+      \name{author}{1}{}{%
+        {{hash=288bdbcfe1b91ad7484d7a24f74f99ed}{%
+           family={Schmidhuber},
+           familyi={S\bibinitperiod},
+           given={Jürgen},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \strng{fullhash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \strng{bibnamehash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \strng{authorbibnamehash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \strng{authornamehash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \strng{authorfullhash}{288bdbcfe1b91ad7484d7a24f74f99ed}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{0893-6080}
+      \field{journaltitle}{Neural Networks}
+      \field{title}{Deep learning in neural networks: An overview}
+      \field{volume}{61}
+      \field{year}{2015}
+      \field{pages}{85\bibrangedash 117}
+      \range{pages}{33}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.neunet.2014.09.003
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S0893608014002135
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S0893608014002135
+      \endverb
+    \endentry
     \entry{rfc12}{misc}{}
       \name{author}{4}{}{%
         {{hash=81e718542697d8cb9b28022566aa3a73}{%
@@ -202,8 +414,8 @@
       \strng{authorbibnamehash}{923dfd518a1581ae9afcd38f8fd858b5}
       \strng{authornamehash}{0c415dbc73de4cfd4cfd1bbee206fdf4}
       \strng{authorfullhash}{923dfd518a1581ae9afcd38f8fd858b5}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{booktitle}{2020 IEEE International Conference on Networking, Sensing and Control (ICNSC)}
@@ -255,8 +467,8 @@
       \strng{authorbibnamehash}{900553b801109eac0b690c04f77d8478}
       \strng{authornamehash}{442a232b27875bfcdce95cc06693c9b3}
       \strng{authorfullhash}{900553b801109eac0b690c04f77d8478}
-      \field{sortinit}{6}
-      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Water Supply}
@@ -312,8 +524,8 @@
       \strng{authorbibnamehash}{7784fb5ed7b4aa062c377803c1967f4c}
       \strng{authornamehash}{aa64b45f7abf042f5df6a75bf13f9cff}
       \strng{authorfullhash}{7784fb5ed7b4aa062c377803c1967f4c}
-      \field{sortinit}{7}
-      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{AQUA - Water Infrastructure, Ecosystems and Society}
@@ -379,8 +591,8 @@
       \strng{authorbibnamehash}{269839b637a27221d62c7d9ccab20f60}
       \strng{authornamehash}{92d742d7c3132603a82fc7c3d02b6bcb}
       \strng{authorfullhash}{d9705b772770fce674d01d188f644926}
-      \field{sortinit}{8}
-      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{AQUA - Water Infrastructure Ecosystems and Society}
@@ -419,12 +631,11 @@
       \strng{authorbibnamehash}{0f01e03ccc5889aa98d327cbc3269373}
       \strng{authornamehash}{044f192918ed0033db99dbc8282c38da}
       \strng{authorfullhash}{0f01e03ccc5889aa98d327cbc3269373}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of Physics: Conference Series}
-      \field{month}{12}
       \field{number}{2}
       \field{title}{Optimization of Water Distribution Systems: A Review}
       \field{volume}{1378}
@@ -440,6 +651,32 @@
       \verb{url}
       \verb https://dx.doi.org/10.1088/1742-6596/1378/2/022068
       \endverb
+    \endentry
+    \entry{rfc21}{book}{}
+      \name{author}{3}{}{%
+        {{hash=f6b7e9f2658edd6b5944ecffb8075fb5}{%
+           family={A.Andrade-Campos},
+           familyi={A\bibinithyphendelim C\bibinitperiod}}}%
+        {{hash=ef3a33491edf8da1713f6d878e098af4}{%
+           family={J.Dias-de-Oliveira},
+           familyi={J\bibinithyphendelim O\bibinitperiod}}}%
+        {{hash=48b489f4ff3ac0a5f2a51a56d85f7446}{%
+           family={J.Pinho-da-Cruz},
+           familyi={J\bibinithyphendelim C\bibinitperiod}}}%
+      }
+      \strng{namehash}{c18c0db3f423009375010b57cb925685}
+      \strng{fullhash}{70aa1e9b1ac2fe36ae0d440f2a95aafe}
+      \strng{bibnamehash}{70aa1e9b1ac2fe36ae0d440f2a95aafe}
+      \strng{authorbibnamehash}{70aa1e9b1ac2fe36ae0d440f2a95aafe}
+      \strng{authornamehash}{c18c0db3f423009375010b57cb925685}
+      \strng{authorfullhash}{70aa1e9b1ac2fe36ae0d440f2a95aafe}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{978-972-8480-35-6}
+      \field{title}{Otimização não-linear em engenharia - Cálculo estrutural e computacional multiescala}
+      \field{year}{2015}
     \endentry
     \entry{rfc7}{misc}{}
       \name{author}{2}{}{%
@@ -460,8 +697,8 @@
       \strng{authorbibnamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authornamehash}{61c0982d10c14a6096141d88c826f9c0}
       \strng{authorfullhash}{61c0982d10c14a6096141d88c826f9c0}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{issn}{1996-1073}
@@ -496,8 +733,8 @@
       \strng{authorbibnamehash}{ef119c3eb4edd452577e891097486ca7}
       \strng{authornamehash}{ef119c3eb4edd452577e891097486ca7}
       \strng{authorfullhash}{ef119c3eb4edd452577e891097486ca7}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{isbn}{978-1-4799-0209-5}
@@ -525,8 +762,8 @@
       \strng{authorbibnamehash}{302a3c89f84128e1d4d5a404036ef5a5}
       \strng{authornamehash}{302a3c89f84128e1d4d5a404036ef5a5}
       \strng{authorfullhash}{302a3c89f84128e1d4d5a404036ef5a5}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{issn}{2073-4441}
@@ -566,8 +803,8 @@
       \strng{authorbibnamehash}{eb400fb536575868f43d0e004b374353}
       \strng{authornamehash}{e03d15934ef64467d65583e1480f8a0f}
       \strng{authorfullhash}{eb400fb536575868f43d0e004b374353}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{eprintclass}{cs.LG}
@@ -608,8 +845,8 @@
       \strng{authorbibnamehash}{de33042881a67f217b46ca467699a34b}
       \strng{authornamehash}{6dba18a1e10a5395d150d365b31ce62f}
       \strng{authorfullhash}{de33042881a67f217b46ca467699a34b}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{eprintclass}{math.OC}
@@ -680,8 +917,8 @@
       \strng{authorbibnamehash}{7f5b530e23cc02997b1f6f85f860d449}
       \strng{authornamehash}{1999d5878f52cfca87dfc0d5d4ccf210}
       \strng{authorfullhash}{db35e32ac0e407361a92ac595295f168}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{eprintclass}{cs.LG}
@@ -720,8 +957,8 @@
       \strng{authorbibnamehash}{5b8fd28f6245ae8b0af119560622fa4f}
       \strng{authornamehash}{5b8fd28f6245ae8b0af119560622fa4f}
       \strng{authorfullhash}{5b8fd28f6245ae8b0af119560622fa4f}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{title}{Numerical Optimization}
@@ -746,8 +983,8 @@
       \strng{authorbibnamehash}{926e9e44699c6471afc361a5e7447838}
       \strng{authornamehash}{926e9e44699c6471afc361a5e7447838}
       \strng{authorfullhash}{926e9e44699c6471afc361a5e7447838}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{IEEE Transactions on Control of Network Systems}
