@@ -779,6 +779,65 @@
       \verb https://www.mdpi.com/2073-4441/8/12/593
       \endverb
     \endentry
+    \entry{rfc28}{article}{}
+      \name{author}{5}{}{%
+        {{hash=07d07a408b7ff264e0aa80c32d7dc3d4}{%
+           family={Becker},
+           familyi={B\bibinitperiod},
+           given={Bernhard\bibnamedelimb Peter\bibnamedelima Josef},
+           giveni={B\bibinitperiod\bibinitdelim P\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=d27d4f1d94094adfed72e23a9d4d5815}{%
+           family={Jagtenberg},
+           familyi={J\bibinitperiod},
+           given={Caroline\bibnamedelima Jeanne},
+           giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=b5a5be1951f9793fe40fd3e04b25cfce}{%
+           family={Horváth},
+           familyi={H\bibinitperiod},
+           given={Klaudia},
+           giveni={K\bibinitperiod}}}%
+        {{hash=609660bb7287878fd5c52ce3f94ece3b}{%
+           family={Mitchell},
+           familyi={M\bibinitperiod},
+           given={Ailbhe},
+           giveni={A\bibinitperiod}}}%
+        {{hash=c8e05ad878a3071a21e0a949dbaa42ea}{%
+           family={Rodríguez-Sarasty},
+           familyi={R\bibinithyphendelim S\bibinitperiod},
+           given={Jesús\bibnamedelima Andrés},
+           giveni={J\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \strng{namehash}{e783483af6f05fb78b82492f73570edf}
+      \strng{fullhash}{d7471c120681bef635650a0949b90ab4}
+      \strng{bibnamehash}{d7471c120681bef635650a0949b90ab4}
+      \strng{authorbibnamehash}{d7471c120681bef635650a0949b90ab4}
+      \strng{authornamehash}{e783483af6f05fb78b82492f73570edf}
+      \strng{authorfullhash}{d7471c120681bef635650a0949b90ab4}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{WIREs Water}
+      \field{number}{6}
+      \field{title}{Optimization methods in water system operation}
+      \field{volume}{11}
+      \field{year}{2024}
+      \field{pages}{e1756}
+      \range{pages}{-1}
+      \verb{doi}
+      \verb https://doi.org/10.1002/wat2.1756
+      \endverb
+      \verb{eprint}
+      \verb https://wires.onlinelibrary.wiley.com/doi/pdf/10.1002/wat2.1756
+      \endverb
+      \verb{urlraw}
+      \verb https://wires.onlinelibrary.wiley.com/doi/abs/10.1002/wat2.1756
+      \endverb
+      \verb{url}
+      \verb https://wires.onlinelibrary.wiley.com/doi/abs/10.1002/wat2.1756
+      \endverb
+      \keyw{decision support,hydropower,optimization,scheduling,stochastic optimization}
+    \endentry
     \entry{rfc16}{misc}{}
       \name{author}{3}{}{%
         {{hash=89ab12fb82ecf0c12dcef79f7d2ad5eb}{%
@@ -957,8 +1016,8 @@
       \strng{authorbibnamehash}{5b8fd28f6245ae8b0af119560622fa4f}
       \strng{authornamehash}{5b8fd28f6245ae8b0af119560622fa4f}
       \strng{authorfullhash}{5b8fd28f6245ae8b0af119560622fa4f}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{title}{Numerical Optimization}

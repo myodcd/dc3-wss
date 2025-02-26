@@ -75,7 +75,7 @@
 
 % Redefine section names according to your preference
 %\def\sectionautorefname{Section}
-%\def\chapterautorefname{Chapter}
+\def\chapterautorefname{Chapter}
 %\def\figureautorefname{Figure}
 %\def\listingautorefname{Listing}
 %\def\tableautorefname{Table}
@@ -129,6 +129,9 @@
 % For fixing listoflistings with memoir
 \usepackage{xparse}
 
+% For header and footer
+\usepackage{fancyhdr}
+
 % Uncomment the next lines to enable chart support through pgf and tikz
 % This may require you to install further packages in your Tex system
 %\usepackage[version=0.96]{pgf}
@@ -175,7 +178,7 @@
 %\restylefloat{lstlisting}
 
 % For test purposes you may use the lipsum package to create dummy text
-\usepackage{lipsum} % REMOVE
+%\usepackage{lipsum} % REMOVE
 
 %Keep floats inside section!
 \usepackage[section]{placeins}
@@ -278,11 +281,13 @@
 % thesis can also be used as defined previously
 % Check the memoir documentation for the available themes
 % Default is veelo
-\chapterstyle{veelo}
+\chapterstyle{thesis}
 \makeoddfoot{plain}{}{\thepage}{} % Added by André Zúquete to fix a page numbering issue on the veelo chapter style
 
 % Select Page style
-\pagestyle{plain}
+%\pagestyle{plain}
+\pagestyle{fancy}
+
 
 % If you feel adventurous you can also define all aspects of your theme
 % Use either this input or the chapterstyle before
@@ -313,6 +318,7 @@
 
 % Initial document tables start here: TOC, LOF, LOT, Glossary
 % Table of contents with slightly smaller font
+\cleardoublepage
 {\small\tableofcontents}
 
 % List of figures with slightly smaller font
@@ -338,7 +344,7 @@
 %\renewcommand{\listoflistingscaption}{Lista de Excertos de Código}
 %\clearpage
 %{\small\listoflistings}
-%\addcontentsline{toc}{chapter}{\listoflistingscaption}
+\addcontentsline{toc}{chapter}{\listoflistingscaption}
 
 % Reset Chapters
 \renewcommand{\chapter}[2][]{
@@ -347,7 +353,6 @@
 }
 
 % Print Glossary
-\clearpage
 {\small\include{glossary}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

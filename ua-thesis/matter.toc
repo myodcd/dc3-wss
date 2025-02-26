@@ -3,6 +3,7 @@
 \contentsline {chapter}{Contents}{i}{section*.1}%
 \contentsline {chapter}{List of Figures}{ii}{section*.2}%
 \contentsline {chapter}{List of Tables}{iii}{section*.3}%
+\contentsline {chapter}{List of Listings}{iii}{section*.3}%
 \contentsline {chapter}{Glossário}{iv}{chapter*.4}%
 \contentsline {chapter}{\chapternumberline {1}Introduction}{1}{chapter.1}%
 \contentsline {section}{\numberline {1.1}Background}{1}{section.1.1}%
@@ -15,28 +16,29 @@
 \contentsline {subsection}{\numberline {2.2.2}Deep Learning}{4}{subsection.2.2.2}%
 \contentsline {subsection}{\numberline {2.2.3}Deep Learning in WSS}{4}{subsection.2.2.3}%
 \contentsline {section}{\numberline {2.3}Optimization in WSS}{5}{section.2.3}%
-\contentsline {section}{\numberline {2.4}Hard Constraints}{5}{section.2.4}%
-\contentsline {section}{\numberline {2.5}Optimization Process}{6}{section.2.5}%
-\contentsline {subsection}{\numberline {2.5.1}Mathematical Formulation}{6}{subsection.2.5.1}%
-\contentsline {subsection}{\numberline {2.5.2}Optimization Methods}{6}{subsection.2.5.2}%
-\contentsline {chapter}{\chapternumberline {3}Methodology}{7}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Pump Scheduling Problem}{7}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Presenting DC3 Algorithm}{7}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Algorithm architecture}{7}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Exemplos com grafico - x1, x2}{7}{section.3.4}%
-\contentsline {chapter}{\chapternumberline {4}Results}{8}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Case study 1}{8}{section.4.1}%
-\contentsline {chapter}{\chapternumberline {5}Introdução}{9}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Acrónimos}{9}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Fontes}{9}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Unidades}{9}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Code Blocks}{10}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Citações}{10}{section.5.5}%
-\contentsline {chapter}{\chapternumberline {6}Exemplos}{11}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Acrónimos}{11}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Fontes}{11}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Unidades}{11}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Code Blocks}{12}{section.6.4}%
-\contentsline {section}{\numberline {6.5}Citações}{12}{section.6.5}%
-\contentsline {chapter}{Bibiliography}{13}{chapter*.7}%
-\contentsline {appendix}{\chapternumberline {A}Additional content}{14}{appendix.A}%
+\contentsline {subsection}{\numberline {2.3.1}Mathematical formulation}{5}{subsection.2.3.1}%
+\contentsline {section}{\numberline {2.4}Hard Constraints}{7}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Optimization Process}{7}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Mathematical Formulation}{7}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Optimization Methods}{7}{subsection.2.5.2}%
+\contentsline {chapter}{\chapternumberline {3}Methodology}{8}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Pump Scheduling Problem}{8}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Presenting DC3 Algorithm}{8}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Algorithm architecture}{8}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Exemplos com grafico - x1, x2}{8}{section.3.4}%
+\contentsline {chapter}{\chapternumberline {4}Results}{9}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Case study 1}{9}{section.4.1}%
+\contentsline {chapter}{\chapternumberline {5}Introdução}{10}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Acrónimos}{10}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Fontes}{10}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Unidades}{10}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Code Blocks}{11}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Citações}{11}{section.5.5}%
+\contentsline {chapter}{\chapternumberline {6}Exemplos}{12}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Acrónimos}{12}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Fontes}{12}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Unidades}{12}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Code Blocks}{13}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Citações}{13}{section.6.5}%
+\contentsline {chapter}{Bibiliography}{14}{chapter*.7}%
+\contentsline {appendix}{\chapternumberline {A}Additional content}{15}{appendix.A}%

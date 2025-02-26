@@ -91,6 +91,7 @@ Uma solução técnica para essa redução pode ser uma diminuição na potênci
 
 Optimization is applied in many systems and situations, thus making it an important paradigm in technology. When we try to optimize, we either minimize (resource consumption, cost) or maximize (profit, system performance)\cite{rfc19}.
 
+
 In a more technical sense, optimization is said to be the process of maximizing or minimizing the required objective function while satisfying certain constraints.\cite{rfc21}
 
 Water supply pumping stations are an indispensable element of any water supply system. They not only provide the water supply to each container but also the necessary pressure in the water supply network for firefighting purposes. The cost of energy is one of the most important components of the price of treated water.\cite{rfc7}
@@ -106,6 +107,43 @@ Pumping systems have significant potential for energy efficiency improvements. I
 Hourly variations in water demand during the day are much higher compared to the average daily demand. For a household consumer, water demand is higher during morning and evening hours than midday. During peak hours, energy costs can be 2 to 3 times more expensive than during off-peak hours.
 
 A technical solution for this reduction may involve decreasing pumping power (even stopping pumps if possible) during peak hours, along with extensive delivery outside these hours. Consequently, distribution systems must be equipped with storage tanks.
+
+
+
+\subsection{Mathematical formulation}
+
+Mathematical optimization models ate mathematical representations of real-world problems that aim to find the best solution among a set of available alternatives.\cite{rfc28}
+
+\begin{equation}\label{optimization}
+\textrm{minimise} f(x)
+\end{equation}
+
+\begin{equation}\label{optimization_g}
+\textrm{subject to:} g(x) \le 0
+\end{equation}
+
+
+\begin{equation}\label{optimization_h}
+h(x) = 0
+\end{equation}
+
+Where $x$ represents a vector of decision variables or control variables that effect the operation of the water system. The decision variables $x$ might represent pump flow rates, valve settings, reservoir release, or the allocation of the water resources over time. $f(x)$ is the objective function, and $g(x)$ is the inequality constraints, and $h(x)$ is the equality constraints.
+
+In operational water management, inequality constraints(\ref{optimization_g}) can specify ranges of feasible system states, such as the capacity limits of pumps and turbines or the upper and lower volume limits of a reservoir. Equality constraints (\ref{optimization_h}) are often represented by system equations, such as a water balance equation. A constraint violation makes the solution infeasible.
+
+Due to its complexity, there are some common optimization problems that are fundamental for our understanding:
+
+\begin{itemize}
+\item Linearity and convexity: A linear optimization problem has a linear objective function and constraints, with the optimal solution always at a corner of the feasible region. This allows for efficient solution methods. Convex functions have a single minimum and no local minima, making them easier to minimize. A problem is convex if the objective function and inequality constraints are convex, while equality constraints are affine transformations.
+
+\item Continuous and discrete problems: A continuous problem has variables that can take any real value within a range, while a discrete problem includes variables like integers or Booleans with a finite set of values. Discrete variables are used for on/off decisions or to approximate nonlinear functions piecewise. These problems are generally harder to solve than continuous ones, so minimizing discrete variables balances model accuracy and computation time.
+
+\item Linear programming: Linear programming (LP) is used for problems with linear objectives and constraints, solving them efficiently with polynomial runtime. In water management, reservoir optimization is a common LP application. To leverage LP’s advantages, models are often linearized, even at the cost of accuracy. This can be done through linear approximations or piecewise linear methods, commonly used in model predictive control (MPC), where frequent updates help mitigate accuracy loss.
+
+\item Nonlinear problems: Nonlinear problems occur when any part of the optimization (objective or constraints) is nonlinear. They may be convex or non-convex, and can be continuous or discrete. Generally, convex continuous problems are less complex to solve than non-convex discrete ones.
+
+\item Integer lienar programming: Integer linear programming (ILP), or mixed integer programming (MIP), is used when some or all decision variables are restricted to discrete values. MIP is commonly applied in hydropower scheduling and pumping optimization. It is also useful for solving piecewise linear approximations of nonlinear equations.
+\end{itemize}
 
 
 \section{Hard Constraints}
@@ -139,4 +177,8 @@ Water supply system operations are constrained by minimum pressure requirements;
 \subsection{Mathematical Formulation}
 
 \subsection{Optimization Methods}
+
+The new methodology combines the use of
+trigger levels with pump scheduling to optimize pump operations by maximizing off-peak
+tariff period pumping and minimizing pumping head. 
 
