@@ -1,4 +1,4 @@
-  Page 1                                    Fri Feb 14 10:05:15 2025
+  Page 1                                    Thu Feb 27 10:26:47 2025
 
   ******************************************************************
   *                           E P A N E T                          *
@@ -7,7 +7,7 @@
   *                         Version 2.00.12                        *
   ******************************************************************
   
-  Analysis begun Fri Feb 14 10:05:15 2025
+  Analysis begun Thu Feb 27 10:26:47 2025
 
    
   Hydraulic Status:
@@ -66,49 +66,44 @@
               Trial  1: relative flow change = 0.000000
      0:55:00: Balanced after 1 trials
    
+     1:00:00: Pump P1 changed by timer control
      1:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.035211
-              Trial  2: relative flow change = 0.000000
-     1:00:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.995597
+              Trial  2: relative flow change = 0.981618
+              Trial  3: relative flow change = 0.952280
+              Trial  4: relative flow change = 0.867629
+              Trial  5: relative flow change = 0.650316
+              Trial  6: relative flow change = 0.296014
+              Trial  7: relative flow change = 0.051025
+              Trial  8: relative flow change = 0.001473
+              Trial  9: relative flow change = 0.000002
+     1:00:00: Balanced after 9 trials
+     1:00:00: Reservoir Source is emptying
+     1:00:00: Tank Tank1 is filling at 3.39 m
+     1:00:00: Pump P1 changed from closed to open
    
      1:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000152
      1:05:00: Balanced after 1 trials
    
      1:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000152
      1:10:00: Balanced after 1 trials
    
      1:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000152
      1:15:00: Balanced after 1 trials
    
      1:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000152
      1:20:00: Balanced after 1 trials
    
      1:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000152
      1:25:00: Balanced after 1 trials
    
-     1:29:25: Pump P1 changed by timer control
-     1:29:25: Balancing the network:
-              Trial  1: relative flow change = 0.995299
-              Trial  2: relative flow change = 0.981470
-              Trial  3: relative flow change = 0.951851
-              Trial  4: relative flow change = 0.866383
-              Trial  5: relative flow change = 0.647476
-              Trial  6: relative flow change = 0.292771
-              Trial  7: relative flow change = 0.049862
-              Trial  8: relative flow change = 0.001407
-              Trial  9: relative flow change = 0.000002
-     1:29:25: Balanced after 9 trials
-     1:29:25: Reservoir Source is emptying
-     1:29:25: Tank Tank1 is filling at 3.10 m
-     1:29:25: Pump P1 changed from closed to open
-   
      1:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.005651
+              Trial  1: relative flow change = 0.005615
               Trial  2: relative flow change = 0.000000
      1:30:00: Balanced after 2 trials
    
@@ -117,23 +112,23 @@
      1:35:00: Balanced after 1 trials
    
      1:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000157
+              Trial  1: relative flow change = 0.000158
      1:40:00: Balanced after 1 trials
    
      1:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000157
+              Trial  1: relative flow change = 0.000158
      1:45:00: Balanced after 1 trials
    
      1:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000157
+              Trial  1: relative flow change = 0.000158
      1:50:00: Balanced after 1 trials
    
      1:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000157
+              Trial  1: relative flow change = 0.000158
      1:55:00: Balanced after 1 trials
    
      2:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.005700
+              Trial  1: relative flow change = 0.005710
               Trial  2: relative flow change = 0.000000
      2:00:00: Balanced after 2 trials
    
@@ -158,7 +153,7 @@
      2:25:00: Balanced after 1 trials
    
      2:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.005305
+              Trial  1: relative flow change = 0.005313
               Trial  2: relative flow change = 0.000000
      2:30:00: Balanced after 2 trials
    
@@ -183,7 +178,7 @@
      2:55:00: Balanced after 1 trials
    
      3:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.004545
+              Trial  1: relative flow change = 0.004553
               Trial  2: relative flow change = 0.000001
      3:00:00: Balanced after 2 trials
    
@@ -208,7 +203,7 @@
      3:25:00: Balanced after 1 trials
    
      3:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.003542
+              Trial  1: relative flow change = 0.003548
               Trial  2: relative flow change = 0.000001
      3:30:00: Balanced after 2 trials
    
@@ -232,169 +227,164 @@
               Trial  1: relative flow change = 0.000175
      3:55:00: Balanced after 1 trials
    
+     4:00:00: Pump P1 changed by timer control
      4:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.002396
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 7.877561
+              Trial  2: relative flow change = 0.000010
      4:00:00: Balanced after 2 trials
+     4:00:00: Reservoir Source is closed
+     4:00:00: Tank Tank1 is emptying at 5.67 m
+     4:00:00: Pump P1 changed from open to closed
    
      4:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:05:00: Balanced after 1 trials
    
      4:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:10:00: Balanced after 1 trials
    
      4:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:15:00: Balanced after 1 trials
    
      4:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:20:00: Balanced after 1 trials
    
      4:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:25:00: Balanced after 1 trials
    
      4:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.001197
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.009286
+              Trial  2: relative flow change = 0.000000
      4:30:00: Balanced after 2 trials
    
      4:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:35:00: Balanced after 1 trials
    
      4:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:40:00: Balanced after 1 trials
    
      4:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:45:00: Balanced after 1 trials
    
      4:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:50:00: Balanced after 1 trials
    
      4:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000177
+              Trial  1: relative flow change = 0.000000
      4:55:00: Balanced after 1 trials
    
      5:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.001305
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.010027
+              Trial  2: relative flow change = 0.000000
      5:00:00: Balanced after 2 trials
    
      5:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000176
+              Trial  1: relative flow change = 0.000000
      5:05:00: Balanced after 1 trials
    
      5:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000176
+              Trial  1: relative flow change = 0.000000
      5:10:00: Balanced after 1 trials
    
      5:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000176
+              Trial  1: relative flow change = 0.000000
      5:15:00: Balanced after 1 trials
    
      5:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000176
+              Trial  1: relative flow change = 0.000000
      5:20:00: Balanced after 1 trials
    
      5:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000176
+              Trial  1: relative flow change = 0.000000
      5:25:00: Balanced after 1 trials
    
      5:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.002449
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.018995
+              Trial  2: relative flow change = 0.000000
      5:30:00: Balanced after 2 trials
    
      5:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000174
+              Trial  1: relative flow change = 0.000000
      5:35:00: Balanced after 1 trials
    
      5:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000174
+              Trial  1: relative flow change = 0.000000
      5:40:00: Balanced after 1 trials
    
      5:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000174
+              Trial  1: relative flow change = 0.000000
      5:45:00: Balanced after 1 trials
    
      5:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000174
+              Trial  1: relative flow change = 0.000000
      5:50:00: Balanced after 1 trials
    
      5:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000174
+              Trial  1: relative flow change = 0.000000
      5:55:00: Balanced after 1 trials
    
      6:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.003445
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.026307
+              Trial  2: relative flow change = 0.000000
      6:00:00: Balanced after 2 trials
    
      6:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000170
+              Trial  1: relative flow change = 0.000000
      6:05:00: Balanced after 1 trials
    
      6:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000170
+              Trial  1: relative flow change = 0.000000
      6:10:00: Balanced after 1 trials
    
      6:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000171
+              Trial  1: relative flow change = 0.000000
      6:15:00: Balanced after 1 trials
    
      6:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000171
+              Trial  1: relative flow change = 0.000000
      6:20:00: Balanced after 1 trials
    
      6:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000171
+              Trial  1: relative flow change = 0.000000
      6:25:00: Balanced after 1 trials
    
      6:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.004257
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.031688
+              Trial  2: relative flow change = 0.000000
      6:30:00: Balanced after 2 trials
    
      6:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000166
+              Trial  1: relative flow change = 0.000000
      6:35:00: Balanced after 1 trials
    
      6:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000166
+              Trial  1: relative flow change = 0.000000
      6:40:00: Balanced after 1 trials
    
      6:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000166
+              Trial  1: relative flow change = 0.000000
      6:45:00: Balanced after 1 trials
    
      6:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000166
+              Trial  1: relative flow change = 0.000000
      6:50:00: Balanced after 1 trials
    
      6:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000166
+              Trial  1: relative flow change = 0.000000
      6:55:00: Balanced after 1 trials
    
      7:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.004868
-              Trial  2: relative flow change = 0.000001
+              Trial  1: relative flow change = 0.035153
+              Trial  2: relative flow change = 0.000000
      7:00:00: Balanced after 2 trials
-   
-     7:02:25: Pump P1 changed by timer control
-     7:02:25: Balancing the network:
-              Trial  1: relative flow change = 6.930339
-              Trial  2: relative flow change = 0.000009
-     7:02:25: Balanced after 2 trials
-     7:02:25: Reservoir Source is closed
-     7:02:25: Tank Tank1 is emptying at 7.42 m
-     7:02:25: Pump P1 changed from open to closed
    
      7:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -425,41 +415,36 @@
               Trial  1: relative flow change = 0.000000
      7:35:00: Balanced after 1 trials
    
-     7:35:06: Pump P1 changed by timer control
-     7:35:06: Balancing the network:
-              Trial  1: relative flow change = 0.995285
-              Trial  2: relative flow change = 0.976999
-              Trial  3: relative flow change = 0.937853
-              Trial  4: relative flow change = 0.824530
-              Trial  5: relative flow change = 0.556300
-              Trial  6: relative flow change = 0.201327
-              Trial  7: relative flow change = 0.022897
-              Trial  8: relative flow change = 0.000300
-     7:35:06: Balanced after 8 trials
-     7:35:06: Reservoir Source is emptying
-     7:35:06: Tank Tank1 is filling at 7.11 m
-     7:35:06: Pump P1 changed from closed to open
-   
      7:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000153
+              Trial  1: relative flow change = 0.000000
      7:40:00: Balanced after 1 trials
    
      7:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000156
+              Trial  1: relative flow change = 0.000000
      7:45:00: Balanced after 1 trials
    
      7:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000156
+              Trial  1: relative flow change = 0.000000
      7:50:00: Balanced after 1 trials
    
      7:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000156
+              Trial  1: relative flow change = 0.000000
      7:55:00: Balanced after 1 trials
    
+     8:00:00: Pump P1 changed by timer control
      8:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.005448
-              Trial  2: relative flow change = 0.000001
-     8:00:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.995381
+              Trial  2: relative flow change = 0.976804
+              Trial  3: relative flow change = 0.937833
+              Trial  4: relative flow change = 0.825617
+              Trial  5: relative flow change = 0.559858
+              Trial  6: relative flow change = 0.205058
+              Trial  7: relative flow change = 0.023854
+              Trial  8: relative flow change = 0.000327
+     8:00:00: Balanced after 8 trials
+     8:00:00: Reservoir Source is emptying
+     8:00:00: Tank Tank1 is filling at 3.57 m
+     8:00:00: Pump P1 changed from closed to open
    
      8:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000151
@@ -482,7 +467,7 @@
      8:25:00: Balanced after 1 trials
    
      8:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.005437
+              Trial  1: relative flow change = 0.005384
               Trial  2: relative flow change = 0.000001
      8:30:00: Balanced after 2 trials
    
@@ -490,135 +475,130 @@
               Trial  1: relative flow change = 0.000145
      8:35:00: Balanced after 1 trials
    
-     8:36:15: Pump P1 changed by timer control
-     8:36:15: Balancing the network:
-              Trial  1: relative flow change = 6.201474
-              Trial  2: relative flow change = 0.000008
-     8:36:15: Balanced after 2 trials
-     8:36:15: Reservoir Source is closed
-     8:36:15: Tank Tank1 is emptying at 7.82 m
-     8:36:15: Pump P1 changed from open to closed
-   
      8:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000145
      8:40:00: Balanced after 1 trials
    
      8:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000145
      8:45:00: Balanced after 1 trials
    
      8:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000145
      8:50:00: Balanced after 1 trials
    
      8:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000145
      8:55:00: Balanced after 1 trials
    
      9:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.033285
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.005185
+              Trial  2: relative flow change = 0.000001
      9:00:00: Balanced after 2 trials
    
      9:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000140
      9:05:00: Balanced after 1 trials
    
      9:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000140
      9:10:00: Balanced after 1 trials
    
      9:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000140
      9:15:00: Balanced after 1 trials
    
      9:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000140
      9:20:00: Balanced after 1 trials
    
      9:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000140
      9:25:00: Balanced after 1 trials
    
      9:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.030128
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.004828
+              Trial  2: relative flow change = 0.000001
      9:30:00: Balanced after 2 trials
    
      9:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000136
      9:35:00: Balanced after 1 trials
    
      9:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000136
      9:40:00: Balanced after 1 trials
    
      9:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000136
      9:45:00: Balanced after 1 trials
    
      9:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000136
      9:50:00: Balanced after 1 trials
    
      9:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000136
      9:55:00: Balanced after 1 trials
    
     10:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.026354
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.004331
+              Trial  2: relative flow change = 0.000001
     10:00:00: Balanced after 2 trials
    
     10:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     10:05:00: Balanced after 1 trials
    
     10:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     10:10:00: Balanced after 1 trials
    
     10:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     10:15:00: Balanced after 1 trials
    
     10:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     10:20:00: Balanced after 1 trials
    
     10:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     10:25:00: Balanced after 1 trials
    
     10:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.022160
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.003724
+              Trial  2: relative flow change = 0.000001
     10:30:00: Balanced after 2 trials
    
     10:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000128
     10:35:00: Balanced after 1 trials
    
     10:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000128
     10:40:00: Balanced after 1 trials
    
     10:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000128
     10:45:00: Balanced after 1 trials
    
     10:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000128
     10:50:00: Balanced after 1 trials
    
     10:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000128
     10:55:00: Balanced after 1 trials
    
+    11:00:00: Pump P1 changed by timer control
     11:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.017720
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 5.500748
+              Trial  2: relative flow change = 0.000007
     11:00:00: Balanced after 2 trials
+    11:00:00: Reservoir Source is closed
+    11:00:00: Tank Tank1 is emptying at 5.52 m
+    11:00:00: Pump P1 changed from open to closed
    
     11:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -665,238 +645,226 @@
               Trial  1: relative flow change = 0.000000
     11:55:00: Balanced after 1 trials
    
+    12:00:00: Pump P1 changed by timer control
     12:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.008712
-              Trial  2: relative flow change = 0.000000
-    12:00:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.992762
+              Trial  2: relative flow change = 0.968879
+              Trial  3: relative flow change = 0.919084
+              Trial  4: relative flow change = 0.783092
+              Trial  5: relative flow change = 0.490571
+              Trial  6: relative flow change = 0.154809
+              Trial  7: relative flow change = 0.013829
+              Trial  8: relative flow change = 0.000115
+    12:00:00: Balanced after 8 trials
+    12:00:00: Reservoir Source is emptying
+    12:00:00: Tank Tank1 is filling at 4.80 m
+    12:00:00: Pump P1 changed from closed to open
    
     12:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     12:05:00: Balanced after 1 trials
    
     12:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     12:10:00: Balanced after 1 trials
    
     12:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     12:15:00: Balanced after 1 trials
    
     12:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     12:20:00: Balanced after 1 trials
    
     12:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     12:25:00: Balanced after 1 trials
    
     12:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.004394
-              Trial  2: relative flow change = 0.000000
-    12:30:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.000801
+    12:30:00: Balanced after 1 trials
    
     12:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     12:35:00: Balanced after 1 trials
    
     12:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     12:40:00: Balanced after 1 trials
    
     12:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     12:45:00: Balanced after 1 trials
    
     12:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     12:50:00: Balanced after 1 trials
    
     12:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     12:55:00: Balanced after 1 trials
    
     13:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.003567
-              Trial  2: relative flow change = 0.000000
-    13:00:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.000650
+    13:00:00: Balanced after 1 trials
    
     13:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     13:05:00: Balanced after 1 trials
    
     13:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     13:10:00: Balanced after 1 trials
    
     13:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     13:15:00: Balanced after 1 trials
    
     13:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     13:20:00: Balanced after 1 trials
    
     13:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000121
     13:25:00: Balanced after 1 trials
    
     13:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.006561
+              Trial  1: relative flow change = 0.001148
               Trial  2: relative flow change = 0.000000
     13:30:00: Balanced after 2 trials
    
     13:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     13:35:00: Balanced after 1 trials
    
     13:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     13:40:00: Balanced after 1 trials
    
     13:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     13:45:00: Balanced after 1 trials
    
     13:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     13:50:00: Balanced after 1 trials
    
     13:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     13:55:00: Balanced after 1 trials
    
     14:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.008949
+              Trial  1: relative flow change = 0.001536
               Trial  2: relative flow change = 0.000000
     14:00:00: Balanced after 2 trials
    
     14:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000123
     14:05:00: Balanced after 1 trials
    
     14:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000123
     14:10:00: Balanced after 1 trials
    
     14:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000123
     14:15:00: Balanced after 1 trials
    
     14:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000123
     14:20:00: Balanced after 1 trials
    
     14:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000123
     14:25:00: Balanced after 1 trials
    
     14:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.010608
+              Trial  1: relative flow change = 0.001797
               Trial  2: relative flow change = 0.000000
     14:30:00: Balanced after 2 trials
    
     14:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000124
     14:35:00: Balanced after 1 trials
    
-    14:36:47: Pump P1 changed by timer control
-    14:36:47: Balancing the network:
-              Trial  1: relative flow change = 0.992890
-              Trial  2: relative flow change = 0.967957
-              Trial  3: relative flow change = 0.915785
-              Trial  4: relative flow change = 0.773130
-              Trial  5: relative flow change = 0.472021
-              Trial  6: relative flow change = 0.141373
-              Trial  7: relative flow change = 0.011467
-              Trial  8: relative flow change = 0.000080
-    14:36:47: Balanced after 8 trials
-    14:36:47: Reservoir Source is emptying
-    14:36:47: Tank Tank1 is filling at 3.60 m
-    14:36:47: Pump P1 changed from closed to open
-   
     14:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000080
+              Trial  1: relative flow change = 0.000124
     14:40:00: Balanced after 1 trials
    
     14:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000125
+              Trial  1: relative flow change = 0.000124
     14:45:00: Balanced after 1 trials
    
     14:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000125
+              Trial  1: relative flow change = 0.000124
     14:50:00: Balanced after 1 trials
    
     14:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000125
+              Trial  1: relative flow change = 0.000124
     14:55:00: Balanced after 1 trials
    
+    15:00:00: Pump P1 changed by timer control
     15:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.001956
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 5.498448
+              Trial  2: relative flow change = 0.000007
     15:00:00: Balanced after 2 trials
+    15:00:00: Reservoir Source is closed
+    15:00:00: Tank Tank1 is emptying at 6.53 m
+    15:00:00: Pump P1 changed from open to closed
    
     15:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000126
+              Trial  1: relative flow change = 0.000000
     15:05:00: Balanced after 1 trials
    
     15:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000126
+              Trial  1: relative flow change = 0.000000
     15:10:00: Balanced after 1 trials
    
     15:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000126
+              Trial  1: relative flow change = 0.000000
     15:15:00: Balanced after 1 trials
    
     15:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000126
+              Trial  1: relative flow change = 0.000000
     15:20:00: Balanced after 1 trials
    
     15:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000126
+              Trial  1: relative flow change = 0.000000
     15:25:00: Balanced after 1 trials
    
     15:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.001970
+              Trial  1: relative flow change = 0.011285
               Trial  2: relative flow change = 0.000000
     15:30:00: Balanced after 2 trials
    
     15:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000128
+              Trial  1: relative flow change = 0.000000
     15:35:00: Balanced after 1 trials
    
     15:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000128
+              Trial  1: relative flow change = 0.000000
     15:40:00: Balanced after 1 trials
    
     15:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000128
+              Trial  1: relative flow change = 0.000000
     15:45:00: Balanced after 1 trials
    
     15:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000128
+              Trial  1: relative flow change = 0.000000
     15:50:00: Balanced after 1 trials
    
     15:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000128
+              Trial  1: relative flow change = 0.000000
     15:55:00: Balanced after 1 trials
    
     16:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.001820
+              Trial  1: relative flow change = 0.010669
               Trial  2: relative flow change = 0.000000
     16:00:00: Balanced after 2 trials
    
     16:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000130
+              Trial  1: relative flow change = 0.000000
     16:05:00: Balanced after 1 trials
-   
-    16:06:59: Pump P1 changed by timer control
-    16:06:59: Balancing the network:
-              Trial  1: relative flow change = 5.637585
-              Trial  2: relative flow change = 0.000007
-    16:06:59: Balanced after 2 trials
-    16:06:59: Reservoir Source is closed
-    16:06:59: Tank Tank1 is emptying at 4.51 m
-    16:06:59: Pump P1 changed from open to closed
    
     16:10:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -989,24 +957,20 @@
               Trial  1: relative flow change = 0.000000
     17:55:00: Balanced after 1 trials
    
-    17:59:30: Pump P1 changed by timer control
-    17:59:30: Balancing the network:
-              Trial  1: relative flow change = 0.993641
-              Trial  2: relative flow change = 0.969871
-              Trial  3: relative flow change = 0.919837
-              Trial  4: relative flow change = 0.780988
-              Trial  5: relative flow change = 0.482443
-              Trial  6: relative flow change = 0.147335
-              Trial  7: relative flow change = 0.012362
-              Trial  8: relative flow change = 0.000092
-    17:59:30: Balanced after 8 trials
-    17:59:30: Reservoir Source is emptying
-    17:59:30: Tank Tank1 is filling at 3.22 m
-    17:59:30: Pump P1 changed from closed to open
-   
+    18:00:00: Pump P1 changed by timer control
     18:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.000733
-    18:00:00: Balanced after 1 trials
+              Trial  1: relative flow change = 0.993597
+              Trial  2: relative flow change = 0.969608
+              Trial  3: relative flow change = 0.919205
+              Trial  4: relative flow change = 0.779563
+              Trial  5: relative flow change = 0.480257
+              Trial  6: relative flow change = 0.145934
+              Trial  7: relative flow change = 0.012135
+              Trial  8: relative flow change = 0.000089
+    18:00:00: Balanced after 8 trials
+    18:00:00: Reservoir Source is emptying
+    18:00:00: Tank Tank1 is filling at 4.45 m
+    18:00:00: Pump P1 changed from closed to open
    
     18:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000133
@@ -1029,12 +993,12 @@
     18:25:00: Balanced after 1 trials
    
     18:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.001593
+              Trial  1: relative flow change = 0.001598
               Trial  2: relative flow change = 0.000000
     18:30:00: Balanced after 2 trials
    
     18:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000133
+              Trial  1: relative flow change = 0.000132
     18:35:00: Balanced after 1 trials
    
     18:40:00: Balancing the network:
@@ -1054,7 +1018,7 @@
     18:55:00: Balanced after 1 trials
    
     19:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.002404
+              Trial  1: relative flow change = 0.002411
               Trial  2: relative flow change = 0.000000
     19:00:00: Balanced after 2 trials
    
@@ -1062,85 +1026,80 @@
               Trial  1: relative flow change = 0.000131
     19:05:00: Balanced after 1 trials
    
-    19:06:21: Pump P1 changed by timer control
-    19:06:21: Balancing the network:
-              Trial  1: relative flow change = 5.710547
-              Trial  2: relative flow change = 0.000007
-    19:06:21: Balanced after 2 trials
-    19:06:21: Reservoir Source is closed
-    19:06:21: Tank Tank1 is emptying at 3.92 m
-    19:06:21: Pump P1 changed from open to closed
-   
     19:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     19:10:00: Balanced after 1 trials
    
     19:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     19:15:00: Balanced after 1 trials
    
     19:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     19:20:00: Balanced after 1 trials
    
     19:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000131
     19:25:00: Balanced after 1 trials
    
     19:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.017941
+              Trial  1: relative flow change = 0.003138
               Trial  2: relative flow change = 0.000000
     19:30:00: Balanced after 2 trials
    
     19:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000129
     19:35:00: Balanced after 1 trials
    
     19:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000129
     19:40:00: Balanced after 1 trials
    
     19:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000129
     19:45:00: Balanced after 1 trials
    
     19:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000129
     19:50:00: Balanced after 1 trials
    
     19:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000129
     19:55:00: Balanced after 1 trials
    
     20:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.021026
+              Trial  1: relative flow change = 0.003699
               Trial  2: relative flow change = 0.000000
     20:00:00: Balanced after 2 trials
    
     20:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000127
     20:05:00: Balanced after 1 trials
    
     20:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000127
     20:10:00: Balanced after 1 trials
    
     20:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000127
     20:15:00: Balanced after 1 trials
    
     20:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000127
     20:20:00: Balanced after 1 trials
    
     20:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000127
     20:25:00: Balanced after 1 trials
    
+    20:30:00: Pump P1 changed by timer control
     20:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.022418
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 5.504963
+              Trial  2: relative flow change = 0.000007
     20:30:00: Balanced after 2 trials
+    20:30:00: Reservoir Source is closed
+    20:30:00: Tank Tank1 is emptying at 5.98 m
+    20:30:00: Pump P1 changed from open to closed
    
     20:35:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -1162,25 +1121,20 @@
               Trial  1: relative flow change = 0.000000
     20:55:00: Balanced after 1 trials
    
-    20:56:19: Pump P1 changed by timer control
-    20:56:19: Balancing the network:
-              Trial  1: relative flow change = 0.993097
-              Trial  2: relative flow change = 0.971816
-              Trial  3: relative flow change = 0.927085
-              Trial  4: relative flow change = 0.803678
-              Trial  5: relative flow change = 0.526925
-              Trial  6: relative flow change = 0.181992
-              Trial  7: relative flow change = 0.019156
-              Trial  8: relative flow change = 0.000217
-    20:56:19: Balanced after 8 trials
-    20:56:19: Reservoir Source is emptying
-    20:56:19: Tank Tank1 is filling at 2.64 m
-    20:56:19: Pump P1 changed from closed to open
-   
+    21:00:00: Pump P1 changed by timer control
     21:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.003850
-              Trial  2: relative flow change = 0.000001
-    21:00:00: Balanced after 2 trials
+              Trial  1: relative flow change = 0.992980
+              Trial  2: relative flow change = 0.970910
+              Trial  3: relative flow change = 0.925108
+              Trial  4: relative flow change = 0.799598
+              Trial  5: relative flow change = 0.520817
+              Trial  6: relative flow change = 0.177800
+              Trial  7: relative flow change = 0.018341
+              Trial  8: relative flow change = 0.000200
+    21:00:00: Balanced after 8 trials
+    21:00:00: Reservoir Source is emptying
+    21:00:00: Tank Tank1 is filling at 5.63 m
+    21:00:00: Pump P1 changed from closed to open
    
     21:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000123
@@ -1203,7 +1157,7 @@
     21:25:00: Balanced after 1 trials
    
     21:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.003253
+              Trial  1: relative flow change = 0.003277
               Trial  2: relative flow change = 0.000001
     21:30:00: Balanced after 2 trials
    
@@ -1228,93 +1182,88 @@
     21:55:00: Balanced after 1 trials
    
     22:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.001984
+              Trial  1: relative flow change = 0.001998
               Trial  2: relative flow change = 0.000001
     22:00:00: Balanced after 2 trials
    
-    22:03:02: Pump P1 changed by timer control
-    22:03:02: Balancing the network:
-              Trial  1: relative flow change = 5.476089
-              Trial  2: relative flow change = 0.000007
-    22:03:02: Balanced after 2 trials
-    22:03:02: Reservoir Source is closed
-    22:03:02: Tank Tank1 is emptying at 3.29 m
-    22:03:02: Pump P1 changed from open to closed
-   
     22:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     22:05:00: Balanced after 1 trials
    
     22:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     22:10:00: Balanced after 1 trials
    
     22:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     22:15:00: Balanced after 1 trials
    
     22:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     22:20:00: Balanced after 1 trials
    
     22:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000122
     22:25:00: Balanced after 1 trials
    
     22:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.020689
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.003770
+              Trial  2: relative flow change = 0.000001
     22:30:00: Balanced after 2 trials
    
     22:35:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000125
     22:35:00: Balanced after 1 trials
    
     22:40:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000125
     22:40:00: Balanced after 1 trials
    
     22:45:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000125
     22:45:00: Balanced after 1 trials
    
     22:50:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000125
     22:50:00: Balanced after 1 trials
    
     22:55:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000125
     22:55:00: Balanced after 1 trials
    
     23:00:00: Balancing the network:
-              Trial  1: relative flow change = 0.043870
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.007336
+              Trial  2: relative flow change = 0.000002
     23:00:00: Balanced after 2 trials
    
     23:05:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000132
     23:05:00: Balanced after 1 trials
    
     23:10:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000132
     23:10:00: Balanced after 1 trials
    
     23:15:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000132
     23:15:00: Balanced after 1 trials
    
     23:20:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000132
     23:20:00: Balanced after 1 trials
    
     23:25:00: Balancing the network:
-              Trial  1: relative flow change = 0.000000
+              Trial  1: relative flow change = 0.000132
     23:25:00: Balanced after 1 trials
    
+    23:30:00: Pump P1 changed by timer control
     23:30:00: Balancing the network:
-              Trial  1: relative flow change = 0.080189
-              Trial  2: relative flow change = 0.000000
+              Trial  1: relative flow change = 6.277902
+              Trial  2: relative flow change = 0.000008
     23:30:00: Balanced after 2 trials
+    23:30:00: Reservoir Source is closed
+    23:30:00: Tank Tank1 is emptying at 7.10 m
+    23:30:00: Pump P1 changed from open to closed
    
     23:35:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -1341,4 +1290,4 @@
               Trial  2: relative flow change = 0.000000
     24:00:00: Balanced after 2 trials
    
-  Analysis ended Fri Feb 14 10:05:15 2025
+  Analysis ended Thu Feb 27 10:26:47 2025

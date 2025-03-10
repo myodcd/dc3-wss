@@ -14,11 +14,10 @@ from tqdm import tqdm
 def generate_time():
     while True:
         numbers = random.sample(range(24), 5)  # Escolher 5 números aleatórios de 0 a 23
-        if all(abs(numbers[i] - numbers[j]) >= 2 for i in range(5) for j in range(i + 1, 5)):
-            break
-            
-    numbers.sort()  # Ordenar os números em ordem crescente
-    return numbers
+        numbers.sort()  # Ordenar os números em ordem crescente
+        
+        if all(numbers[i] >= numbers[i - 1] + 2 for i in range(1, 5)):
+            return numbers
 
 def generate_duration(i_list):
     durations = []
@@ -29,7 +28,7 @@ def generate_duration(i_list):
         else:
             next_i = i_list[idx + 1] if idx + 1 < len(i_list) else 23
             max_value = min(5, next_i - i)
-            duration = random.uniform(0.5, max_value)  # Gera um valor aleatório entre 0.5 e o valor máximo
+            duration = random.uniform(0.1, max_value)  # Gera um valor aleatório entre 0.5 e o valor máximo
             
         rounded_duration = round(duration * 2) / 2  # Arredondar para o múltiplo de 0.5 mais próximo
         durations.append(rounded_duration)
@@ -81,7 +80,7 @@ def main():
     X = []
 
 
-    for i in tqdm(range(16)):
+    for i in tqdm(range(100)):
         
         time = generate_time()
 

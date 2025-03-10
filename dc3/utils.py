@@ -165,84 +165,91 @@ def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + 
     epsF_i = d.epsF_i # % de perturbação para inicio
     epsF_d = d.epsF_d # % de perturbação para duração
     x = x.detach().cpu().numpy()
-    eps_matrix = np.zeros_like(x)
+    eps = np.zeros_like(x)
 
-    for p in range(d.n_pumps):
-        x_p = x[p]  # operação por bomba
-        n_dc = d.n_dc[p]
-        eps_aux = np.zeros_like(x_p)
-        
+
+    for p in range(0,d.n_pumps):
+        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
+        n_dc=d.n_dc[p]
+        eps_aux=np.zeros(len(x_p))
         ### definição de perturbação para inicio de DC ###
-        for i in range(n_dc):
+        for i in range(0,n_dc): 
             inicio, dur = x_p[i], x_p[i + n_dc]
-            next = x_p[i + 1] if i < n_dc - 1 else 24
+            next = x_p[i+1] if i < n_dc - 1 else 24
             flagR_i = 0
 
-            if inicio + (max(inicio, 1) * epsF_i) + dur <= next: # progressivas standard com eps = max(inicio,1)*epsF_i
-                eps_aux[i] = max(inicio, 1) * epsF_i
-            else:
-                dif = next - inicio - dur
-                if dif >= d.dif_DC - (1 / (60 * 60)): # progressivas com a diferença entre DCs
-                    eps_aux[i] = dif
+            if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
+                eps_aux[i]=max(inicio,1)*epsF_i
+            else: 
+                dif=next-inicio-dur
+                if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
+                    eps_aux[i]=dif
                 else: # regressivas
-                    pre = x_p[i - 1] + x_p[i - 1 + n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
+                    pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
 
-                    if inicio - (max(inicio, 1) * epsF_i) >= pre:
-                        eps_aux[i] = -max(inicio, 1) * epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
+                    if(inicio - (max(inicio,1)*epsF_i) >= pre):                
+                        eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
                     else:
-                        flagR_i = 1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
+                        flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
                         print('starting time: standard progressive and regressive not applied')
-                        print(f'prev: {pre}; inicio: {inicio}; fim: {inicio + dur}; next {next}')
+                        print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
 
-            if flagR_i == 1: # Não se pode aplicar a regressiva standard sem sobrepor DCs    
-                dif = inicio - pre
-                if dif >= d.dif_DC - (1 / (60 * 60)): # regressiva com eps igual a diferente entre dc's
-                    eps_aux[i] = -dif
+            if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
+                dif=(inicio-pre) 
+                if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
+                    eps_aux[i]=-dif
                 else:
-                    eps_aux[i] = max(inicio, 1) * epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping for starting time')
+                    eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
+                    print('ERROR: DC overlapping for starting time') 
 
         ### definição de perturbação para duração de DC ###
-        for j in range(n_dc, len(x_p)):
+        for j in range(n_dc,len(x_p)): 
             inicio, dur = x_p[j - n_dc], x_p[j]
             next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
             flagR_d = 0
-            if dur + (max(dur, 1) * epsF_d) + inicio <= next: # progressiva standard com eps=max(dur,1)*epsF_d
-                eps_aux[j] = max(dur, 1) * epsF_d
+            if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
+                eps_aux[j]=max(dur,1)*epsF_d
             else:
-                dif = next - (inicio + dur)
-                if dif >= d.dif_DC - (1 / (60 * 60)): # progressivas com a diferença entre DCs
-                    eps_aux[j] = dif
+                dif=next - (inicio+dur)
+                if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
+                    eps_aux[j]=dif 
                 else: # regressivas
-                    if dur - max(dur, 1) * epsF_d >= 0:
-                        eps_aux[j] = -max(dur, 1) * epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
+                    if(dur - max(dur,1)*epsF_d >= 0):                
+                        eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
                     else:
-                        flagR_d = 1 # Não se pode aplicar a regressiva standard 
-                        print('duration: standard progressive and regressive not applied')
-                        print(f'inicio: {inicio}; fim: {inicio + dur}; next: {next}')
+                        flagR_d=1 # Não se pode aplicar a regressiva standard 
+                        print('duration: standard progressive and regressive not applied')                        
+                        print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
 
-            if flagR_d == 1: # dif. regressiva para duração 
-                if dur >= d.dif_DC - (1 / (60 * 60)): # regressivas com eps = -dur
-                    eps_aux[j] = -dur
+            if(flagR_d==1): # dif. regressiva para duração 
+                # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
+                if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
+                    eps_aux[j]= -dur 
                 else:
-                    eps_aux[j] = max(inicio, 1) * epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping -> duration is too low to regressive')
+                    eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
+                    print('ERROR: DC overlapping -> duration is to low to regressive')
+        
+        eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
+    
+    #retificar perturbações maiores que 5 minutos
+    idx1=np.where(eps > 5/60)
+    if(len(idx1[0])!=0): eps[idx1[0]]=5/60
+    idx2=np.where(eps < - 5/60)
+    if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
 
-        eps_matrix[p] = eps_aux
+    if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
 
-    # retificar perturbações maiores que 5 minutos
-    eps_matrix = np.clip(eps_matrix, -5 / 60, 5 / 60)
-
-#    if x_matrix.shape[1] > d.dc_pos[d.n_pumps]: # caso hajam VSPS
-#        for v in range(d.dc_pos[d.n_pumps], x_matrix.shape[1]):
-#            val = max(x_matrix[:, v], 1) * d.eps_VSP
-#            eps_matrix[:, v] = np.where(x_matrix[:, v] + val < d.lim_VSP[1], val, -val)
-#            if np.any(x_matrix[:, v] - val < d.lim_VSP[0]):
-#                print('ERROR: VSP eps not respecting boundaries')
-#            if np.any(val < 0.0001):
-#                print('WARNING: VPS eps is too low!')
-
-    return eps_matrix
+        for v in range(d.dc_pos[d.n_pumps],len(x)):
+            val = max(x[v], 1) * d.eps_VSP
+            if(x[v] + val < d.lim_VSP[1]): #forward
+                eps[v] = val
+            else: #regressive
+                eps[v] = - val
+                if(x[v] - val < d.lim_VSP[0]):
+                    print('ERROR: VSP eps not respecting boundaries') 
+            if(val<0.0001):
+                print('WARNING: VPS eps is too low!') 
+    return eps  
 
 def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
     h=np.transpose(htank)
@@ -635,9 +642,7 @@ class Problem_DC_WSS:
         # eps_aux=AF.eps_definition_F3(x,d) 
         # jac=approx_fprime(x, g5_F3, eps_aux)
         
-        
         # NAO ESTÁ A USAR O X
-        
         
         n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
         for p in range(0,d.n_pumps):
@@ -673,11 +678,21 @@ class Problem_DC_WSS:
 
     def jac_gT(self, x, d):
         
-        eps_aux = torch.tensor(eps_definition_F3(x, d))
-        jac = eps_aux
+        jac = []
+        
+        
+        for x_ in x:
+        
+            eps_aux = torch.tensor(eps_definition_F3(x_, d))
+            #jac = eps_aux
+            
+            jac.append(eps_aux)
+            
         #jac = approx_fprime(x, self.gT, eps_aux.cpu().detach().numpy()) 
         
-        return jac
+        return torch.stack(jac)
+        
+        #return jac
 
     def g_TempLog_dist(self, x, d):
         
@@ -705,7 +720,7 @@ class Problem_DC_WSS:
         
         
     def ineq_resid(self, x, y):
-        gt_temp = self.gT(x, y)
+        #gt_temp = self.gT(x, y)
         gt = torch.clamp(self.gT(x, y), 2, 7)
         
         
@@ -714,7 +729,7 @@ class Problem_DC_WSS:
         
         g_templog = self.g_TempLog(x, self.d)
         # Interpolação para 10 elementos
-        g_templog_expanded = g_templog.repeat_interleave(2, dim=1)
+        #g_templog_expanded = g_templog.repeat_interleave(2, dim=1)
 
         g_templog_T = g_templog.reshape(g_templog.shape[0], g_templog.shape[1], 1)
 
@@ -722,7 +737,7 @@ class Problem_DC_WSS:
         #gt = torch.transpose(gt, g_templog)
 
 
-        return gt - g_templog_expanded 
+        return gt 
 
 
     def ineq_grad(self, x, y):
@@ -744,12 +759,6 @@ class Problem_DC_WSS:
         jac_TempLog = self.jac_TempLog(X, self.d)
         
         jac_gT = self.jac_gT(X, self.d)
-        
-        #return torch.cat((jac_TempLog, jac_gT), dim=1)
-    
-#        return jac_TempLog
-
-
         
     
     

@@ -251,10 +251,13 @@ def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodu
         #definir patterns
         set_patterns(d,patterns,CP)
     
-    if(len(x)>2*np.sum(d.n_dc)):
-        speed=speed_definition(x,d,pumps) # dicionário para speed
-    else:
-        speed=[]
+    # comenbtário abaixo pois apresentava erro por não utilizar VSP
+    #if(len(x)>2*np.sum(d.n_dc)):
+    #    speed=speed_definition(x,d,pumps) # dicionário para speed
+    #else:
+    #    speed=[]
+    
+    speed = []
     
     controls_epanet=conversor(x,pumps,d,speed) 
 

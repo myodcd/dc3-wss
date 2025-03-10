@@ -286,8 +286,23 @@
 
 % Select Page style
 %\pagestyle{plain}
+% ----------------------------------------------------------------
+% Definicao de headers e footers
+% ----------------------------------------------------------------
 \pagestyle{fancy}
-
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.#1}{}} % Capítulos em minúsculas
+  \fancyhf{}                                                  % Reset aos headers e footers
+  \fancyhead[L]{\leftmark}                                  % Single-sided: header left
+  \fancyhead[R]{\thepage}                                   % Single-sided: header right
+  \fancyfoot[L]{\authornam}                                % Single-sided: footer left
+  \fancyfoot[R]{\textit{\thesisdegree\ Degree}}            % Single-sided: footer right
+%  \fancyfoot[RE]{\textit{Dissertação de \thesisdegree}}     % Footer Right-Even (RE)
+%  \fancyfoot[RO]{\textit{Dissertação de \thesisdegree}}     % Footer Right-Odd (RO)
+%  \fancyfoot[RE]{\textit{\thesisdegree\ Degree}}     % Footer Right-Even (RE)
+%  \fancyfoot[RO]{\textit{\thesisdegree\ Degree}}     % Footer Right-Odd (RO)
+  \renewcommand{\headrulewidth}{0.25pt}                     % Espessura da linha de header
+  \renewcommand{\footrulewidth}{0.25pt}                     % Espessura da linha de footer
+  \addtolength{\headheight}{0.5pt}                          % Espaçamento para a linha
 
 % If you feel adventurous you can also define all aspects of your theme
 % Use either this input or the chapterstyle before
