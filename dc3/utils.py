@@ -229,26 +229,32 @@ def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + 
                     eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
                     print('ERROR: DC overlapping -> duration is to low to regressive')
         
+        print(x_p)
+        print('##')
         eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-    
+        print(eps)
+        print('--')
     #retificar perturbações maiores que 5 minutos
     idx1=np.where(eps > 5/60)
     if(len(idx1[0])!=0): eps[idx1[0]]=5/60
     idx2=np.where(eps < - 5/60)
     if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
 
-    if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
+#    if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
 
-        for v in range(d.dc_pos[d.n_pumps],len(x)):
-            val = max(x[v], 1) * d.eps_VSP
-            if(x[v] + val < d.lim_VSP[1]): #forward
-                eps[v] = val
-            else: #regressive
-                eps[v] = - val
-                if(x[v] - val < d.lim_VSP[0]):
-                    print('ERROR: VSP eps not respecting boundaries') 
-            if(val<0.0001):
-                print('WARNING: VPS eps is too low!') 
+#        for v in range(d.dc_pos[d.n_pumps],len(x)):
+#            val = max(x[v], 1) * d.eps_VSP
+#            if(x[v] + val < d.lim_VSP[1]): #forward
+#                eps[v] = val
+#            else: #regressive
+#                eps[v] = - val
+#                if(x[v] - val < d.lim_VSP[0]):
+#                    print('ERROR: VSP eps not respecting boundaries') 
+#            if(val<0.0001):
+#                print('WARNING: VPS eps is too low!') 
+
+    print(eps)
+
     return eps  
 
 def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
@@ -358,13 +364,13 @@ def round_x(x,d): #arredondar aos segundos
         x_round=x_round+x_aux
 
     # x_round=[math.floor(x[i]*3600 + 0.5) for i in range(len(x))]    
-    if(len(x)>2*np.sum(d.n_dc)): #VSP
-        x_vel=x[d.dc_pos[d.n_pumps]:len(x)]
-        vel_pos=np.concatenate(([0],np.cumsum(d.n_dc)))
-        for p in range(0,d.n_pumps):
-            x_v=x_vel[vel_pos[p]:vel_pos[p+1]]
-            x_aux=[round(x_v[i], 4) for i in range(0,d.n_dc[p])]
-            x_round=x_round+x_aux
+    #if(len(x)>2*np.sum(d.n_dc)): #VSP
+    #    x_vel=x[d.dc_pos[d.n_pumps]:len(x)]
+    #    vel_pos=np.concatenate(([0],np.cumsum(d.n_dc)))
+    #    for p in range(0,d.n_pumps):
+    #        x_v=x_vel[vel_pos[p]:vel_pos[p+1]]
+    #        x_aux=[round(x_v[i], 4) for i in range(0,d.n_dc[p])]
+    #        x_round=x_round+x_aux
 
     return x_round
 
@@ -544,6 +550,12 @@ class Problem_DC_WSS:
 
 
             cost_pump=[]
+            
+            
+            
+            
+            
+            
             for p in range (0,d.n_pumps):
                 cp=0
                 for i in range (0,len(timeInc['StartTime'])):
@@ -641,8 +653,7 @@ class Problem_DC_WSS:
     def jac_TempLog(self, x,d):
         # eps_aux=AF.eps_definition_F3(x,d) 
         # jac=approx_fprime(x, g5_F3, eps_aux)
-        
-        # NAO ESTÁ A USAR O X
+
         
         n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
         for p in range(0,d.n_pumps):
@@ -679,17 +690,13 @@ class Problem_DC_WSS:
     def jac_gT(self, x, d):
         
         jac = []
-        
-        
+             
         for x_ in x:
         
             eps_aux = torch.tensor(eps_definition_F3(x_, d))
-            #jac = eps_aux
-            
+  
             jac.append(eps_aux)
-            
-        #jac = approx_fprime(x, self.gT, eps_aux.cpu().detach().numpy()) 
-        
+
         return torch.stack(jac)
         
         #return jac
@@ -746,12 +753,6 @@ class Problem_DC_WSS:
         
         ineq_jac = self.ineq_jac(y)
         
-        
-        
-        
-#        return ineq_dist
-
-
         return torch.cat([ineq_dist * ineq_jac], dim=1)
 
     def ineq_jac(self, X):

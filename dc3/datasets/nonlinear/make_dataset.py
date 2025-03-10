@@ -15,7 +15,7 @@ num_var = 2
 
 np.random.seed(17)
 
-num_examples = [200, 1000, 10000, 30000]
+num_examples = [200, 500, 10000, 30000]
 
 for examples in num_examples:
 

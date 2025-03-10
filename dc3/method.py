@@ -44,7 +44,7 @@ print('Device: ', DEVICE)
 
 def main():
     parser = argparse.ArgumentParser(description='DC3')
-    parser.add_argument('--probType', type=str, default='dc_wss',
+    parser.add_argument('--probType', type=str, default='nonlinear',
         choices=['nonlinear', 'dc_wss'], help='problem type')
     parser.add_argument('--simpleVar', type=int, 
         help='number of decision vars for simple problem')
@@ -124,7 +124,7 @@ def main():
     if prob_type == 'nonlinear':
         filepath = os.path.join('datasets', 'nonlinear', "random_nonlinear_dataset_ex{}".format(args['simpleEx']))      
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_100')
+        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_10')
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -197,13 +197,13 @@ def train_net(data, args, save_dir):
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
             train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss            
-            train_loss.requires_grad = True
+            #train_loss.requires_grad = True
             
             #print('Xtrain ', Xtrain[0].detach().cpu().numpy())
-            #print('Yhat ', Yhat_train[0].detach().cpu().numpy())
-            #print('Ynew ', Ynew_train[0].detach().cpu().numpy())
-            #print('Loss ', train_loss[0].detach().cpu().numpy())
-            #print('- - - - ')
+            print('Yhat ', Yhat_train[0].detach().cpu().numpy())
+            print('Ynew ', Ynew_train[0].detach().cpu().numpy())
+            print('Loss ', train_loss[0].detach().cpu().numpy())
+            print('- - - - ')
             
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
             solver_opt.step() # 4. Performe gradiente descent
@@ -423,7 +423,7 @@ def grad_steps(data, X, Y, args):
         
     else:
         return Y
-        500
+
 def total_loss(data, X, Y, args):
     
     
@@ -433,7 +433,11 @@ def total_loss(data, X, Y, args):
     obj_cost = data.obj_fn(Y)
     
     # observar que no codigo usado para o nonlinear, era (Y, Y)
-    ineq_dist = data.ineq_dist(X, Y)
+    
+    if args['probType'] == 'nonlinear':
+        ineq_dist = data.ineq_dist(Y, Y)
+    else:
+        ineq_dist = data.ineq_dist(X, Y)
 
     ineq_cost = torch.norm(ineq_dist, dim=1)    
     
@@ -529,6 +533,7 @@ class NNSolver(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
+        print('X ', x[0])
         out = self.net(x)
 
         if self._args['useCompl']:
@@ -540,8 +545,8 @@ class NNSolver(nn.Module):
                 out = nn.Sigmoid()(out)
             
             result = self._data.process_output(x, out)
-
+            print('Out ', out[0])
             return result
-        
+        # result
 if __name__=='__main__':
     main()

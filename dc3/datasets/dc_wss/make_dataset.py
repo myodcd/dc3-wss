@@ -13,9 +13,9 @@ from tqdm import tqdm
 
 def generate_time():
     while True:
-        numbers = random.sample(range(24), 5)  # Escolher 5 números aleatórios de 0 a 23
-        numbers.sort()  # Ordenar os números em ordem crescente
+        numbers = sorted(random.sample(range(24), 5))  # Escolher e ordenar 5 números aleatórios
         
+        # Garantir que não sejam sequenciais (diferença mínima de 2 entre cada número)
         if all(numbers[i] >= numbers[i - 1] + 2 for i in range(1, 5)):
             return numbers
 
@@ -80,7 +80,7 @@ def main():
     X = []
 
 
-    for i in tqdm(range(100)):
+    for i in tqdm(range(5)):
         
         time = generate_time()
 
