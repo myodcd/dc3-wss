@@ -44,7 +44,7 @@ print('Device: ', DEVICE)
 
 def main():
     parser = argparse.ArgumentParser(description='DC3')
-    parser.add_argument('--probType', type=str, default='nonlinear',
+    parser.add_argument('--probType', type=str, default='dc_wss',
         choices=['nonlinear', 'dc_wss'], help='problem type')
     parser.add_argument('--simpleVar', type=int, 
         help='number of decision vars for simple problem')
@@ -124,7 +124,7 @@ def main():
     if prob_type == 'nonlinear':
         filepath = os.path.join('datasets', 'nonlinear', "random_nonlinear_dataset_ex{}".format(args['simpleEx']))      
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_10')
+        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_30')
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -426,8 +426,6 @@ def grad_steps(data, X, Y, args):
 
 def total_loss(data, X, Y, args):
     
-    
-
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_ex2' else 1
 
     obj_cost = data.obj_fn(Y)
