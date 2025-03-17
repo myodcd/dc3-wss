@@ -229,11 +229,11 @@ def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + 
                     eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
                     print('ERROR: DC overlapping -> duration is to low to regressive')
         
-        print(x_p)
-        print('##')
+        #print(x_p)
+        #print('##')
         eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-        print(eps)
-        print('--')
+        #print(eps)
+        #print('--')
     #retificar perturbações maiores que 5 minutos
     idx1=np.where(eps > 5/60)
     if(len(idx1[0])!=0): eps[idx1[0]]=5/60
@@ -253,7 +253,7 @@ def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + 
 #            if(val<0.0001):
 #                print('WARNING: VPS eps is too low!') 
 
-    print(eps)
+    #print(eps)
 
     return eps  
 
@@ -596,7 +596,7 @@ class Problem_DC_WSS:
             
             g1_total.append(g1[0])  
             
-        return torch.clamp(torch.tensor(g1_total), d.hmax[0], d.hmin[0])
+        return torch.tensor(g1_total)
 
 
     def g_TempLog(self, x): #tstart(n+1) > tstop(n)  (várias bombas)
@@ -678,71 +678,67 @@ class Problem_DC_WSS:
             jac.append(eps_aux)
 
         return torch.stack(jac)
-        
-
-    def g_TempLog_dist(self, x, d):
-        
-        resid = self.g_TempLog(x, d)
-    
-        resid_tensor = torch.tensor(resid)
-
-        #  Aplica clamp para limitar os valores ao intervalo [0, +inf]
-        return torch.clamp(resid_tensor, min=0)
-        
-        
+                
+                        
     def ineq_grad(self, x, y):
-        ineq_dist = self.ineq_dist(x, y)  # Obtém a matriz de distâncias (8,5)
-        ineq_jac = self.ineq_jac(y)  # Obtém a matriz Jacobiana (5,8)
+        ineq_dist = self.ineq_dist(x, y)  # (n x 25)
+        ineq_jac = self.ineq_jac(x)  # (n x 25 x 10)
 
-        # Corrigir valores NaN e Inf para evitar erros
-        ineq_dist = torch.nan_to_num(ineq_dist, nan=0.0, posinf=1e5, neginf=-1e5)
+        # Ajustando ineq_dist para a forma (n x 25 x 1) para compatibilidade com a multiplicação batched
+        ineq_dist_expanded = ineq_dist.unsqueeze(2)  # (n x 25 x 1)
 
-        # Calcular gradiente via produto Hadamard
-        ineq_grad = ineq_jac * ineq_dist.T  # Multiplicação elemento a elemento (5,8)
+        # Agora podemos realizar a multiplicação batched
+        ineq_grad = torch.bmm(ineq_dist_expanded, ineq_jac)  # (n x 25 x 1) x (n x 25 x 10)
+
+        # Squeeze para remover a dimensão extra
+        #ineq_grad = ineq_grad.squeeze(2)  # (n x 10)
 
         return ineq_grad
+
+
     
     def ineq_dist(self, x, y):
 
+        ineq_dist = self.ineq_resid(x, y)
+        
+        return ineq_dist
+    
+    def ineq_resid(self, x, y):
+
+        d = self.d
+        
+        n_min = d.hmax[0]
+        n_max = d.hmin[0]
+        
         gT = self.gT(x, y)
-        g_TempLog = self.g_TempLog(x)
         
-        print('Horário funcionamento: ', x[0][:5])
-        print('Duração funcionamento: ', x[0][5:])
-        print('Níveis do tanque ', gT[0])
-
-        resultados = []  # Lista para armazenar resultados de todas as situações
-
-        for i in range(gT.shape[0]):  # Iterar sobre cada linha da matriz gT
-            
-            # Transformar gT[i] em matriz (num_medicoes, 2)
-            num_medicoes = gT.shape[1] // 2 
-            
-            gT_tensor = gT[i].reshape(num_medicoes, 2) 
-
-            # Calcular variação dos níveis
-            delta_gT = gT_tensor[:, 1] - gT_tensor[:, 0]  # (num_medicoes,)
-
-            # Converter duty cycles para tensor
-            g_templog_tensor = torch.tensor(g_TempLog[i])  # Deve ter tamanho (num_medicoes,)
-
-            # Calcular relação nível/duty cycle
-            resultado = delta_gT / g_templog_tensor
-
-            resultados.append(resultado)
-
-        return torch.stack(resultados) 
-    
+        gt_ineq1 = torch.clamp(gT - n_max, min=0) 
+        gt_ineq2 = torch.clamp(n_min - gT, min=0) 
+               
+        g_TempLog = torch.clamp(self.g_TempLog(x), min=0)
+        
+        ineq_resid = torch.cat([gt_ineq1, gt_ineq2, g_TempLog], dim=1)  
+        
+        
+        return ineq_resid
+        
+                
     def ineq_jac(self, X):
-        
-        jac_TempLog = self.jac_TempLog()
-        
-        jac_gT = self.jac_gT(X)
+        jac_gT = self.jac_gT(X).to(torch.float32)  # (n x 10)
+        jac_TempLog = self.jac_TempLog().to(torch.float32)  # (5 x 10)
 
-        jac_TempLog = jac_TempLog.to(torch.float32)  
-        jac_gT = jac_gT.to(torch.float32) 
-    
-        return jac_TempLog @ jac_gT.T
+        # jac_gT precisa ser replicado para corresponder ao número de desigualdades
+        jac_gT_exp = jac_gT.unsqueeze(1).expand(-1, 2, -1)  # (n x 2 x 10)
+
+        # jac_TempLog deve ser replicado para o número de elementos (5 x 10)
+        jac_TempLog_exp = jac_TempLog.unsqueeze(0).expand(X.shape[0], -1, -1)  # (n x 5 x 10)
+
+        # Concatenar jac_gT_exp e jac_TempLog_exp ao longo da segunda dimensão
+        ineq_jac = torch.cat([jac_gT_exp, jac_TempLog_exp], dim=1)  # (n x 25 x 10)
+
+        return ineq_jac
+
+
     
 
     def process_output(self, X, out):

@@ -197,13 +197,16 @@ def train_net(data, args, save_dir):
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
             train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss            
-            #train_loss.requires_grad = True
+            
+            if args['probType'] == 'dc_wss':
+            
+                train_loss.requires_grad = True
             
             #print('Xtrain ', Xtrain[0].detach().cpu().numpy())
-            print('Yhat ', Yhat_train[0].detach().cpu().numpy())
-            print('Ynew ', Ynew_train[0].detach().cpu().numpy())
-            print('Loss ', train_loss[0].detach().cpu().numpy())
-            print('- - - - ')
+            #print('Yhat ', Yhat_train[0].detach().cpu().numpy())
+            #print('Ynew ', Ynew_train[0].detach().cpu().numpy())
+            #print('Loss ', train_loss[0].detach().cpu().numpy())
+            #print('- - - - ')
             
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
             solver_opt.step() # 4. Performe gradiente descent
@@ -228,7 +231,7 @@ def train_net(data, args, save_dir):
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
-                
+        print('TRAIN LOSS ', np.mean(epoch_stats['train_loss']))
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}, y_new_train[0] {:.4f}, y_new_train[1] {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
@@ -241,7 +244,7 @@ def train_net(data, args, save_dir):
         )
         
         print('RESULTADO DE FONTINHAOPTIMIZATION: 110.65')
-        
+        #print(Ynew_train)
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
 
@@ -279,6 +282,7 @@ def train_net(data, args, save_dir):
 
         #plot_nonlinear_evolution(data, y1_new_history, y2_new_history)
         plot_nonlinear_evolution(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}_epochs_{args['epochs']}.png'))
+
     
     
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
@@ -299,7 +303,7 @@ def train_net(data, args, save_dir):
     with open(os.path.join(save_model, f'model_{now}_dcwss_epochs_{args['epochs']}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
     
-    
+    print(Ynew_train)
     print('Training finished')    
     
     return solver_net, stats
@@ -417,6 +421,7 @@ def grad_steps(data, X, Y, args):
             new_Y_step = lr * Y_step + momentum * old_Y_step
             Y_new = Y_new - new_Y_step
 
+
             old_Y_step = new_Y_step            
 
         return Y_new
@@ -483,17 +488,10 @@ def grad_steps_all(data, X, Y, args):
                         
                     else:
                         
-                            
-                    
-                    
                         ineq_step = data.ineq_grad(X, Y_new)
                         eq_step = data.eq_grad(X, Y_new)
                         Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
-                
-                
-                
-                
-                
+                                
                 new_Y_step = lr * Y_step + momentum * old_Y_step
                 Y_new = Y_new - new_Y_step
 
@@ -531,7 +529,7 @@ class NNSolver(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        print('X ', x[0])
+        #print('X ', x[0])
         out = self.net(x)
 
         if self._args['useCompl']:
@@ -543,7 +541,7 @@ class NNSolver(nn.Module):
                 out = nn.Sigmoid()(out)
             
             result = self._data.process_output(x, out)
-            print('Out ', out[0])
+            #print('Out ', out[0])
             return result
         # result
 if __name__=='__main__':
