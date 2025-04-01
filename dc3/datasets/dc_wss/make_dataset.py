@@ -19,91 +19,77 @@ def generate_time():
         if all(numbers[i] >= numbers[i - 1] + 2 for i in range(1, 5)):
             return numbers
 
+
+
+
+
+
 def generate_duration(i_list):
     durations = []
     
+    
+    
+    
     for idx, i in enumerate(i_list):
+        
+        
+        
         if i == 23:
             duration = random.choice([0.1, 1])
         else:
             next_i = i_list[idx + 1] if idx + 1 < len(i_list) else 23
-            max_value = min(5, next_i - i)
-            duration = random.uniform(0.1, max_value)  # Gera um valor aleatório entre 0.5 e o valor máximo
+            max_value = min(5, max(0.1, next_i - i))  # Garante que o valor máximo esteja entre 0.1 e 5
+            duration = random.uniform(0.1, max_value)  # Gera um valor aleatório dentro do intervalo ajustado
             
-        rounded_duration = round(duration * 2) / 2  # Arredondar para o múltiplo de 0.5 mais próximo
-        durations.append(rounded_duration)
+        durations.append(duration)
     
     return durations
+
+    
+    
+    
 
     
 
 def main():
 
+    qty_x = [10, 20, 30, 50, 100, 200, 500, 1000]
+
     nDutyCycles = 5
-    # nInc = 1; nIncOpt = 2*nDutyCycles
-    # timeHorizon = 24*3600; maxInc = timeHorizon/nInc
-    # h0 = 4.0
 
     d = data_system([5], [0])
 
-#    horario_funcionamento_bombas = [1, 8, 12, 18, 21]
-#    duracao_funcionamento_bombas = [3, 3, 3, 2.5, 2.5]
-
-#    x = horario_funcionamento_bombas + duracao_funcionamento_bombas
-
-#    d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(
-#        x, d, 0
-#    )
-
-#    x = [
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [9, 10, 12, 18, 21, 1, 1, 3, 2.5, 2.5 ],
-#        [1, 10, 12, 18, 21, 1, 1, 3, 2.5, 2.5 ],
-#        [2, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5 ],
-#        [1, 10, 12, 18, 21, 1, 1, 3, 2.5, 2.5 ]
-#    ]
 
 
-
-
-    X = []
-
-
-    for i in tqdm(range(5)):
+    for qty in tqdm(qty_x):
         
-        time = generate_time()
 
-        duration = generate_duration(time)
+        X = []
 
-        concatenated = time + duration
-        
-        X.append(concatenated)
+        for i in range(qty):
+            
+            time = generate_time()
 
+            duration = generate_duration(time)
 
-    problem = Problem_DC_WSS(
-        #d, pumps, tanks, pipes, valves, timeInc, controls_epanet, x
-        
-        d, X
-    )
+            concatenated = time + duration
+            
+            X.append(concatenated)
 
-    if os.name == "nt":
-        file_path = ".\\dc_wss_dataset_dc_{}_ex_{}".format(nDutyCycles, len(X))
-    else:
-        file_path = "./dc_wss_dataset_dc_{}_ex_{}".format(nDutyCycles, len(X))
+        #print(X)
+        problem = Problem_DC_WSS(
+            #d, pumps, tanks, pipes, valves, timeInc, controls_epanet, x
+            
+            d, X
+        )
 
-    with open(file_path, "wb") as f:
-        pickle.dump(problem, f)
+        if os.name == "nt":
+            file_path = ".\\dc_wss_dataset_dc{}_ex{}".format(nDutyCycles, len(X))
+        else:
+            file_path = "./dc_wss_dataset_dc{}_ex{}".format(nDutyCycles, len(X))
+
+        with open(file_path, "wb") as f:
+            pickle.dump(problem, f)
 
 
 if __name__ == "__main__":

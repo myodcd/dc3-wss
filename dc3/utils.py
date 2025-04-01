@@ -25,7 +25,7 @@ import random
 #from pypower import idx_bus, idx_gen, ppoption
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+#DEVICE = torch.device("xpu" if torch.xpu.is_available() else "cpu")
         
 def str_to_bool(value):
     if isinstance(value, bool):
@@ -447,7 +447,7 @@ class Problem_DC_WSS:
         
         self._d = d
         
-        self._costTariff = 0
+        #self._costTariff = 0
 
         self._num_dc = d.num_dc
         
@@ -461,6 +461,7 @@ class Problem_DC_WSS:
         self._valid_frac = valid_frac
         self._test_frac = test_frac
         self._device = None
+        self._qty_samples = self._X.shape[0]
         
 
     @property
@@ -531,6 +532,10 @@ class Problem_DC_WSS:
     def testX(self):
         return self.X[int(self.num * (self.train_frac + self.valid_frac)) :]
 
+    @property
+    def qty_samples(self):
+        return self._qty_samples
+
     # def Cost
     def obj_fn(self, y): # ,d, pumps, tanks, pipes, valves, timeInc):
             # COM EFICIÊNCIA
@@ -568,7 +573,7 @@ class Problem_DC_WSS:
 
         total_cost
 
-        return torch.tensor(total_cost) 
+        return torch.tensor(total_cost, requires_grad=True) 
 
     def gT(self, x, y):
         
@@ -673,73 +678,121 @@ class Problem_DC_WSS:
              
         for x_ in x:
         
+            
+            # retorno do código de Marlene
             eps_aux = torch.tensor(eps_definition_F3(x_, d))
+            
+            
+            # calcular o jacobiano de x dos níveis dos tanques sendo que cada sample tem 10 elementos
+            
+            
+
+             
+            eps_aux_jac_gt_1 = eps_aux * -1
+            
   
             jac.append(eps_aux)
 
         return torch.stack(jac)
                 
-                        
+           
+           
+
     def ineq_grad(self, x, y):
-        ineq_dist = self.ineq_dist(x, y)  # (n x 25)
-        ineq_jac = self.ineq_jac(x)  # (n x 25 x 10)
+        # [samples x 25] ineq_resid = ineq_dist
+        ineq_dist = self.ineq_dist(x, y)
+        
+        # [samples x 25 x 10]
+        ineq_jac = self.ineq_jac(x)
+        # Ajusta `ineq_dist` para (n, 25, 1) para broadcast correto ao multiplicar com (n, 25, 10)
+        ineq_dist = ineq_dist.unsqueeze(2)  # (n, 25, 1)
 
-        # Ajustando ineq_dist para a forma (n x 25 x 1) para compatibilidade com a multiplicação batched
-        ineq_dist_expanded = ineq_dist.unsqueeze(2)  # (n x 25 x 1)
-
-        # Agora podemos realizar a multiplicação batched
-        ineq_grad = torch.bmm(ineq_dist_expanded, ineq_jac)  # (n x 25 x 1) x (n x 25 x 10)
-
-        # Squeeze para remover a dimensão extra
-        #ineq_grad = ineq_grad.squeeze(2)  # (n x 10)
-
-        return ineq_grad
+        # Multiplica cada resíduo pelo seu jacobiano correspondente e soma sobre a dimensão 1 (25 restrições)
+        grad = torch.sum(ineq_dist * ineq_jac, dim=1)  
 
 
-    
+        #return grad
+        # [samples x 10] ignora resultados negativos
+        return torch.clamp(grad, 0)
+
+
     def ineq_dist(self, x, y):
 
         ineq_dist = self.ineq_resid(x, y)
         
         return ineq_dist
     
+    
+    # ineq_dist
     def ineq_resid(self, x, y):
-
+        
         d = self.d
+        n_min = d.hmin[0] # 2
+        n_max = d.hmax[0] # 8
         
-        n_min = d.hmax[0]
-        n_max = d.hmin[0]
-        
-        gT = self.gT(x, y)
-        
-        gt_ineq1 = torch.clamp(gT - n_max, min=0) 
-        gt_ineq2 = torch.clamp(n_min - gT, min=0) 
-               
-        g_TempLog = torch.clamp(self.g_TempLog(x), min=0)
-        
-        ineq_resid = torch.cat([gt_ineq1, gt_ineq2, g_TempLog], dim=1)  
-        
-        
-        return ineq_resid
-        
-                
-    def ineq_jac(self, X):
-        jac_gT = self.jac_gT(X).to(torch.float32)  # (n x 10)
-        jac_TempLog = self.jac_TempLog().to(torch.float32)  # (5 x 10)
+        # [samples x 10]
+        gT = torch.clamp(self.gT(x, y), n_min, n_max)
 
-        # jac_gT precisa ser replicado para corresponder ao número de desigualdades
-        jac_gT_exp = jac_gT.unsqueeze(1).expand(-1, 2, -1)  # (n x 2 x 10)
+        # Constraint: [gt - Nmax] <= 0
+        gt_ineq1 = gT - n_max
+        
+        # Constraint: [Nmin - gT] <= 0
+        gt_ineq2 = n_min - gT
+        
+        # [samples x 20] 
+        gt_ineq = torch.cat([gt_ineq1, gt_ineq2], dim=1)  
+        
+        # [samples x 5]
+        g_TempLog = self.g_TempLog(x)
+        
+        # [samples x 25]
+        return torch.cat([gt_ineq, g_TempLog], dim=1) 
+            
 
-        # jac_TempLog deve ser replicado para o número de elementos (5 x 10)
+    def ineq_jac_old(self, X):
+        # Jacobiano dos níveis dos tanques: cada sample tem 10 elementos
+        # [samples x 10]
+        jac_gT = self.jac_gT(X).to(torch.float64) 
+        # Replicamos cada linha de jac_gT para formar um bloco de 10 linhas (uma por cada elemento de gT)
+        jac_gT_full = jac_gT.unsqueeze(1).expand(-1, 10, -1)  # (n x 10 x 10)
+        # Para gt_ineq1 usamos o jacobiano direto; para gt_ineq2 o sinal é invertido
+        jac_gT_ineq1 = jac_gT_full                # (n x 10 x 10)
+        jac_gT_ineq2 = -jac_gT_full               # (n x 10 x 10)
+        # Empilhamos os dois blocos para formar 20 linhas de restrições relativas a gT
+        jac_gT_ineq = torch.cat([jac_gT_ineq1, jac_gT_ineq2], dim=1)  # (n x 20 x 10)
+
+        # jacobiano fixo associado ao TempLog: já tem shape (5 x 10)
+        jac_TempLog = self.jac_TempLog().to(torch.float64)  # (5 x 10)
+        # Replicamos para cada amostra
         jac_TempLog_exp = jac_TempLog.unsqueeze(0).expand(X.shape[0], -1, -1)  # (n x 5 x 10)
 
-        # Concatenar jac_gT_exp e jac_TempLog_exp ao longo da segunda dimensão
-        ineq_jac = torch.cat([jac_gT_exp, jac_TempLog_exp], dim=1)  # (n x 25 x 10)
-
+        # Concatenamos ambos os blocos, totalizando 25 restrições: (n x 25 x 10)
+        ineq_jac = torch.cat([jac_gT_ineq, jac_TempLog_exp], dim=1)
         return ineq_jac
 
 
-    
+    def ineq_jac(self, X):
+
+        n = X.shape[0]  # Número de samples
+
+        # Obtém os jacobianos parciais
+        jac_gT = self.jac_gT(X).to(torch.float64)  # (n, 10)
+        jac_TempLog = self.jac_TempLog().to(torch.float64)  # (5, 10)
+
+        # Ajusta as dimensões para ficarem compatíveis com (n, 25, 10)
+        jac_gT = jac_gT.unsqueeze(2).expand(n, 10, 10)  # Transforma em (n, 10, 10)
+        jac_TempLog = jac_TempLog.unsqueeze(0).expand(n, 5, 10)  # Transforma em (n, 5, 10)
+
+        # Inicializa jacobiano total (n, 25, 10)
+        jac_total = torch.zeros((n, 25, 10), dtype=torch.float64)
+
+        # Preenche as colunas correspondentes
+        jac_total[:, :10, :] = jac_gT  # Preenche as primeiras 10 variáveis
+        jac_total[:, 10:15, :] = jac_TempLog  # Preenche as próximas 5 variáveis
+
+        # [samples x 25 x 10]
+        return jac_total
+
 
     def process_output(self, X, out):
         qty = out.shape[1] // 2  # Divide entre horários e durações
@@ -748,26 +801,33 @@ class Problem_DC_WSS:
         out[:, :qty] *= 24  
         out[:, qty:] *= 6 
 
-        # Arredonda horários e os mantém entre 0 e 23
+        # Arredonda horários e mantém entre 0 e 23
         out[:, :qty] = torch.round(out[:, :qty])
         out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
 
         # Ordena os horários para garantir que estejam crescentes
         out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
 
-        # Garante que não haja horários repetidos
+        # Garante um espaçamento mínimo de 2 entre horários
         for i in range(1, qty):
-            out[:, i] = torch.where(out[:, i] == out[:, i - 1], out[:, i] + 1, out[:, i])
-        
+            out[:, i] = torch.where(out[:, i] >= out[:, i - 1] + 2, out[:, i], out[:, i - 1] + 2)
+
         # Mantém os horários dentro do intervalo válido (0 a 23)
         out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
 
-        # O primeiro horário não pode ser entre 20 e 23
+        # O primeiro horário não pode estar entre 20 e 23
         out[:, 0] = torch.where((out[:, 0] >= 20), 19, out[:, 0])
 
         # Recalcula para garantir que os horários sejam crescentes após os ajustes
         out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
 
+        
+        
+        
+        
+        
+        
+        
         # Cálculo da duração máxima permitida para cada intervalo
         max_durations = torch.zeros_like(out[:, qty:])
         for i in range(qty):
@@ -777,19 +837,25 @@ class Problem_DC_WSS:
                 max_durations[:, i] = torch.where(out[:, qty - 1] == 23, 1, 24 - out[:, qty - 1])
             else:
                 max_durations[:, i] = out[:, i + 1] - out[:, i]
-        
-        # Ajusta as durações para respeitar os horários disponíveis
+
+        # Garante que as durações estejam entre 0.1 e 5
+        out[:, qty:] = torch.clamp(out[:, qty:], min=0.1, max=6)
+
+        # Ajusta durações para não ultrapassar os horários disponíveis
         out[:, qty:] = torch.min(out[:, qty:], max_durations)
         
-        # Garante que as durações sejam valores inteiros positivos 
-        out[:, qty:] = torch.clamp(torch.round(out[:, qty:]), min=0.1)
         
-        # Aplica incremento de 0.1 nas durações caso os horários sejam sequênciais
-        for i in range(1, qty):
-            increment_condition = (out[:, i] == out[:, i - 1] + 1)
-            out[:, qty + i] = torch.where(increment_condition, out[:, qty + i - 1] + 0.1, out[:, qty + i])
         
+        
+        
+        
+        
+        
+        
+        
+
         return out
+
 
 
     

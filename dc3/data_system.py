@@ -12,8 +12,8 @@ class data_system:
         self.T_s=0        
         self.tariffpatern='Tariff' #nome do pattern no inp com o tarifário
         self.tariff_idx=0
-        self.hmax=[2] 
-        self.hmin=[8]
+        self.hmin=[2] 
+        self.hmax=[8]
         self.h0=[4]   
         
         self.num_dc=4

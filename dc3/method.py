@@ -39,6 +39,7 @@ import EPANET_API as EPA_API
 # python .\method.py --probType nonlinear --simpleEx 10000 --simpleVar 2 --simpleEq 1 --simpleIneq 1 --corrMode 'partial' --useCompl True --epoch 150
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
         
 print('Device: ', DEVICE)
 
@@ -54,14 +55,6 @@ def main():
         help='number of equality constraints for simple problem')
     parser.add_argument('--simpleEx', type=int,
         help='total number of datapoints for simple problem')
-#    parser.add_argument('--nonconvexVar', type=int,
-#        help='number of decision vars for nonconvex problem')
-#    parser.add_argument('--nonconvexIneq', type=int,
-#        help='number of inequality constraints for nonconvex problem')
-#    parser.add_argument('--nonconvexEq', type=int,
-#        help='number of equality constraints for nonconvex problem')
-#    parser.add_argument('--nonconvexEx', type=int,
-#        help='total number of datapoints for nonconvex problem')
     parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
     parser.add_argument('--batchSize', type=int,
@@ -96,10 +89,7 @@ def main():
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
-
-
-#    defaults = {'nonlinear': {'probType': 'nonlinear', 'simpleVar': 2, 'simpleIneq': 1, 'simpleEq': 1, 'simpleEx': 200, 'epochs': 100, 'corrMode': 'partial', 'useCompl': True }}
-
+    parser.add_argument('--fileName', type=str, default='dc_wss_dataset_dc5_ex1000')
 
     args = parser.parse_args()
     args = vars(args) # change to dictionary
@@ -115,16 +105,10 @@ def main():
 
     # Load data, and put on GPU if needed
     prob_type = args['probType']
-    #if prob_type == 'simple':
-    #    filepath = os.path.join('datasets', 'simple', "random_simple_dataset_var{}_ineq{}_eq{}_ex{}".format(
-    #        args['simpleVar'], args['simpleIneq'], args['simpleEq'], args['simpleEx']))
-    #elif prob_type == 'nonconvex':
-    #    filepath = os.path.join('datasets', 'nonconvex', "random_nonconvex_dataset_var{}_ineq{}_eq{}_ex{}".format(
-    #        args['nonconvexVar'], args['nonconvexIneq'], args['nonconvexEq'], args['nonconvexEx']))
     if prob_type == 'nonlinear':
         filepath = os.path.join('datasets', 'nonlinear', "random_nonlinear_dataset_ex{}".format(args['simpleEx']))      
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss', 'dc_wss_dataset_dc_5_ex_30')
+        filepath = os.path.join('datasets', 'dc_wss', args['fileName'])
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -182,8 +166,6 @@ def train_net(data, args, save_dir):
     
     y1_new_history = []
     y2_new_history = [] 
-        
-    final_result = {}
     
     for i in range(nepochs):
         epoch_stats = {}
@@ -196,25 +178,13 @@ def train_net(data, args, save_dir):
             solver_opt.zero_grad() # 0. Optimizer zero grad
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
-            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss            
-            
-            if args['probType'] == 'dc_wss':
-            
-                train_loss.requires_grad = True
-            
-            #print('Xtrain ', Xtrain[0].detach().cpu().numpy())
-            #print('Yhat ', Yhat_train[0].detach().cpu().numpy())
-            #print('Ynew ', Ynew_train[0].detach().cpu().numpy())
-            #print('Loss ', train_loss[0].detach().cpu().numpy())
-            #print('- - - - ')
-            
+            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                        
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
             solver_opt.step() # 4. Performe gradiente descent
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
-
-        
+            
         # Get valid loss
         solver_net.eval()
         for Xvalid in valid_loader:
@@ -231,20 +201,17 @@ def train_net(data, args, save_dir):
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
-        print('TRAIN LOSS ', np.mean(epoch_stats['train_loss']))
         print(
-            'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}, y_new_train[0] {:.4f}, y_new_train[1] {:.4f}'.format(
+            'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
                 np.mean(epoch_stats['valid_dist']), np.mean(epoch_stats['valid_ineq_max']),
                 np.mean(epoch_stats['valid_ineq_mean']), np.mean(epoch_stats['valid_ineq_num_viol_0']),
                 #np.mean(epoch_stats['valid_eq_max']), 
-                np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time']),
-                np.mean(Ynew_train[0].cpu().detach().numpy()), np.mean(Ynew_train[1].cpu().detach().numpy())
+                np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
+               # np.mean(Ynew_train[0].cpu().detach().numpy()), np.mean(Ynew_train[1].cpu().detach().numpy())
             )
         )
-        
-        print('RESULTADO DE FONTINHAOPTIMIZATION: 110.65')
-        #print(Ynew_train)
+        print('')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
 
@@ -274,17 +241,14 @@ def train_net(data, args, save_dir):
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
+    plt.savefig(os.path.join('plots', f'plot_{args["fileName"]}.png'))
     plt.show() 
 
     if args['probType'] == 'nonlinear':
 
-        y_new_history = list(zip(y1_new_history, y2_new_history))
-
-        #plot_nonlinear_evolution(data, y1_new_history, y2_new_history)
         plot_nonlinear_evolution(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}_epochs_{args['epochs']}.png'))
 
-    
-    
+        
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
         pickle.dump(stats, f)
     with open(os.path.join(save_dir, 'solver_net.dict'), 'wb') as f:
@@ -293,19 +257,32 @@ def train_net(data, args, save_dir):
         if args['probType'] == 'nonlinear':
         
             torch.save(f'model_{now}_{args['simpleEx']}_epochs_{args['epochs']}.pt', f)
-    
-        #else:
-            
-        #    torch.save(f'model_{now}_dcwss_epochs_{args['epochs']}.pt', f)
-    
-    
+        
     save_model = os.path.join('models')
-    with open(os.path.join(save_model, f'model_{now}_dcwss_epochs_{args['epochs']}.pt'), 'wb') as f:
+    with open(os.path.join(save_model, f'model_{now}_dcwss_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
     
-    print(Ynew_train)
-    print('Training finished')    
-    
+    print('RESULTADO DE FONTINHAOPTIMIZATION: 110.65')
+    print('----')    
+    print('Training finished')   
+
+    # Testar resultado do modelo
+    path_model = os.path.join('models', f'model_{now}_dcwss_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
+    args = {'probType': 'dc_wss', 'hiddenSize': 200, 'useCompl': False, 'corrMode': 'full'}
+
+    newModel = NNSolver(data, args)
+    newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
+    newModel.eval()    
+
+    input_data = torch.tensor([[1, 5, 6, 7, 17, 2, 0.9, 0.9, 0.9, 1]])
+    output_data = newModel(input_data)
+
+    print('Input: ', input_data)
+    print('Output: ', output_data)    
+
+    print('gT: ', data.gT(output_data, output_data))
+    print('Resultado: ', data.obj_fn(output_data))
+    print('Avaliation finished')
     return solver_net, stats
 
 # Modifies stats in place
@@ -411,7 +388,12 @@ def grad_steps(data, X, Y, args):
             else:       
                 if args['probType'] == 'dc_wss': 
                     ineq_step = data.ineq_grad(X, Y_new)     
-                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                    
+                    # deixado comentado para testar se osftWeightEqFrac é necessário sem não houver restricao de igualdade
+                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+
+                    Y_step = ineq_step
+                    #print(Y_step)
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
                     eq_step = data.eq_grad(X, Y_new)
@@ -430,30 +412,29 @@ def grad_steps(data, X, Y, args):
         return Y
 
 def total_loss(data, X, Y, args):
-    
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_ex2' else 1
 
     obj_cost = data.obj_fn(Y)
-    
-    # observar que no codigo usado para o nonlinear, era (Y, Y)
     
     if args['probType'] == 'nonlinear':
         ineq_dist = data.ineq_dist(Y, Y)
     else:
         ineq_dist = data.ineq_dist(X, Y)
 
-    ineq_cost = torch.norm(ineq_dist, dim=1)    
+    ineq_cost = torch.norm(ineq_dist, p=2, dim=1)
     
     if args['probType'] == 'dc_wss':
-        
-    #   Somente com restricao de desigualdade
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-    
+        # Apenas restrições de desigualdade
+        result = obj_cost + args['softWeight'] * ineq_cost
     else:
-    
-            # Com equações de igualdade e desigualdade
-        eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+        # Verifica se há restrições de igualdade
+        if hasattr(data, 'eq_resid') and callable(data.eq_resid):
+            eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
+            result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + \
+                     args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+        else:
+            # Sem restrições de igualdade
+            result = obj_cost + args['softWeight'] * ineq_cost
     
     return result
 
@@ -484,7 +465,11 @@ def grad_steps_all(data, X, Y, args):
                     
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new)
-                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                            
+                        # deixado comentado para testar se osftWeightEqFrac é necessário sem não houver restricao de igualdade
+                        #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                                            
+                        Y_step = ineq_step
                         
                     else:
                         
@@ -529,7 +514,6 @@ class NNSolver(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        #print('X ', x[0])
         out = self.net(x)
 
         if self._args['useCompl']:
@@ -541,8 +525,7 @@ class NNSolver(nn.Module):
                 out = nn.Sigmoid()(out)
             
             result = self._data.process_output(x, out)
-            #print('Out ', out[0])
             return result
-        # result
+
 if __name__=='__main__':
     main()
