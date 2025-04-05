@@ -109,8 +109,12 @@ def main():
     
     #d=data_system([5],[5])
     d=data_system([5],[0])
-    horario_funcionamento_bombas=[1, 8, 12, 18, 21]
-    duracao_funcionamento_bombas=[3, 3, 3, 2.5, 2.5]
+    #horario_funcionamento_bombas=[1, 8, 12, 18, 21]
+    #duracao_funcionamento_bombas=[3, 3, 3, 2.5, 2.5]
+    
+    horario_funcionamento_bombas=[2, 5, 6, 7, 17]
+    duracao_funcionamento_bombas=[2, 0.9, 0.9, 0.9, 2]
+    
     
     x= horario_funcionamento_bombas + duracao_funcionamento_bombas
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)

@@ -7,7 +7,7 @@ from torch import optim
 
 torch.set_default_dtype(torch.float64)
 
-
+import pandas as pd
 
 from torch.utils.data import TensorDataset, DataLoader
 
@@ -39,7 +39,7 @@ import EPANET_API as EPA_API
 # python .\method.py --probType nonlinear --simpleEx 10000 --simpleVar 2 --simpleEq 1 --simpleIneq 1 --corrMode 'partial' --useCompl True --epoch 150
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
+#DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
         
 print('Device: ', DEVICE)
 
@@ -89,11 +89,20 @@ def main():
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
-    parser.add_argument('--fileName', type=str, default='dc_wss_dataset_dc5_ex1000')
+    parser.add_argument('--qtySamples', type=int, default=8)
+    parser.add_argument('--fileName', type=str, default=None)    
 
     args = parser.parse_args()
     args = vars(args) # change to dictionary
+    
+    
+    if args['fileName'] is None:
+            args['fileName'] = f"dc_wss_dataset_dc5_ex{args['qtySamples']}"
+    
     defaults = default_args.method_default_args(args['probType'])
+    
+    
+    
     
     for key in defaults.keys():
         if args[key] is None:
@@ -153,7 +162,7 @@ def train_net(data, args, save_dir):
     valid_dataset = TensorDataset(data.validX)
     test_dataset = TensorDataset(data.testX)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size)#, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=len(valid_dataset))
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset))
 
@@ -166,6 +175,8 @@ def train_net(data, args, save_dir):
     
     y1_new_history = []
     y2_new_history = [] 
+        
+    #final_result = {}
     
     for i in range(nepochs):
         epoch_stats = {}
@@ -177,14 +188,35 @@ def train_net(data, args, save_dir):
             start_time = time.time()
             solver_opt.zero_grad() # 0. Optimizer zero grad
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
+            
+            # salve Yhat_train em uma planilha csv mas na primeira coluna coloque o valor da epoca
+            
+            
+            df = pd.DataFrame(Yhat_train.cpu().detach().numpy())
+            df.to_csv(os.path.join(save_dir, 'Yhat_train.csv'), index=False)
+            
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
-            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                        
+            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss           
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
+            #print('REQUIRES GRAD ', train_loss.requires_grad)
+            
+            #print('Xtrain ', Xtrain[0])
+            #print('Yhat_train ', Yhat_train[0])
+            #print('Ynew_train ', Ynew_train[0])
+            
+            
             solver_opt.step() # 4. Performe gradiente descent
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
-            
+
+
+
+            # Visualizar o menor valor da funcao objetivo
+            #min_value, min_index = torch.min(train_loss, dim=0)
+            #print('Custo: ',min_value.item(), ' Índice: ', min_index.item())
+            #print('YNEW ', Ynew_train[min_index.item()])
+        
         # Get valid loss
         solver_net.eval()
         for Xvalid in valid_loader:
@@ -201,6 +233,7 @@ def train_net(data, args, save_dir):
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
+        #print('TRAIN LOSS ', np.mean(epoch_stats['train_loss']))
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
@@ -211,7 +244,10 @@ def train_net(data, args, save_dir):
                # np.mean(Ynew_train[0].cpu().detach().numpy()), np.mean(Ynew_train[1].cpu().detach().numpy())
             )
         )
-        print('')
+        print('----')
+        print('----')
+        print('----')
+        print('----')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
 
@@ -241,14 +277,16 @@ def train_net(data, args, save_dir):
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
-    plt.savefig(os.path.join('plots', f'plot_{args["fileName"]}.png'))
     plt.show() 
 
     if args['probType'] == 'nonlinear':
 
+        y_new_history = list(zip(y1_new_history, y2_new_history))
+
         plot_nonlinear_evolution(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}_epochs_{args['epochs']}.png'))
 
-        
+    
+    
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
         pickle.dump(stats, f)
     with open(os.path.join(save_dir, 'solver_net.dict'), 'wb') as f:
@@ -257,11 +295,13 @@ def train_net(data, args, save_dir):
         if args['probType'] == 'nonlinear':
         
             torch.save(f'model_{now}_{args['simpleEx']}_epochs_{args['epochs']}.pt', f)
-        
+    
     save_model = os.path.join('models')
     with open(os.path.join(save_model, f'model_{now}_dcwss_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
-    
+
+
+
     print('RESULTADO DE FONTINHAOPTIMIZATION: 110.65')
     print('----')    
     print('Training finished')   
@@ -283,6 +323,9 @@ def train_net(data, args, save_dir):
     print('gT: ', data.gT(output_data, output_data))
     print('Resultado: ', data.obj_fn(output_data))
     print('Avaliation finished')
+
+
+
     return solver_net, stats
 
 # Modifies stats in place
@@ -382,18 +425,23 @@ def grad_steps(data, X, Y, args):
             assert False, "Partial correction not available without completion."
         Y_new = Y
         old_Y_step = 0        
+        
         for i in range(num_steps):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
                 if args['probType'] == 'dc_wss': 
-                    ineq_step = data.ineq_grad(X, Y_new)     
                     
-                    # deixado comentado para testar se osftWeightEqFrac é necessário sem não houver restricao de igualdade
-                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-
-                    Y_step = ineq_step
-                    #print(Y_step)
+                    print('X: ', X[0])
+                    print('Y: ', Y_new[0])
+                    ineq_step = data.ineq_grad(X, Y_new)     
+                    #print('Ineq step: ', ineq_step[0])
+                    # codigo original
+                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                    #print('Y_step: ', Y_step[0])
+                    # codigo alterado para retirar do softweightEqFrac
+                    #Y_step = ineq_step
+                    #print('####')
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
                     eq_step = data.eq_grad(X, Y_new)
@@ -412,6 +460,7 @@ def grad_steps(data, X, Y, args):
         return Y
 
 def total_loss(data, X, Y, args):
+    
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_ex2' else 1
 
     obj_cost = data.obj_fn(Y)
@@ -423,18 +472,17 @@ def total_loss(data, X, Y, args):
 
     ineq_cost = torch.norm(ineq_dist, p=2, dim=1)
     
+    
     if args['probType'] == 'dc_wss':
-        # Apenas restrições de desigualdade
-        result = obj_cost + args['softWeight'] * ineq_cost
+        
+        # Somente com restricao de desigualdade
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+    
     else:
-        # Verifica se há restrições de igualdade
-        if hasattr(data, 'eq_resid') and callable(data.eq_resid):
-            eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
-            result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + \
-                     args['softWeight'] * args['softWeightEqFrac'] * eq_cost
-        else:
-            # Sem restrições de igualdade
-            result = obj_cost + args['softWeight'] * ineq_cost
+    
+        # Com equações de igualdade e desigualdade
+        eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
     
     return result
 
@@ -465,11 +513,11 @@ def grad_steps_all(data, X, Y, args):
                     
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new)
-                            
-                        # deixado comentado para testar se osftWeightEqFrac é necessário sem não houver restricao de igualdade
-                        #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                                            
-                        Y_step = ineq_step
+                                                                                        
+                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                        
+                        # codigo alterado para retirar do softweightEqFrac
+                        #Y_step = ineq_step
                         
                     else:
                         
@@ -525,6 +573,9 @@ class NNSolver(nn.Module):
                 out = nn.Sigmoid()(out)
             
             result = self._data.process_output(x, out)
+            
+            
+            #print('REsult : ', result[0])
             return result
 
 if __name__=='__main__':

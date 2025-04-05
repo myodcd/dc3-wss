@@ -1,439 +1,44 @@
 import torch
 import torch.nn as nn
-#from torch.autograd import Function
+
 torch.set_default_dtype(torch.float64)
 from scipy.optimize import approx_fprime
 import math
 
 import numpy as np
-#import osqp
+
+# import osqp
 from qpth.qp import QPFunction
-#import cyipopt
-#from scipy.linalg import svd
-#from scipy.sparse import csc_matrix
+
+# import cyipopt
+# from scipy.linalg import svd
+# from scipy.sparse import csc_matrix
 
 import hashlib
-#from copy import deepcopy
 import scipy.io as spio
 import time
 import EPANET_API as EPA_API
 
+import OptimAuxFunctionsV2 as opt_func
 
-import random
-#from pypower.api import case57
-#from pypower.api import opf, makeYbus
-#from pypower import idx_bus, idx_gen, ppoption
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#DEVICE = torch.device("xpu" if torch.xpu.is_available() else "cpu")
-        
+#DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
+
+
 def str_to_bool(value):
     if isinstance(value, bool):
         return value
-    if value.lower() in {'false', 'f', '0', 'no', 'n'}:
+    if value.lower() in {"false", "f", "0", "no", "n"}:
         return False
-    elif value.lower() in {'true', 't', '1', 'yes', 'y'}:
+    elif value.lower() in {"true", "t", "1", "yes", "y"}:
         return True
-    raise ValueError('{value} is not a valid boolean value')
+    raise ValueError("{value} is not a valid boolean value")
+
 
 def my_hash(string):
-    return hashlib.sha1(bytes(string, 'utf-8')).hexdigest()
+    return hashlib.sha1(bytes(string, "utf-8")).hexdigest()
 
-def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin 
-    tmin=min # minutos
-    h=np.transpose(htank)
-
-    if(d.flag_t_inicio!=0):
-        time_tmin_seg1=np.arange(0,(d.flag_t_inicio*60*60), tmin*60)
-        time_tmin_seg2=np.arange(d.flag_t_inicio*60*60,(24*60*60)+tmin*60, tmin*60)
-        time_tmin_seg=np.concatenate((time_tmin_seg2,time_tmin_seg1),axis=0)
-    else:
-        time_tmin_seg=np.arange(0,(24*60*60), (tmin*60))
-    h_tmin=np.ones(len(time_tmin_seg))*999
-    
-    for i in range(0,len(time_tmin_seg)): #Guardar os valores cujo tempo são multiplos 
-        idx = (np.where(timeInc['StartTime']==time_tmin_seg[i]))[0]
-        if (idx.size != 0):
-            h_tmin[i]=h[idx[0]]
-   
-    idx_zero=(np.where(h_tmin==999))[0] #h_15min=999 --> Não existe incremento que termine com tempo multiplo de x minutos
-    if (idx_zero.size != 0):
-         for i in range(0,len(idx_zero)):
-                idx_end=set((np.where(time_tmin_seg[idx_zero[i]]<=timeInc['EndTime']))[0])
-                idx_start=set((np.where(time_tmin_seg[idx_zero[i]]>=timeInc['StartTime']))[0])
-                aux=list(idx_end.intersection(idx_start))
-                if(len(aux)!=0):
-                    h_tmin[idx_zero[i]]=h[aux[0]+1] 
-                else:
-                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
-    return h_tmin
-
-
-# CODIGO ORIGINAL
-
-# def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VSPs
-#     # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
-#     epsF_i=d.epsF_i # % de perturbação para inicio
-#     epsF_d=d.epsF_d # % de perturbação para duração
-#     eps = np.zeros(len(x))
-# 
-#     for p in range(0,d.n_pumps):
-#         x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
-#         n_dc=d.n_dc[p]
-#         eps_aux=np.zeros(len(x_p))
-#         ### definição de perturbação para inicio de DC ###
-#         for i in range(0,n_dc): 
-#             inicio, dur = x_p[i], x_p[i + n_dc]
-#             next = x_p[i+1] if i < n_dc - 1 else 24
-#             flagR_i = 0
-# 
-#             if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
-#                 eps_aux[i]=max(inicio,1)*epsF_i
-#             else: 
-#                 dif=next-inicio-dur
-#                 if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-#                     eps_aux[i]=dif
-#                 else: # regressivas
-#                     pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
-# 
-#                     if(inicio - (max(inicio,1)*epsF_i) >= pre):                
-#                         eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
-#                     else:
-#                         flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
-#                         print('starting time: standard progressive and regressive not applied')
-#                         print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
-# 
-#             if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
-#                 dif=(inicio-pre) 
-#                 if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
-#                     eps_aux[i]=-dif
-#                 else:
-#                     eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-#                     print('ERROR: DC overlapping for starting time') 
-# 
-#         ### definição de perturbação para duração de DC ###
-#         for j in range(n_dc,len(x_p)): 
-#             inicio, dur = x_p[j - n_dc], x_p[j]
-#             next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
-#             flagR_d = 0
-#             if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
-#                 eps_aux[j]=max(dur,1)*epsF_d
-#             else:
-#                 dif=next - (inicio+dur)
-#                 if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
-#                     eps_aux[j]=dif 
-#                 else: # regressivas
-#                     if(dur - max(dur,1)*epsF_d >= 0):                
-#                         eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
-#                     else:
-#                         flagR_d=1 # Não se pode aplicar a regressiva standard 
-#                         print('duration: standard progressive and regressive not applied')                        
-#                         print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
-# 
-#             if(flagR_d==1): # dif. regressiva para duração 
-#                 # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
-#                 if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
-#                     eps_aux[j]= -dur 
-#                 else:
-#                     eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-#                     print('ERROR: DC overlapping -> duration is to low to regressive')
-#         
-#         eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-#     
-#     #retificar perturbações maiores que 5 minutos
-#     idx1=np.where(eps > 5/60)
-#     if(len(idx1[0])!=0): eps[idx1[0]]=5/60
-#     idx2=np.where(eps < - 5/60)
-#     if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
-# 
-#     if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
-# 
-#         for v in range(d.dc_pos[d.n_pumps],len(x)):
-#             val = max(x[v], 1) * d.eps_VSP
-#             if(x[v] + val < d.lim_VSP[1]): #forward
-#                 eps[v] = val
-#             else: #regressive
-#                 eps[v] = - val
-#                 if(x[v] - val < d.lim_VSP[0]):
-#                     print('ERROR: VSP eps not respecting boundaries') 
-#             if(val<0.0001):
-#                 print('WARNING: VPS eps is too low!') 
-#     return eps 
-
-def eps_definition_F3(x, d): # definição do eps para a 3a formulação (DC) + VSPs
-    # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
-    epsF_i = d.epsF_i # % de perturbação para inicio
-    epsF_d = d.epsF_d # % de perturbação para duração
-    x = x.detach().cpu().numpy()
-    eps = np.zeros_like(x)
-
-
-    for p in range(0,d.n_pumps):
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
-        n_dc=d.n_dc[p]
-        eps_aux=np.zeros(len(x_p))
-        ### definição de perturbação para inicio de DC ###
-        for i in range(0,n_dc): 
-            inicio, dur = x_p[i], x_p[i + n_dc]
-            next = x_p[i+1] if i < n_dc - 1 else 24
-            flagR_i = 0
-
-            if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
-                eps_aux[i]=max(inicio,1)*epsF_i
-            else: 
-                dif=next-inicio-dur
-                if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-                    eps_aux[i]=dif
-                else: # regressivas
-                    pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
-
-                    if(inicio - (max(inicio,1)*epsF_i) >= pre):                
-                        eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
-                    else:
-                        flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
-                        print('starting time: standard progressive and regressive not applied')
-                        print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
-
-            if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
-                dif=(inicio-pre) 
-                if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
-                    eps_aux[i]=-dif
-                else:
-                    eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping for starting time') 
-
-        ### definição de perturbação para duração de DC ###
-        for j in range(n_dc,len(x_p)): 
-            inicio, dur = x_p[j - n_dc], x_p[j]
-            next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
-            flagR_d = 0
-            if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
-                eps_aux[j]=max(dur,1)*epsF_d
-            else:
-                dif=next - (inicio+dur)
-                if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
-                    eps_aux[j]=dif 
-                else: # regressivas
-                    if(dur - max(dur,1)*epsF_d >= 0):                
-                        eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
-                    else:
-                        flagR_d=1 # Não se pode aplicar a regressiva standard 
-                        print('duration: standard progressive and regressive not applied')                        
-                        print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
-
-            if(flagR_d==1): # dif. regressiva para duração 
-                # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
-                if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
-                    eps_aux[j]= -dur 
-                else:
-                    eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping -> duration is to low to regressive')
-        
-        #print(x_p)
-        #print('##')
-        eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-        #print(eps)
-        #print('--')
-    #retificar perturbações maiores que 5 minutos
-    idx1=np.where(eps > 5/60)
-    if(len(idx1[0])!=0): eps[idx1[0]]=5/60
-    idx2=np.where(eps < - 5/60)
-    if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
-
-#    if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
-
-#        for v in range(d.dc_pos[d.n_pumps],len(x)):
-#            val = max(x[v], 1) * d.eps_VSP
-#            if(x[v] + val < d.lim_VSP[1]): #forward
-#                eps[v] = val
-#            else: #regressive
-#                eps[v] = - val
-#                if(x[v] - val < d.lim_VSP[0]):
-#                    print('ERROR: VSP eps not respecting boundaries') 
-#            if(val<0.0001):
-#                print('WARNING: VPS eps is too low!') 
-
-    #print(eps)
-
-    return eps  
-
-def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
-    h=np.transpose(htank)
-    n_arranques=int(len(x)/2)
-    time_seg=np.zeros(n_arranques*(2+n_points) + 1)
-    
-    idx=0
-    for i in range(0,n_arranques): #ordenar tempos e verificar questão de arredondamentos de segundos
-        #Correção do tempo de inicio e fim (7h-0h-7h)
-        if(d.flag_t_inicio!=0):
-            if(x[i] < 0): x[i]=0 
-            if(x[i] > 24): x[i]=24
-
-            #START TIME
-            start=(x[i]+d.flag_t_inicio)*(60*60)
-            if(start>=(24*(60*60))):
-                start-=(24*(60*60))
-        
-            #END TIME
-            end_at=(x[i]+x[i+n_arranques]+d.flag_t_inicio)*(60*60) # tempo final com a atualização da hora
-            end_dv=(x[i]+x[i+n_arranques])*(60*60) #tempo final pelas variáveis de decisão
-            if(end_dv>(24*60*60)):
-                end=d.flag_t_inicio
-            else:
-                if(end_at>=24*(60*60)):
-                    end=end_at-(24*(60*60))
-                else:
-                    end=end_at
-            total_time_hor=d.flag_t_inicio*(60*60)
-        else:
-            start=x[i]*(60*60)
-            end=(x[i]+x[i+n_arranques])*(60*60)
-            total_time_hor=24*(60*60)
-
-        #guardar tempo de inicio de op.
-        time_seg[idx]=math.floor(start + 0.5)
-        idx+=1
-
-        if(n_points!=0):
-            #tempo de intermédio de cada DC 
-            deltaT=(x[i+n_arranques]*(60*60))/(n_points+1)
-            for k in range(1,n_points+1):
-                interv=start+k*deltaT
-                if(interv>=24*60*60):
-                    interv-=(24*60*60)
-                time_seg[idx]=math.floor(interv + 0.5)
-                idx+=1
-        
-        #tempo de fim
-        time_seg[idx]=math.floor(end + 0.5)
-        idx+=1
-
-    h_min=np.ones(len(time_seg))*999
-    time_seg[len(time_seg)-1]=total_time_hor
-
-    # guardar valores no inicio do duty cycle
-    for i in range(0,len(time_seg)-1,2+n_points): 
-        idx = (np.where(timeInc['StartTime']==time_seg[i]))[0]
-        if (idx.size != 0):
-            h_min[i]=h[idx[0]]
-        
-        # guardar valores nos pontos intermédios do duty-cycle
-        if(n_points!=0):
-            for k in range(i+1,i+1+n_points):
-                idx2 = (np.where(timeInc['StartTime']==time_seg[k]))[0]
-                if (idx2.size != 0):
-                    h_min[k]=h[idx2[0]]
-
-    # guardar valores no final do duty cycle
-    for i in range(1+n_points,len(time_seg)-1,2+n_points): 
-        idx = (np.where(timeInc['EndTime']==time_seg[i]))[0]
-        if (idx.size != 0):
-                h_min[i]=h[idx[0]+1]
-
-    #guardar valores nas 24h
-    idx = (np.where(timeInc['EndTime']==time_seg[len(time_seg)-1]))[0]
-    if (idx.size != 0):
-        h_min[len(time_seg)-1]=h[idx[0]+1]       
-    
-    #CASO HAJAM NIVEIS POR DEFINIR
-    idx_zero=(np.where(h_min==999))[0] #h_min=999 --> Não existe incremento com o tempo que queriamos
-    if (idx_zero.size != 0):
-        for i in range(0,len(idx_zero)):
-            idx_end=set((np.where(time_seg[idx_zero[i]]<=timeInc['EndTime']))[0])
-            idx_start=set((np.where(time_seg[idx_zero[i]]>=timeInc['StartTime']))[0])
-            aux=list(idx_end.intersection(idx_start))
-            if(len(aux)!=0):
-                h_min[idx_zero[i]]=h[aux[0]+1] 
-            else:
-                if(time_seg[idx_zero[i]] >= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor + 1*60*60): #supostamente nunca acontece
-                    h_min[idx_zero[i]]=h[len(h)-1]
-                    print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
-                # elif(time_seg[idx_zero[i]] <= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor +)
-                     
-                else:                    
-                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
-    return h_min
-
-def round_x(x,d): #arredondar aos segundos    
-    x_round=[]
-    for p in range(d.n_pumps):
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-        x_aux=[math.floor(x_p[i]*3600 + 0.5) for i in range(0,d.n_dc[p])]
-        for i in range(d.n_dc[p],2*d.n_dc[p]):
-            x_aux.append(math.floor(x_aux[i-d.n_dc[p]] + (x_p[i]*3600) + 0.5))
-        x_round=x_round+x_aux
-
-    # x_round=[math.floor(x[i]*3600 + 0.5) for i in range(len(x))]    
-    #if(len(x)>2*np.sum(d.n_dc)): #VSP
-    #    x_vel=x[d.dc_pos[d.n_pumps]:len(x)]
-    #    vel_pos=np.concatenate(([0],np.cumsum(d.n_dc)))
-    #    for p in range(0,d.n_pumps):
-    #        x_v=x_vel[vel_pos[p]:vel_pos[p+1]]
-    #        x_aux=[round(x_v[i], 4) for i in range(0,d.n_dc[p])]
-    #        x_round=x_round+x_aux
-
-    return x_round
-
-
-def linear_interpolation(x_values, y_values, x_prime):
-    for i in range(len(x_values) - 1):
-        if x_values[i] <= x_prime <= x_values[i + 1]:
-            # Aplicar interpolação linear
-            y_prime = y_values[i] + (y_values[i + 1] - y_values[i]) * (x_prime - x_values[i]) / (x_values[i + 1] - x_values[i])
-            return (y_prime/100)
-        
-    raise ValueError("x_prime está fora do intervalo dos pontos fornecidos.")
-        
-def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
-    h=np.transpose(htank)
-    time_seg=np.zeros(int(len(x)*2)+1)
-    t_inic=[7,11,15,19,0,2,4]*np.array([60*60])
-    #t_inic=np.concatenate(([0],np.cumsum(d.t_hor_s_2F)))
-    idx=0
-    for i in range(0,len(x)):
-        start=t_inic[i]
-        end=(t_inic[i]+(x[i]*d.t_hor_s_2F[i]))
-        if(start%1<0.5):
-            time_seg[idx]=round(start)
-            idx+=1
-        else:
-            time_seg[idx]=math.ceil(start)
-            idx+=1
-        if(end%1<0.5):
-            time_seg[idx]=round(end)
-            idx+=1
-        else:
-            time_seg[idx]=math.ceil(end)
-            idx+=1
-    time_seg[len(time_seg)-1]=7*(60*60)
-    
-    h_min=np.ones(len(time_seg))*999
-    for i in range(0,len(time_seg)-1,2): # guardar valores no inicio do duty cycle
-        idx = (np.where(timeInc['StartTime']==time_seg[i]))[0]
-        if (idx.size != 0):
-            h_min[i]=h[idx[0]]
-    
-    for i in range(1,len(time_seg)-1,2): # guardar valores no final do duty cycle
-        idx = (np.where(timeInc['EndTime']==time_seg[i]))[0]
-        if (idx.size != 0):
-                h_min[i]=h[idx[0]+1]
-
-
-    idx = (np.where(timeInc['EndTime']==time_seg[len(time_seg)-1]))[0] #guardar valores nas 24h
-    if (idx.size != 0):
-        h_min[len(time_seg)-1]=h[idx[0]+1]    
-
-    idx_zero=(np.where(h_min==999))[0] #h_min=999 --> Não existe incremento com o tempo que queriamos
-    if (idx_zero.size != 0):
-        for i in range(0,len(idx_zero)):
-            idx_end=set((np.where(time_seg[idx_zero[i]]<=timeInc['EndTime']))[0])
-            idx_start=set((np.where(time_seg[idx_zero[i]]>=timeInc['StartTime']))[0])
-            aux=list(idx_end.intersection(idx_start))
-            if(len(aux)!=0):
-                h_min[idx_zero[i]]=h[aux[0]+1] 
-            else:
-                print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600)))                     
-    return h_min
 
 ###################################################################
 
@@ -443,31 +48,24 @@ def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
 
 
 class Problem_DC_WSS:
-    def __init__(self, d,x, valid_frac=0.0833, test_frac=0.0833):
-        
-        self._d = d
-        
-        #self._costTariff = 0
+    def __init__(self, d, x, valid_frac=0.0833, test_frac=0.0833):
 
+        self._d = d
         self._num_dc = d.num_dc
-        
         self._X = torch.tensor(x)
         self._xdim = self._X.shape[1]
         self._ydim = self._X.shape[1]
         self._num = len(x)
-        #self._neq = 0
-        #self._ineq = 2
         self._nknowns = 0
         self._valid_frac = valid_frac
         self._test_frac = test_frac
         self._device = None
         self._qty_samples = self._X.shape[0]
-        
 
     @property
     def device(self):
         return self._device
-    
+
     @property
     def X(self):
         return self._X
@@ -475,7 +73,7 @@ class Problem_DC_WSS:
     @property
     def d(self):
         return self._d
-        
+
     @property
     def num_dc(self):
         return self._num_dc
@@ -487,14 +85,6 @@ class Problem_DC_WSS:
     @property
     def nknowns(self):
         return self._nknowns
-
-#    @property
-#    def neq(self):
-#        return self._neq
-#    
-#    @property
-#    def ineq(self):
-#        return self._ineq
 
     @property
     def xdim(self):
@@ -537,338 +127,338 @@ class Problem_DC_WSS:
         return self._qty_samples
 
     # def Cost
-    def obj_fn(self, y): # ,d, pumps, tanks, pipes, valves, timeInc):
-            # COM EFICIÊNCIA
+    def obj_fn(self, y):  # ,d, pumps, tanks, pipes, valves, timeInc):
+        # COM EFICIÊNCIA
 
-        d = self.d
+        log_cost=opt_func.CostOptimizationLog()
         
-        total_cost = []
-    
-        for y_ in y:
-                
-            d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(
-            y_, d, 0
-            )
+        y = y.detach().cpu().numpy()
 
-            cost_pump=[]
-            
-            for p in range (0,d.n_pumps):
-                cp=0
-                for i in range (0,len(timeInc['StartTime'])):
-                    tariffpriceInc=(timeInc['duration'][i]/3600)*timeInc['Tariff'][i]
-                    if(pumps["pump"+str(p)+"_sp"][i]!=0 and pumps["pump"+str(p)+"_sp"][i]!=1):
-                        eff=linear_interpolation(d.eff_flow_points,d.eff_points,pumps["pump"+str(p)+"_q"][i])
-                        n2=1-(1-eff)*((1/pumps["pump"+str(p)+"_sp"][i])**0.1)
-                        up=(abs(pumps["pump"+str(p)+"_h"][i]) * (pumps["pump"+str(p)+"_q"][i]) * 9.81)/1000 # Q-> m3/s ; H->m ; P-> kW
-                        # up=(pumps["pump"+str(p)+"_p"][i]*eff) -> o de cima dá valores mais próximos
-                        cost1=tariffpriceInc*up/n2
-                    else:
-                        cost1=(tariffpriceInc*pumps["pump"+str(p)+"_p"][i])
+        cost_list = [opt_func.Cost(i, self.d, log_cost, 3) for i in y]
 
-                    cp+=cost1
-                cost_pump.append(cp)        
-            CostT=sum(cost_pump)
-
-            total_cost.append(CostT)
-
-        total_cost
-
-        return torch.tensor(total_cost, requires_grad=True) 
+        return torch.tensor(cost_list, requires_grad=True)
 
     def gT(self, x, y):
+        log_tank = opt_func.TanksOptimizationLog()
         
-        d = self.d
-        # Lower and Higher Water Level
+        y = y.detach().cpu().numpy()
 
-        g1_total = []
+        gt_list = [opt_func.gT(i, self.d, 0, log_tank) for i in y]
 
-        for y_ in y:
+        return torch.tensor(gt_list)
 
-            d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(
-            y_, d, 0
-            )
-            g1 = []
-            for i in range(len(d.dc_pos) - 1):
-                ini = d.dc_pos[i]
-                fin = d.dc_pos[i + 1]
-
-                # por tratar-se de um único tank, o id é 0
-                id = 0
-                
-                g1_aux = h_red3_acordeao(y_[ini:fin], tanks['tank' + str(id) + '_h'], timeInc, d, 0)
-                
-                g1.append(g1_aux[:-1])  # Adiciona os valores, removendo o último elemento
-            
-            g1_total.append(g1[0])  
-            
-        return torch.tensor(g1_total)
-
-
-    def g_TempLog(self, x): #tstart(n+1) > tstop(n)  (várias bombas)
+    def g_TempLog(self, x):  # tstart(n+1) > tstop(n)  (várias bombas)
         # print('Temporal Logic Const. --> x(start-stop)')
-        d = self.d
-        g5_total = []        
+
+        g_templog_list = [opt_func.g_TempLog(i, self.d) for i in x]
+
+        return torch.tensor(g_templog_list)
+
+    def jac_gT(self, y):
+
+        log_tank = opt_func.TanksOptimizationLog()
+
+        y = y.detach().cpu().numpy()
+
+        jac_gt_list = [opt_func.jac_gT(i, self.d, 0, log_tank) for i in y]
         
-        for x_ in x:        
+        jac_list_pos = torch.tensor(jac_gt_list)
+        jac_list_neg = -jac_list_pos.clone()
         
-            g5=[]
-        
-            
-            for p in range(0,d.n_pumps): #d.n_pumps
-                g5_F33=np.zeros(d.n_dc[p])
-                x_p=x_[d.dc_pos[p]:d.dc_pos[p+1]]
-                
-                if(d.n_dc[p]!=1):
-                    for i in range(0,d.n_dc[p]-1):
-                        g5_F33[i]=x_p[i+1]-(x_p[i]+x_p[i+d.n_dc[p]])
-                    g5_F33[i+1]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-                else:
-                    g5_F33[0]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-                        
-                g5=np.concatenate((g5,g5_F33))
-                
-            g5_total.append(g5)
-            
-        return torch.tensor(g5_total)
+        return torch.cat((jac_list_pos, jac_list_neg), dim=1)
+    
+    def jac_TempLog(self, x):
 
-        
-    def jac_TempLog(self):
-        # eps_aux=AF.eps_definition_F3(x,d) 
-        # jac=approx_fprime(x, g5_F3, eps_aux)
+        jac_templog_list = opt_func.jac_TempLog(x, self.d)
 
-        d = self.d
-        
-        n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
-        for p in range(0,d.n_pumps):
-            matriz1 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-            matriz2 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-            for i in range(0,d.n_dc[p]):
-                matriz1[i][i] = -1.  
-                matriz2[i][i] = -1.  
-                if(i!=d.n_dc[p]-1):
-                    matriz1[i][i+1] = 1.  
-            jac_aux=np.concatenate((matriz1,matriz2), axis=1)
-            
-            if(d.n_pumps!=1):
-                if(p==0):
-                    matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                    jac=np.concatenate((jac_aux,matriz_d), axis=1)
-                
-                elif(p==d.n_pumps-1):
-                    matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                    jac1=np.concatenate((matriz_a,jac_aux), axis=1)
-                    jac=np.concatenate((jac,jac1), axis=0)  
-
-                else:                            
-                    matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                    matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                    jac1=np.concatenate((matriz_a,jac_aux,matriz_d), axis=1)
-                    jac=np.concatenate((jac,jac1), axis=0)                               
-            else:
-                jac=jac_aux
-
-        return torch.tensor(jac)
-
-
-    def jac_gT(self, x):
-        
-        d = self.d
-        
-        jac = []
-             
-        for x_ in x:
-        
-            
-            # retorno do código de Marlene
-            eps_aux = torch.tensor(eps_definition_F3(x_, d))
-            
-            
-            # calcular o jacobiano de x dos níveis dos tanques sendo que cada sample tem 10 elementos
-            
-            
-
-             
-            eps_aux_jac_gt_1 = eps_aux * -1
-            
-  
-            jac.append(eps_aux)
-
-        return torch.stack(jac)
-                
-           
-           
-
-    def ineq_grad(self, x, y):
-        # [samples x 25] ineq_resid = ineq_dist
-        ineq_dist = self.ineq_dist(x, y)
-        
-        # [samples x 25 x 10]
-        ineq_jac = self.ineq_jac(x)
-        # Ajusta `ineq_dist` para (n, 25, 1) para broadcast correto ao multiplicar com (n, 25, 10)
-        ineq_dist = ineq_dist.unsqueeze(2)  # (n, 25, 1)
-
-        # Multiplica cada resíduo pelo seu jacobiano correspondente e soma sobre a dimensão 1 (25 restrições)
-        grad = torch.sum(ineq_dist * ineq_jac, dim=1)  
-
-
-        #return grad
-        # [samples x 10] ignora resultados negativos
-        return torch.clamp(grad, 0)
-
+        return torch.tensor(jac_templog_list)
 
     def ineq_dist(self, x, y):
 
         ineq_dist = self.ineq_resid(x, y)
-        
+
         return ineq_dist
-    
-    
+
     # ineq_dist
     def ineq_resid(self, x, y):
-        
+
         d = self.d
-        n_min = d.hmin[0] # 2
-        n_max = d.hmax[0] # 8
-        
-        # [samples x 10]
-        gT = torch.clamp(self.gT(x, y), n_min, n_max)
+        n_min = d.hmin[0]  # 2
+        n_max = d.hmax[0]  # 8
 
-        # Constraint: [gt - Nmax] <= 0
-        gt_ineq1 = gT - n_max
+        gT = self.gT(x, y)
+
+
+        #gt_ineq1 = torch.clamp(n_min - gT, min=0)
+
+        # Parte que viola superior: quanto gT está acima de n_max (zero se não estiver)
+        #gt_ineq2 = torch.clamp(gT - n_max, min=0)
         
-        # Constraint: [Nmin - gT] <= 0
-        gt_ineq2 = n_min - gT
         
-        # [samples x 20] 
-        gt_ineq = torch.cat([gt_ineq1, gt_ineq2], dim=1)  
-        
+        # Constraint: [gt - Nmax] <= 0 [samples x 10]
+        gt_ineq_up = gT - n_max
+
+        # Constraint: [Nmin - gT] <= 0 [samples x 10]
+        gt_ineq_down = n_min - gT
+
         # [samples x 5]
-        g_TempLog = self.g_TempLog(x)
-        
+        g_TempLog = self.g_TempLog(y)
+
         # [samples x 25]
-        return torch.cat([gt_ineq, g_TempLog], dim=1) 
-            
+        return torch.cat([gt_ineq_up, gt_ineq_down, g_TempLog], dim=1)
 
-    def ineq_jac_old(self, X):
-        # Jacobiano dos níveis dos tanques: cada sample tem 10 elementos
-        # [samples x 10]
-        jac_gT = self.jac_gT(X).to(torch.float64) 
-        # Replicamos cada linha de jac_gT para formar um bloco de 10 linhas (uma por cada elemento de gT)
-        jac_gT_full = jac_gT.unsqueeze(1).expand(-1, 10, -1)  # (n x 10 x 10)
-        # Para gt_ineq1 usamos o jacobiano direto; para gt_ineq2 o sinal é invertido
-        jac_gT_ineq1 = jac_gT_full                # (n x 10 x 10)
-        jac_gT_ineq2 = -jac_gT_full               # (n x 10 x 10)
-        # Empilhamos os dois blocos para formar 20 linhas de restrições relativas a gT
-        jac_gT_ineq = torch.cat([jac_gT_ineq1, jac_gT_ineq2], dim=1)  # (n x 20 x 10)
+    def ineq_jac(self, Y):
 
-        # jacobiano fixo associado ao TempLog: já tem shape (5 x 10)
-        jac_TempLog = self.jac_TempLog().to(torch.float64)  # (5 x 10)
-        # Replicamos para cada amostra
-        jac_TempLog_exp = jac_TempLog.unsqueeze(0).expand(X.shape[0], -1, -1)  # (n x 5 x 10)
+        # [samples x 20 x 10]
+        jac_gT = self.jac_gT(Y)
 
-        # Concatenamos ambos os blocos, totalizando 25 restrições: (n x 25 x 10)
-        ineq_jac = torch.cat([jac_gT_ineq, jac_TempLog_exp], dim=1)
-        return ineq_jac
+        # [5 x 10]
+        jac_TempLog = self.jac_TempLog(Y)
 
+        jac_combined = torch.cat([jac_gT, jac_TempLog.unsqueeze(0).repeat(jac_gT.shape[0], 1, 1)], dim=1)
 
-    def ineq_jac(self, X):
+        return jac_combined
 
-        n = X.shape[0]  # Número de samples
+    def ineq_grad(self, x, y):
+        # [samples x 25] ineq_resid = ineq_dist
+        ineq_dist_relu = torch.clamp(self.ineq_dist(x, y),0)
+        
+        # [samples x 1 x 25]
+        ineq_dist_expanded = ineq_dist_relu.unsqueeze(1)  
 
-        # Obtém os jacobianos parciais
-        jac_gT = self.jac_gT(X).to(torch.float64)  # (n, 10)
-        jac_TempLog = self.jac_TempLog().to(torch.float64)  # (5, 10)
+        # [samples X 25 X 10]
+        ineq_jac = self.ineq_jac(y)        
 
-        # Ajusta as dimensões para ficarem compatíveis com (n, 25, 10)
-        jac_gT = jac_gT.unsqueeze(2).expand(n, 10, 10)  # Transforma em (n, 10, 10)
-        jac_TempLog = jac_TempLog.unsqueeze(0).expand(n, 5, 10)  # Transforma em (n, 5, 10)
-
-        # Inicializa jacobiano total (n, 25, 10)
-        jac_total = torch.zeros((n, 25, 10), dtype=torch.float64)
-
-        # Preenche as colunas correspondentes
-        jac_total[:, :10, :] = jac_gT  # Preenche as primeiras 10 variáveis
-        jac_total[:, 10:15, :] = jac_TempLog  # Preenche as próximas 5 variáveis
-
-        # [samples x 25 x 10]
-        return jac_total
-
-
+        return torch.matmul(ineq_dist_expanded, ineq_jac).squeeze(1)
+    
+    def process_output_old(self, x, out):
+        qty = out.shape[1] // 2
+        start_times = out[:, :qty] * 23.9
+        durations = out[:, qty:] * (5.0 - 0.1) + 0.1
+        schedules, sort_indices = torch.sort(start_times, dim=1)
+        return torch.cat([schedules, durations], dim=1)
+        
     def process_output(self, X, out):
-        qty = out.shape[1] // 2  # Divide entre horários e durações
+        qty = out.shape[1] // 2
+        # Escala os outputs:
+        # - Os 5 primeiros para o intervalo [0, 23.9] (início de funcionamento)
+        # - Os 5 últimos para o intervalo [0.1, 5.0] (duração)
+        start_times = out[:, :qty] * 23.8
+        durations = out[:, qty:] * (5.0 - 0.1) + 0.1
 
-        # Multiplica horários por 24 e durações por 6
-        out[:, :qty] *= 24  
-        out[:, qty:] *= 6 
+        # Garante que (início + duração) não ultrapasse 23.8 inicialmente
+        end_times = start_times + durations
+        over_limit = end_times > 23.8
+        durations[over_limit] = 23.8 - start_times[over_limit]
 
-        # Arredonda horários e mantém entre 0 e 23
-        out[:, :qty] = torch.round(out[:, :qty])
-        out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
+        # Aplica clamp para garantir os limites
+        start_times = torch.clamp(start_times, 0, 23.8)
+        durations = torch.clamp(durations, 0.1, 5)
 
-        # Ordena os horários para garantir que estejam crescentes
-        out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
+        # Ordena os horários de cada amostra e reordena as durações de acordo
+        schedules, sort_indices = torch.sort(start_times, dim=1)
+        durations = torch.gather(durations, 1, sort_indices)
 
-        # Garante um espaçamento mínimo de 2 entre horários
+        margin = 0.1
+        # Para cada amostra, verifica sobreposição entre intervalos
+        for j in range(schedules.shape[0]):
+            for i in range(qty - 1):
+                # Se o fim do intervalo atual (início + duração) ultrapassar o início da próxima janela...
+                if schedules[j, i] + durations[j, i] > schedules[j, i+1]:
+                    new_start = schedules[j, i] + durations[j, i] + margin
+                    # Ajusta o início da próxima, garantindo não ultrapassar 23.8
+                    schedules[j, i+1] = min(new_start, 23.8)
+            # Para o último intervalo, garante que (início + duração) não ultrapasse 24 horas
+            if schedules[j, -1] + durations[j, -1] > 24:
+                durations[j, -1] = 24 - schedules[j, -1] - 0.001
+
+        return torch.cat([schedules, durations], dim=1)
+
+    def process_output_las_last_used(self, X, out):
+        # Aplica sigmoide para limitar os valores entre 0 e 1
+        #out2 = torch.sigmoid(out)
+
+        # Escala os 5 primeiros valores para o intervalo [0, 23.9] (início de funcionamento)
+        start_times = out[:, :5] * 23.8
+
+        # Escala os 5 últimos para o intervalo [0.1, 5.0] (duração)
+        durations = out[:, 5:] * (5.0 - 0.1) + 0.1
+
+        # Garante que (início + duração) não ultrapassa 23.9
+        end_times = start_times + durations
+        over_limit = end_times > 23.8
+        durations[over_limit] = 23.8 - start_times[over_limit]
+
+        # Ordena os intervalos para facilitar o controle de sobreposição
+        sorted_indices = torch.argsort(start_times, dim=1)
+        sorted_starts = torch.gather(start_times, 1, sorted_indices)
+        sorted_durations = torch.gather(durations, 1, sorted_indices)
+        sorted_ends = sorted_starts + sorted_durations
+
+        # Corrige sobreposição (empurra a próxima bomba para depois do fim da anterior)
+        for i in range(1, 5):
+            prev_end = sorted_ends[:, i - 1]
+            this_start = sorted_starts[:, i]
+            shift_needed = (prev_end > this_start)
+            # Se houver sobreposição, move o início da bomba atual
+            sorted_starts[:, i] = torch.where(shift_needed, prev_end, this_start)
+            # Recalcula os tempos de término
+            sorted_ends[:, i] = sorted_starts[:, i] + sorted_durations[:, i]
+            # Se exceder 23.9, ajusta duração
+            over_limit = sorted_ends[:, i] > 23.9
+            sorted_durations[:, i] = torch.where(over_limit, 23.8 - sorted_starts[:, i], sorted_durations[:, i])
+            sorted_ends[:, i] = sorted_starts[:, i] + sorted_durations[:, i]
+
+        # Retorna início e duração ajustados (você pode concatenar ou retornar separadamente)
+        return torch.cat([sorted_starts, sorted_durations], dim=1)
+
+
+    def process_output_last_used(self, x, out):
+        qty = out.shape[1] // 2
+        # Escalar: horários em [0,24] e durações em [0,6]
+        schedules = out[:, :qty] * 24
+        durations = out[:, qty:] * 6
+
+        # Aplica clamp: horários em [0, 23.9] e durações em [0.1, 5]
+        schedules = torch.clamp(schedules, 0, 23.9)
+        durations = torch.clamp(durations, 0.1, 5)
+        # Ordena os horários por amostra
+        schedules, _ = torch.sort(schedules, dim=1)
+
+        # Para cada amostra, aplica os ajustes:
+        for j in range(schedules.shape[0]):
+            # 1. Garante que os horários tenham diferença mínima de 2 (como na generate_time)
+            for i in range(1, qty):
+                if schedules[j, i] < schedules[j, i-1] + 2:
+                    schedules[j, i] = schedules[j, i-1] + 2
+
+            # 2. Ajusta cada duração para que o intervalo não ultrapasse o início da próxima janela
+            for i in range(qty - 1):
+                # O máximo permitido é a diferença entre o horário atual e o próximo, menos uma margem (0.1)
+                max_dur = schedules[j, i+1] - schedules[j, i] - 0.1
+                if max_dur < 0.1:
+                    max_dur = 0.1
+                if durations[j, i] > max_dur:
+                    durations[j, i] = max_dur
+
+            # 3. Para o último horário, garante que (horário + duração) não ultrapasse 24
+            if schedules[j, -1] + durations[j, -1] > 24:
+                durations[j, -1] = 24 - schedules[j, -1] - 0.001
+
+        return torch.cat([schedules, durations], dim=1)        
+        
+
+    def process_output_old2(self, x, out):
+        qty = out.shape[1] // 2
+        schedules = out[:, :qty] * 24
+        durations = out[:, qty:] * 6
+        
+        schedules = torch.clamp(schedules, 0, 23.9)
+        schedules, _ = torch.sort(schedules, dim=1)
+        
+        for i in range(qty):
+            if i > 0:
+                inicio = schedules[0, i - 1]
+                proximo = schedules[0, i]
+                duration = durations[0, i - 1]
+                
+                if inicio + duration >= proximo:
+                    schedules[0, i] = inicio + duration + 0.1
+                    schedules[0, i] = min(schedules[0, i], 23.9)  # Garantir que não ultrapasse 23.9999
+
+            if i == qty - 1:  # Garantir que a soma do último horário com a duração não ultrapasse 24 horas
+                if schedules[0, i] + durations[0, i] > 23.9:
+                    durations[0, i] = 23.9 - schedules[0, i]
+                    
+        
+        for j in range(schedules.shape[0]):
+            if schedules[j, -1] + durations[j, -1] > 24:
+                schedules[j, -1] = 24 - durations[j, -1] - 0.001
+        
+        #print(schedules)
+        #print(durations)
+        return torch.cat([schedules, durations], dim=1)
+        
+        
+    def process_output_old(self, X, out):
+        # Número de janelas: assume que a 1ª metade de out são horários e a 2ª durações
+        qty = out.shape[1] // 2
+
+        # Escalar as saídas: horários para [0,24] e durações para [0,6]
+        schedules = out[:, :qty] * 24  
+        durations = out[:, qty:] * 6 
+
+        # Garantir que os horários estejam em [0, 23]
+        schedules = torch.clamp(schedules, 0, 23)
+        # Ordena os horários para garantir ordem crescente (por amostra)
+        schedules, _ = torch.sort(schedules, dim=1)
+
+        # Impõe espaçamento mínimo entre os horários
         for i in range(1, qty):
-            out[:, i] = torch.where(out[:, i] >= out[:, i - 1] + 2, out[:, i], out[:, i - 1] + 2)
-
-        # Mantém os horários dentro do intervalo válido (0 a 23)
-        out[:, :qty] = torch.clamp(out[:, :qty], 0, 23)
-
-        # O primeiro horário não pode estar entre 20 e 23
-        out[:, 0] = torch.where((out[:, 0] >= 20), 19, out[:, 0])
-
-        # Recalcula para garantir que os horários sejam crescentes após os ajustes
-        out[:, :qty], _ = torch.sort(out[:, :qty], dim=1)
-
+            min_spacing = 2.0 + torch.rand_like(schedules[:, i]) * 0.5
+            schedules[:, i] = torch.where(
+                schedules[:, i] >= schedules[:, i - 1] + min_spacing,
+                schedules[:, i],
+                schedules[:, i - 1] + min_spacing
+            )
+        schedules = torch.clamp(schedules, 0, 23)
         
+        # Restrição: o primeiro horário não deve estar entre 20 e 23
+        schedules[:, 0] = torch.where(schedules[:, 0] >= 20,
+                                    torch.tensor(19.0, device=schedules.device),
+                                    schedules[:, 0])
         
-        
-        
-        
-        
-        
-        # Cálculo da duração máxima permitida para cada intervalo
-        max_durations = torch.zeros_like(out[:, qty:])
+        # Calcula o máximo de duração permitido para cada janela para não ultrapassar 24 horas
+        max_durations = torch.zeros_like(durations)
         for i in range(qty):
             if i == 0:
-                max_durations[:, i] = torch.where(out[:, 0] == 23, 1, out[:, 1] - out[:, 0])
+                max_durations[:, i] = torch.where(
+                    schedules[:, 0] >= 23,
+                    torch.tensor(1.0, device=durations.device),
+                    schedules[:, 1] - schedules[:, 0]
+                )
             elif i == qty - 1:
-                max_durations[:, i] = torch.where(out[:, qty - 1] == 23, 1, 24 - out[:, qty - 1])
+                max_durations[:, i] = torch.where(
+                    schedules[:, qty - 1] >= 23,
+                    torch.tensor(1.0, device=durations.device),
+                    24.0 - schedules[:, qty - 1]
+                )
             else:
-                max_durations[:, i] = out[:, i + 1] - out[:, i]
-
-        # Garante que as durações estejam entre 0.1 e 5
-        out[:, qty:] = torch.clamp(out[:, qty:], min=0.1, max=6)
-
-        # Ajusta durações para não ultrapassar os horários disponíveis
-        out[:, qty:] = torch.min(out[:, qty:], max_durations)
+                max_durations[:, i] = torch.clamp(schedules[:, i + 1] - schedules[:, i],
+                                                min=0.1, max=5.0)
         
+        # Garante que as durações estejam no intervalo [0.1, 5] e não excedam os máximos
+        durations = torch.clamp(durations, 0.1, 5)
+        durations = torch.min(durations, max_durations)
         
+        # Ajusta, se necessário, as durações para que 'horário + duração' não ultrapasse 24
+        for i in range(qty):
+            while torch.any(schedules[:, i] + durations[:, i] > 24):
+                durations[:, i] = torch.clamp(durations[:, i] - 0.001, min=0.1)
         
+        # Verifica sobreposição dos intervalos e, se necessário, ajusta o início da janela seguinte
+        # de forma que (horário atual + duração) <= (próximo horário).
+        # O ajuste (acréscimo de 0.1) é aplicado somente se, após o aumento, a soma com a duração
+        # da próxima janela não ultrapassar 24 horas.
+        for j in range(schedules.shape[0]):  # para cada amostra
+            for i in range(qty - 1):
+                end_time = schedules[j, i] + durations[j, i]
+                if end_time - schedules[j, i+1] > 1e-6:
+                    new_val = schedules[j, i+1] + 0.1
+                    # Ajusta para não ultrapassar o limite de 24 horas (considerando a duração atual)
+                    if new_val + durations[j, i+1] <= 24:
+                        schedules[j, i+1] = new_val
+            # Reordena os horários para manter a ordem crescente
+            schedules[j, :] = torch.sort(schedules[j, :])[0]
         
-        
-        
-        
-        
-        
-        
-
-        return out
-
-
-
-    
-
-    
-    
-    
+        return torch.cat([schedules, durations], dim=1)    
 
 ###################################################################
 
 # PROBLEM NON LINEAR
 
 ###################################################################
+
 
 class Problem_Non_Linear:
     def __init__(self, X, valid_frac=0.0833, test_frac=0.0833):
@@ -883,11 +473,10 @@ class Problem_Non_Linear:
         self._neq = 1
         self._nineq = 1
         self._device = None
-        
+
         self.partial_vars = 0
         self.other_vars = 1
 
-        
     @property
     def device(self):
         return self._device
@@ -911,11 +500,11 @@ class Problem_Non_Linear:
     @property
     def nknowns(self):
         return self._nknowns
-    
+
     @property
     def neq(self):
         return self._neq
-    
+
     @property
     def nineq(self):
         return self._nineq
@@ -948,25 +537,22 @@ class Problem_Non_Linear:
     def testX(self):
         return self.X[int(self.num * (self.train_frac + self.valid_frac)) :]
 
-
     def __str__(self):
-        return 'Problem_Non_Linear-{}-{}-{}-{}'.format(
+        return "Problem_Non_Linear-{}-{}-{}-{}".format(
             str(self.ydim), str(self.nineq), str(self.neq), str(self.num)
         )
-        
+
     def obj_fn(self, x):
-        
+
         x1 = x[:, 0]
         x2 = x[:, 1]
 
         return x1 * ((x1 - x2) ** 2 + (x1 - 2)) + 5
- 
+
     def eq_resid(self, x, y):
 
         x1 = x[:, 0]
         x2 = x[:, 1]
-        
-        
 
         return x1**2 / 2 + 1.5 * x2**2 - 1.2
 
@@ -974,7 +560,7 @@ class Problem_Non_Linear:
 
         x1 = x[:, 0]
         x2 = x[:, 1]
-                
+
         return 0.75 * x1**2 + 0.25 * x2**2 - 0.5
 
     def ineq_dist(self, x, y):
@@ -984,25 +570,25 @@ class Problem_Non_Linear:
         resids = self.ineq_resid(x)
 
         resids = resids.unsqueeze(1)
-        
+
         return torch.clamp(resids, 0)
 
     def eq_grad(self, x, y):
         """
         Gradiente do resíduo de igualdade.
         Derivadas parciais:
-        """        
+        """
         y1 = y[:, 0].unsqueeze(1)
         y2 = y[:, 1].unsqueeze(1)
-        
+
         x1 = x[:, 0].unsqueeze(1)
         x2 = x[:, 1].unsqueeze(1)
-        
+
         grad_x1 = x1 * y1
         grad_x2 = (3 * x2) * y2
-        
+
         grad = torch.cat((grad_x1, grad_x2), dim=1)
-        
+
         return grad
 
     def ineq_grad(self, x, y):
@@ -1012,14 +598,13 @@ class Problem_Non_Linear:
         """
         x1 = x[:, 0]
         x2 = x[:, 1]
-            
+
         # Calcula a distância clamped
         dist = self.ineq_dist(x, y)  # Tamanho esperado: [25]
 
-        grad_x1 = (1.5 * x1)
-        grad_x2 = (0.5 * x2)
-        
-        
+        grad_x1 = 1.5 * x1
+        grad_x2 = 0.5 * x2
+
         y1 = y[:, 0].unsqueeze(1)
         y2 = y[:, 1].unsqueeze(1)
 
@@ -1028,26 +613,25 @@ class Problem_Non_Linear:
 
         grad_x1_scaled = grad_x1 * dist
         grad_x2_scaled = grad_x2 * dist
-        
+
         grad = torch.cat((grad_x1_scaled, grad_x2_scaled), dim=1)
-        
+
         grad = torch.clamp(grad, 0)
 
         return grad
-        
-    
+
     def ineq_partial_grad_old(self, X, Y):
         # Resíduo ajustado (clamp para respeitar desigualdades)
         x1 = X[:, 0]
         x2 = X[:, 1]
         grad = self.ineq_dist(X, Y).squeeze(1)
-        #grad = self.ineq_dist(x1, x2)
+        # grad = self.ineq_dist(x1, x2)
 
         # Inicialização do tensor para gradientes
         Y = torch.zeros(X.shape[0], X.shape[1], device=self.device)
-        
-        Y[:, 0] = grad * 1.5 * x1# Gradiente para x1
-        Y[:, 1] = grad * 0.5 * x2# Gradiente para x2
+
+        Y[:, 0] = grad * 1.5 * x1  # Gradiente para x1
+        Y[:, 1] = grad * 0.5 * x2  # Gradiente para x2
 
         # Retornar gradientes ajustados
         return Y
@@ -1056,12 +640,14 @@ class Problem_Non_Linear:
         # Assumindo que as duas variáveis são "parciais"
         grad_x1 = 1.5 * X[:, 0]  # Derivada em relação a x1
         grad_x2 = 0.5 * X[:, 1]  # Derivada em relação a x2
-        
+
         grad = torch.stack([grad_x1, grad_x2], dim=1)
-        
+
         # A parte efetiva do gradiente pode ser calculada diretamente
-        grad_effective = 2 * torch.clamp(Y - 0.5, 0)  # Ajuste para garantir valores não negativos
-        
+        grad_effective = 2 * torch.clamp(
+            Y - 0.5, 0
+        )  # Ajuste para garantir valores não negativos
+
         # Atualizando Y com base no gradiente
         Y = torch.zeros(X.shape[0], X.shape[1], device=self.device)
         Y[:, 0] = grad_effective[:, 0]  # Atualiza para x1
@@ -1071,18 +657,19 @@ class Problem_Non_Linear:
 
     def process_output(self, X, Y):
         return Y
-    
-    
+
     def complete_partial(self, X, Z):
 
         Y = torch.zeros(X.shape[0], self.ydim, device=self.device)
-        
-        Y[:, self.partial_vars] = Z.squeeze(1)  
-        for i in range(Y.shape[0]):  
-            z = Z[i, 0]  
-            term = 1.2 - (z**2 / 2)  
-            x2 = torch.sqrt(torch.clamp((2 / 3) * term, min=0))  # Clamp para evitar valores inválidos
-            
-            Y[i, self.other_vars] = x2  
-        
+
+        Y[:, self.partial_vars] = Z.squeeze(1)
+        for i in range(Y.shape[0]):
+            z = Z[i, 0]
+            term = 1.2 - (z**2 / 2)
+            x2 = torch.sqrt(
+                torch.clamp((2 / 3) * term, min=0)
+            )  # Clamp para evitar valores inválidos
+
+            Y[i, self.other_vars] = x2
+
         return Y
