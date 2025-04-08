@@ -55,8 +55,6 @@ def main():
         help='number of equality constraints for simple problem')
     parser.add_argument('--simpleEx', type=int,
         help='total number of datapoints for simple problem')
-    parser.add_argument('--epochs', type=int,
-        help='number of neural network epochs')
     parser.add_argument('--batchSize', type=int,
         help='training batch size')
     parser.add_argument('--lr', type=float,
@@ -89,15 +87,20 @@ def main():
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
+    parser.add_argument('--dc', type=int, default=5,
+        help='number of duty cycles')
     parser.add_argument('--qtySamples', type=int, default=8)
-    parser.add_argument('--fileName', type=str, default=None)    
+    parser.add_argument('--fileName', type=str, default=None)   
+    parser.add_argument('--epochs', type=int, default=15,
+        help='number of neural network epochs')
+ 
 
     args = parser.parse_args()
     args = vars(args) # change to dictionary
     
     
     if args['fileName'] is None:
-            args['fileName'] = f"dc_wss_dataset_dc5_ex{args['qtySamples']}"
+            args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}"
     
     defaults = default_args.method_default_args(args['probType'])
     
@@ -150,6 +153,31 @@ def main():
     # Run method
     train_net(data, args, save_dir)
 
+def log_dc_wss_metrics(data, X, Y, args, step=None, prefix=""):
+    obj_cost = data.obj_fn(Y)
+    ineq_dist = data.ineq_dist(X, Y)
+
+    # Separar as violações
+    tank_violation = ineq_dist[:, :20]
+    overlap_violation = ineq_dist[:, 20:]
+
+    tank_penalty = torch.norm(tank_violation, p=2, dim=1).mean().item()
+    overlap_penalty = torch.norm(overlap_violation, p=2, dim=1).mean().item()
+    obj_mean = obj_cost.mean().item()
+
+    print('')
+
+    if step is not None:
+        print(f"[{prefix} Step {step}] "
+              f"Obj: {obj_mean:.4f} | "
+              f"Tank Violation: {tank_penalty:.4f} | "
+              f"Overlap Violation: {overlap_penalty:.4f}")
+    else:
+        print(f"[{prefix}] "
+              f"Obj: {obj_mean:.4f} | "
+              f"Tank Violation: {tank_penalty:.4f} | "
+              f"Overlap Violation: {overlap_penalty:.4f}")
+
 
 def train_net(data, args, save_dir):
     
@@ -175,35 +203,46 @@ def train_net(data, args, save_dir):
     
     y1_new_history = []
     y2_new_history = [] 
-        
-    #final_result = {}
     
     for i in range(nepochs):
         epoch_stats = {}
 
+
+        solver_net.eval()
+        for Xtest in test_loader:
+            Xtest = Xtest[0].to(DEVICE)
+            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
+            
+            
+        # Get valid loss
+        solver_net.eval()
+        for Xvalid in valid_loader:
+            Xvalid = Xvalid[0].to(DEVICE)
+            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
+            
+            
         solver_net.train()
-        for Xtrain in train_loader:
-                   
+        for Xtrain in train_loader:                   
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
             solver_opt.zero_grad() # 0. Optimizer zero grad
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
-            
-            # salve Yhat_train em uma planilha csv mas na primeira coluna coloque o valor da epoca
-            
-            
-            df = pd.DataFrame(Yhat_train.cpu().detach().numpy())
-            df.to_csv(os.path.join(save_dir, 'Yhat_train.csv'), index=False)
-            
-            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) #gradiente steps for Y
+            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args)                                            
             train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss           
+                        
+            if args['probType'] == 'dc_wss':
+                log_dc_wss_metrics(data, Xtrain, Ynew_train, args, step=10, prefix="Train")            
+            
+            
+            
+            #train_loss.requires_grad = True
+            
+            
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
-            #print('REQUIRES GRAD ', train_loss.requires_grad)
-            
-            #print('Xtrain ', Xtrain[0])
-            #print('Yhat_train ', Yhat_train[0])
-            #print('Ynew_train ', Ynew_train[0])
-            
+            print(train_loss.requires_grad)
+
+            # Backward para a rede usando dLoss/dY
+            #Yhat_train.backward(gradient=Y_grad)
             
             solver_opt.step() # 4. Performe gradiente descent
             train_time = time.time() - start_time
@@ -217,17 +256,10 @@ def train_net(data, args, save_dir):
             #print('Custo: ',min_value.item(), ' Índice: ', min_index.item())
             #print('YNEW ', Ynew_train[min_index.item()])
         
-        # Get valid loss
-        solver_net.eval()
-        for Xvalid in valid_loader:
-            Xvalid = Xvalid[0].to(DEVICE)
-            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
 
 
-        solver_net.eval()
-        for Xtest in test_loader:
-            Xtest = Xtest[0].to(DEVICE)
-            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
+
+
 
           
         # Média da loss durante a época
@@ -239,9 +271,7 @@ def train_net(data, args, save_dir):
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
                 np.mean(epoch_stats['valid_dist']), np.mean(epoch_stats['valid_ineq_max']),
                 np.mean(epoch_stats['valid_ineq_mean']), np.mean(epoch_stats['valid_ineq_num_viol_0']),
-                #np.mean(epoch_stats['valid_eq_max']), 
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
-               # np.mean(Ynew_train[0].cpu().detach().numpy()), np.mean(Ynew_train[1].cpu().detach().numpy())
             )
         )
         print('----')
@@ -297,7 +327,7 @@ def train_net(data, args, save_dir):
             torch.save(f'model_{now}_{args['simpleEx']}_epochs_{args['epochs']}.pt', f)
     
     save_model = os.path.join('models')
-    with open(os.path.join(save_model, f'model_{now}_dcwss_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt'), 'wb') as f:
+    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
 
 
@@ -307,7 +337,7 @@ def train_net(data, args, save_dir):
     print('Training finished')   
 
     # Testar resultado do modelo
-    path_model = os.path.join('models', f'model_{now}_dcwss_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
+    path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
     args = {'probType': 'dc_wss', 'hiddenSize': 200, 'useCompl': False, 'corrMode': 'full'}
 
     newModel = NNSolver(data, args)
@@ -316,11 +346,13 @@ def train_net(data, args, save_dir):
 
     input_data = torch.tensor([[1, 5, 6, 7, 17, 2, 0.9, 0.9, 0.9, 1]])
     output_data = newModel(input_data)
-
+    print('#####')
     print('Input: ', input_data)
+    print('#####')
     print('Output: ', output_data)    
-
+    print('#####')
     print('gT: ', data.gT(output_data, output_data))
+    print('#####')
     print('Resultado: ', data.obj_fn(output_data))
     print('Avaliation finished')
 
@@ -430,10 +462,16 @@ def grad_steps(data, X, Y, args):
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
-                if args['probType'] == 'dc_wss': 
+                if args['probType'] == 'dc_wss':                     
                     
-                    print('X: ', X[0])
-                    print('Y: ', Y_new[0])
+                    # Y_new_time = Y_new[:, :5]
+                    # Y_new_duration = Y_new[:, 5:]
+                    # 
+                    # sorted_time, sorted_idx = torch.sort(Y_new_time, dim=1)
+                    # sorted_durations = torch.gather(Y_new_duration, 1, sorted_idx)
+                    # 
+                    # Y_new = torch.cat((sorted_time, sorted_durations), dim=1)
+
                     ineq_step = data.ineq_grad(X, Y_new)     
                     #print('Ineq step: ', ineq_step[0])
                     # codigo original
@@ -458,6 +496,7 @@ def grad_steps(data, X, Y, args):
         
     else:
         return Y
+    
 
 def total_loss(data, X, Y, args):
     
@@ -474,10 +513,13 @@ def total_loss(data, X, Y, args):
     
     
     if args['probType'] == 'dc_wss':
-        
+        # Calcula penalidade por sobreposição
         # Somente com restricao de desigualdade
+        
+       
+        
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-    
+
     else:
     
         # Com equações de igualdade e desigualdade
@@ -570,9 +612,9 @@ class NNSolver(nn.Module):
         else:
             
             if self._args['probType'] == 'dc_wss':
-                out = nn.Sigmoid()(out)
+                out_sig = nn.Sigmoid()(out)
             
-            result = self._data.process_output(x, out)
+            result = self._data.process_output(x, out_sig,)
             
             
             #print('REsult : ', result[0])

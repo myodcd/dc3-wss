@@ -1,4 +1,4 @@
-  Page 1                                    Tue Apr 01 22:01:40 2025
+  Page 1                                    Tue Apr 08 11:26:14 2025
 
   ******************************************************************
   *                           E P A N E T                          *
@@ -7,7 +7,7 @@
   *                         Version 2.00.12                        *
   ******************************************************************
   
-  Analysis begun Tue Apr 01 22:01:40 2025
+  Analysis begun Tue Apr 08 11:26:14 2025
 
    
   Hydraulic Status:
@@ -1120,16 +1120,21 @@
               Trial  1: relative flow change = 0.000133
     18:55:00: Balanced after 1 trials
    
-    19:00:00: Pump P1 changed by timer control
     19:00:00: Balancing the network:
-              Trial  1: relative flow change = 5.768765
-              Trial  2: relative flow change = 0.000007
+              Trial  1: relative flow change = 0.002386
+              Trial  2: relative flow change = 0.000000
     19:00:00: Balanced after 2 trials
-    19:00:00: Reservoir Source is closed
-    19:00:00: Tank Tank1 is emptying at 0.81 m
-    19:00:00: Pump P1 changed from open to closed
    
-  WARNING: Negative pressures at 19:00:00 hrs.
+    19:01:12: Pump P1 changed by timer control
+    19:01:12: Balancing the network:
+              Trial  1: relative flow change = 5.758939
+              Trial  2: relative flow change = 0.000007
+    19:01:12: Balanced after 2 trials
+    19:01:12: Reservoir Source is closed
+    19:01:12: Tank Tank1 is emptying at 0.82 m
+    19:01:12: Pump P1 changed from open to closed
+   
+  WARNING: Negative pressures at 19:01:12 hrs.
   
     19:05:00: Balancing the network:
               Trial  1: relative flow change = 0.000000
@@ -1501,4 +1506,4 @@
    
   WARNING: Negative pressures at 24:00:00 hrs.
   
-  Analysis ended Tue Apr 01 22:01:40 2025
+  Analysis ended Tue Apr 08 11:26:14 2025

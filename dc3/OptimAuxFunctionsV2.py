@@ -870,6 +870,8 @@ def jac_gT(x,d,id,log):
         eps_aux=eps_definition_F2(x,d)  
 
     jac=approx_fprime(x, gT, eps_aux,*(d,id,log))
+    
+    
     # print('pre=',x,g1_F123(x))
     # c=Cost(x,1,'EpanetFiles\AnyTown\ATM_otim.py')
     # print('jach')
@@ -900,6 +902,7 @@ def jac_gT_min(x,d,id,min,log):
         eps_aux=eps_definition_F2(x,d)  
       
     jac=approx_fprime(x, gT_min, eps_aux,*(d,id,min,log))
+    
     return (jac)
 
 jit(nopython=True)

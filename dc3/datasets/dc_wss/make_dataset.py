@@ -47,9 +47,9 @@ def main():
 
     qty_x = [6, 8, 10, 20, 30, 50, 100, 200, 500, 1000]    
 
-    nDutyCycles = 5
+    nDutyCycles = 4
 
-    d = data_system([5], [0])
+    d = data_system([4], [0])
 
     for qty in tqdm(qty_x):
 
