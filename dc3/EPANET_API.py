@@ -7,6 +7,7 @@ from datetime import datetime
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from numba import jit
+import torch
 
 jit(nopython=True)
 def WSS_Components(d,n_links,n_nodes): 
@@ -461,7 +462,7 @@ def conversor_v1_OLD(x,pumps,d,speed): #conversor variaveis de decisão --> pump
 
     return controls
 
-jit(nopython=True)
+#jit(nopython=True)
 def conversor(x,pumps,d,speed): #conversor variaveis de decisão --> pump status
     rule_id=d.ncontrols_idx+1 #caso existem controlos a não mexer (valvulas)
     n_controls=em.ENgetcount(em.EN_CONTROLCOUNT)
@@ -524,7 +525,7 @@ def conversor(x,pumps,d,speed): #conversor variaveis de decisão --> pump status
             idx=0
             time_epanet=np.zeros(n_var_pump[p]+1)
             s_epanet=np.zeros(n_var_pump[p]+1)
-            x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
+            x_p=torch.tensor(x[d.dc_pos[p]:d.dc_pos[p+1]])
             #x_p=x_p.clone()
             # x_p=x[int(p*n_var_pump):int(n_var_pump*(p+1))]
 

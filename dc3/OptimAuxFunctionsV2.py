@@ -5,11 +5,13 @@ from scipy.optimize import approx_fprime
 import matplotlib as plt
 plt.rcParams.update(plt.rcParamsDefault)
 from numba import jit
+import torch
+from torch.autograd import grad
 
 ##############################################
 ############## AUXILIAR FUNCTIONS ############
 ##############################################
-jit(nopython=True)
+#jit(nopython=True)
 def eps_definition_F2(x,d): #definição do eps para a 2a formulação (continuous)
     eps=d.epsF_i # % de perturbação
     eps_aux=[0 for i in range(len(x))]
@@ -23,17 +25,18 @@ def eps_definition_F2(x,d): #definição do eps para a 2a formulação (continuo
 
     return eps_aux
 
-jit(nopython=True)
+#jit(nopython=True)
 def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VSPs
     # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
     epsF_i=d.epsF_i # % de perturbação para inicio
     epsF_d=d.epsF_d # % de perturbação para duração
-    eps = np.zeros(len(x))
-
+    #eps = np.zeros(len(x))
+    eps = torch.zeros(len(x)) 
     for p in range(0,d.n_pumps):
         x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
         n_dc=d.n_dc[p]
-        eps_aux=np.zeros(len(x_p))
+        #eps_aux=np.zeros(len(x_p))
+        eps_aux=torch.zeros(len(x_p))
         ### definição de perturbação para inicio de DC ###
         for i in range(0,n_dc): 
             inicio, dur = x_p[i], x_p[i + n_dc]
@@ -113,7 +116,7 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                 print('WARNING: VPS eps is too low!') 
     return eps  
 
-jit(nopython=True)
+#jit(nopython=True)
 def TempLog(d): #bounds da restrição da logica temporal entre DCs
     g=[]
     for i in range(0,len(d.n_dc)):
@@ -122,7 +125,7 @@ def TempLog(d): #bounds da restrição da logica temporal entre DCs
     return g
 
 ### Niveis do Tanque ###
-jit(nopython=True)
+#jit(nopython=True)
 def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
     h=np.transpose(htank)
     n_arranques=int(len(x)/2)
@@ -220,7 +223,7 @@ def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC +
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
 
-jit(nopython=True)
+#jit(nopython=True)
 def h_red3(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F3 + 24h
     h=np.transpose(htank)
     n_arranques=int(len(x)/2)
@@ -296,7 +299,7 @@ def h_red3(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F3 + 24h
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
 
-jit(nopython=True)
+#jit(nopython=True)
 def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
     h=np.transpose(htank)
     time_seg=np.zeros(int(len(x)*2)+1)
@@ -348,7 +351,7 @@ def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
                 print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600)))                     
     return h_min
 
-jit(nopython=True)
+#jit(nopython=True)
 def h_red1(x,htank,timeInc,d): #h no fim de cada deltaT - F1 + 24h
     h=np.transpose(htank)
     time_seg=np.zeros(int(len(x)*2)+1)
@@ -402,7 +405,7 @@ def h_red1(x,htank,timeInc,d): #h no fim de cada deltaT - F1 + 24h
                 h_min[idx_zero[i]]=h[len(h)-1]
     return h_min
 
-jit(nopython=True)
+#jit(nopython=True)
 def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin 
     tmin=min # minutos
     h=np.transpose(htank)
@@ -432,7 +435,7 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
     return h_tmin
 
-jit(nopython=True)
+#jit(nopython=True)
 def linear_interpolation(x_values, y_values, x_prime):
     for i in range(len(x_values) - 1):
         if x_values[i] <= x_prime <= x_values[i + 1]:
@@ -443,7 +446,7 @@ def linear_interpolation(x_values, y_values, x_prime):
     raise ValueError("x_prime está fora do intervalo dos pontos fornecidos.")
 
 ### GRÁFICOS ###
-jit(nopython=True)
+#jit(nopython=True)
 def pre_graphic(x,y):
     n_days=math.floor(x[-1]/(60*60*24)+0.5)
     ynew=[0 for i in range (0,len(y)*2)]
@@ -463,7 +466,7 @@ def pre_graphic(x,y):
             ind+=1
     return xnew,ynew
 
-jit(nopython=True)
+#jit(nopython=True)
 def plot_cons_pattern():
     file1 = open("PE_Espinheira.pat", "r")
     content1 = file1.read()
@@ -497,73 +500,61 @@ def plot_cons_pattern():
 #####################################
 ########### CONSTRAINTS #############
 #####################################
-jit(nopython=True)
-def Cost(x,d,log,flag):
-    # print('OF --> x')
-    if(flag==1):
-        with open(r"Data Files\x.csv",'ab') as x_C:
-             np.savetxt(x_C,x*np.ones((1,len(x))),delimiter=";") 
 
-    flag_sol=0
-    if(len(log.solutions)!=0):
-        x_round=round_x(x,d)
-        # procurar solução
+def Cost(x, d, log, flag):
+    # Converta x em tensor caso ainda não esteja
+    if not torch.is_tensor(x):
+        x = torch.tensor(x, dtype=torch.float)
+
+    if flag == 1:
+        with open(r"Data Files\x.csv", 'ab') as x_C:
+            torch.save((x * torch.ones((1, len(x)))), x_C)
+
+    flag_sol = 0
+    if len(log.solutions) != 0:
+        x_round = round_x(x, d)
         try:
-            id=log.solutions.index(x_round)
+            id = log.solutions.index(x_round)
         except ValueError:
-            id=-1
+            id = -1
 
-        if(id!=-1):
-           flag_sol=1
-           CostT=log.cost_solutions[id]
-           log.n_cost+=1
+        if id != -1:
+            flag_sol = 1
+            CostT = log.cost_solutions[id]
+            log.n_cost += 1
 
-    if(flag_sol==0):
-        d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-        #SEM CONTAR COM EFICIÊNCIA
-        # CostT=0
-        # for p in range (0,d.n_pumps):
-        #     c=0
-        #     for i in range (0,len(timeInc['StartTime'])):
-        #         tariffpriceInc=(timeInc['duration'][i]/3600)*timeInc['Tariff'][i]
-        #         cost=(tariffpriceInc*pumps["pump"+str(p)+"_p"][i])
-        #         # if(pumps["pump"+str(p)+"_sp"][i]!=0):
-        #         #     eff=linear_interpolation(d.eff_flow_points,d.eff_points,pumps["pump"+str(p)+"_q"][i])
-        #         #     up=(abs(pumps["pump"+str(p)+"_h"][i]) * (pumps["pump"+str(p)+"_q"][i]) * 9.81)/1000 # Q-> m3/s ; H->m ; P-> kW
-        #         #     cost1=tariffpriceInc*up/eff
-        #         CostT += cost
-        #         c+= cost
-        #     print(c)    
-        # print(CostT)
+    if flag_sol == 0:
+        d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(x, d, 0)
 
-        # COM EFICIÊNCIA
-        cost_pump=[]
-        for p in range (0,d.n_pumps):
-            cp=0
-            for i in range (0,len(timeInc['StartTime'])):
-                tariffpriceInc=(timeInc['duration'][i]/3600)*timeInc['Tariff'][i]
-                if(pumps["pump"+str(p)+"_sp"][i]!=0 and pumps["pump"+str(p)+"_sp"][i]!=1):
-                    eff=linear_interpolation(d.eff_flow_points,d.eff_points,pumps["pump"+str(p)+"_q"][i])
-                    n2=1-(1-eff)*((1/pumps["pump"+str(p)+"_sp"][i])**0.1)
-                    up=(abs(pumps["pump"+str(p)+"_h"][i]) * (pumps["pump"+str(p)+"_q"][i]) * 9.81)/1000 # Q-> m3/s ; H->m ; P-> kW
-                    # up=(pumps["pump"+str(p)+"_p"][i]*eff) -> o de cima dá valores mais próximos
-                    cost1=tariffpriceInc*up/n2
+        cost_pump = torch.zeros(d.n_pumps, dtype=torch.float32)
+        for p in range(d.n_pumps):
+            #cp = 0.0
+            cp = torch.tensor(0.0, dtype=torch.float32)
+            for i in range(len(timeInc['StartTime'])):
+                tariffpriceInc = (timeInc['duration'][i] / 3600.0) * timeInc['Tariff'][i]
+                sp_val = pumps[f"pump{p}_sp"][i]
+                q_val = pumps[f"pump{p}_q"][i]
+                h_val = pumps[f"pump{p}_h"][i]
+                p_val = pumps[f"pump{p}_p"][i]
+
+                if sp_val != 0 and sp_val != 1:
+                    eff = linear_interpolation(d.eff_flow_points, d.eff_points, q_val)
+                    n2 = 1 - (1 - eff) * ((1 / sp_val) ** 0.1)
+                    up = (torch.abs(torch.tensor(h_val)) * torch.tensor(q_val) * 9.81) / 1000.0
+                    cost1 = tariffpriceInc * up / n2
                 else:
-                    cost1=(tariffpriceInc*pumps["pump"+str(p)+"_p"][i])
+                    cost1 = tariffpriceInc * p_val
 
-                cp+=cost1
-            cost_pump.append(cp)        
-        CostT=sum(cost_pump)
-        log(x,CostT,[],d)
+                cp += cost1
+            #cost_pump.append(cp)
+            cost_pump[p] = cp
+        CostT = torch.sum(cost_pump)
+        log(x, CostT, [], d)
 
-    # if(flag==1):
-        # with open(r'Data Files\CostT.csv','ab') as c:
-        #     np.savetxt(c,np.ones((1,1))*CostT,delimiter=";")
-
-    # print(CostT)
     return CostT
 
-jit(nopython=True)
+
+#jit(nopython=True)
 def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
     flag_sol=0
     if(len(log.x_round)!=0):
@@ -595,73 +586,70 @@ def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
         g1=np.concatenate((g1,[g_aux[-1]])) #24h
     return g1
     
-jit(nopython=True)
-def gT(x,d,id,log): #Lower and Higher Water Level 
+#@#jit(nopython=True)
+import torch
+
+def gT(x, d, id, log):  # Lower and Higher Water Level 
     # print('g'+id)
     
-    if(d.ftype==2):
-        d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-        # g1_p1=AF.h_red2(x[0:7],tanks['tank0_h'],timeInc) # h no inicio e fim de cada arranque + 24h  - Pump 1A
-        # g1_p2=AF.h_red2(x[7:14],tanks['tank0_h'],timeInc)  # h no inicio e fim de cada arranque + 24h  - Pump 2B
-        # g1_p3=AF.h_red2(x[14:21],tanks['tank0_h'],timeInc)  # h no inicio e fim de cada arranque + 24h  - Pump 3B
-        # g1=np.concatenate((g1_p1[0:len(g1_p1)-1],g1_p2[0:len(g1_p2)-1],g1_p3))
-        g1=[]
-        for i in range(0,len(x)-int(len(x)/d.n_pumps),int(len(x)/d.n_pumps)):
-            ini=i
-            fin=i+int(len(x)/d.n_pumps)
-            g1_aux=h_red2(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc)
-            g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque
-
-        ini=(d.n_pumps-1)*int(len(x)/d.n_pumps)
-        fin=len(x)
-        g1_aux= h_red2(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc) # h no inicio e fim de cada arranque + 24h       
-        g1=np.concatenate((g1,g1_aux)) 
+    if d.ftype == 2:
+        d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(x, d, 0)
         
-    elif(d.ftype==3):
-        flag_sol=0
-        if(len(log.x_round)!=0):
-            roundx=round_x(x,d)
+        g1 = torch.tensor([])  # Inicializa um tensor vazio
+        for i in range(0, len(x) - int(len(x) / d.n_pumps), int(len(x) / d.n_pumps)):
+            ini = i
+            fin = i + int(len(x) / d.n_pumps)
+            g1_aux = h_red2(x[ini:fin], tanks['tank' + str(id) + '_h'], timeInc)
+            g1 = torch.cat((g1, g1_aux[0:len(g1_aux) - 1]))  # Concatena os resultados no tensor
+
+        ini = (d.n_pumps - 1) * int(len(x) / d.n_pumps)
+        fin = len(x)
+        g1_aux = h_red2(x[ini:fin], tanks['tank' + str(id) + '_h'], timeInc)  # h no início e fim de cada arranque + 24h       
+        g1 = torch.cat((g1, g1_aux)) 
+
+    elif d.ftype == 3:
+        flag_sol = 0
+        if len(log.x_round) != 0:
+            roundx = round_x(x, d)
             # procurar solução
             try:
-                idx=log.x_round.index(roundx)
+                idx = log.x_round.index(roundx)
             except ValueError:
-                idx=-1
+                idx = -1
 
-            if(idx!=-1):
-                flag_sol=1
-                tanks=log.tanks[idx]
-                timeInc=log.timeInc[idx]
-                log.n_tank+=1
+            if idx != -1:
+                flag_sol = 1
+                tanks = log.tanks[idx]
+                timeInc = log.timeInc[idx]
+                log.n_tank += 1
 
-        if(flag_sol==0):
-            d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-        g1=[]
-        for i in range(0,len(d.dc_pos)-1):
-            ini=d.dc_pos[i]
-            fin=d.dc_pos[i+1]
-            g1_aux=h_red3_acordeao(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc,d,d.n_points_tank[id])
-            g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque 
+        if flag_sol == 0:
+            d, pumps, tanks, pipes, valves, timeInc, controls_epanet = EPA_API.EpanetSimulation(x, d, 0)
+        
+        g1 = torch.tensor([])  # Inicializa um tensor vazio
+        for i in range(0, len(d.dc_pos) - 1):
+            ini = d.dc_pos[i]
+            fin = d.dc_pos[i + 1]
+            g1_aux = h_red3_acordeao(x[ini:fin], tanks['tank' + str(id) + '_h'], timeInc, d, d.n_points_tank[id])
+            g1_aux = torch.tensor(g1_aux)
+            g1 = torch.cat((g1, g1_aux[0:len(g1_aux) - 1]))  # Concatena os resultados no tensor
 
-        g1=np.concatenate((g1, [g1_aux[-1]])) #Acrescentar as 24h
-        # print(id)
-        # print(x)
-        # print(g1)
+        g1 = torch.cat((g1, torch.tensor([g1_aux[-1]])))  # Acrescenta o último valor (24h)
 
-    elif(d.ftype==1):
-        g1=h_tmin(d,tanks['tank'+str(id)+'_h'],timeInc)
-    
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as x_g:
-    #     np.savetxt(x_g,x*np.ones((1,len(x))),delimiter=";") 
+    elif d.ftype == 1:
+        g1 = h_tmin(d, tanks['tank' + str(id) + '_h'], timeInc)
 
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as c:
-    #     np.savetxt(c,np.ones((1,1))*g1,delimiter=";") 
-    
-    # print('Water --> x_T'+id)
-    # print(x)
-    # print(g1)
-    return g1[:-1] #Retirar o último valor que é o de 24h
+    #if isinstance(g1, torch.Tensor):
+    #    return g1[:-1].detach().numpy()  # Convertendo para NumPy
+    #else:
+    return g1[:-1]
 
-jit(nopython=True)
+    #return g1[:-1].detach().numpy()  # Retira o último valor que é o de 24h
+
+
+
+
+#jit(nopython=True)
 def gT_DC_min(x,d,id,min): #Lower and Higher Water Level -  x em x minutos + inicio e fim de DC
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
     # de x em x minutos + inicio e fim de DC
@@ -680,7 +668,7 @@ def gT_DC_min(x,d,id,min): #Lower and Higher Water Level -  x em x minutos + ini
     # print(g1)
     return g1
 
-jit(nopython=True)
+#jit(nopython=True)
 def gT_min(x,d,id,min,log): #Lower and Higher Water Level -  x em x minutos
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
     if(d.ftype==2):
@@ -722,14 +710,14 @@ def gT_min(x,d,id,min,log): #Lower and Higher Water Level -  x em x minutos
     # print(g1)
     return g1
 
-jit(nopython=True)
+#jit(nopython=True)
 def gDomain(x): # Variables domain
     #print('g3')
     #print('x')
     #print(x)
     return x
 
-jit(nopython=True)
+#jit(nopython=True)
 def g_TempLog_correction(x,d): #correção de x0
     x_new=[]
     for p in range(0,d.n_pumps): #d.n_pumps
@@ -747,28 +735,25 @@ def g_TempLog_correction(x,d): #correção de x0
 
     return x_new
 
-jit(nopython=True)
-def g_TempLog(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
-    # print('Temporal Logic Const. --> x(start-stop)')
-    g5=[]
-    for p in range(0,d.n_pumps): #d.n_pumps
-        g5_F33=np.zeros(d.n_dc[p])
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-        
-        if(d.n_dc[p]!=1):
-            for i in range(0,d.n_dc[p]-1):
-                g5_F33[i]=x_p[i+1]-(x_p[i]+x_p[i+d.n_dc[p]])
-            g5_F33[i+1]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-        else:
-            g5_F33[0]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-                  
-        g5=np.concatenate((g5,g5_F33))
+#@#jit(nopython=True)
+def g_TempLog(x, d):  # tstart(n+1) > tstop(n) (várias bombas)
+    g5 = torch.tensor([])
+    for p in range(0, d.n_pumps):
+        g5_F33 = torch.zeros(d.n_dc[p])
+        x_p = x[d.dc_pos[p]:d.dc_pos[p + 1]]
 
-    # print(x)
-    # print(g5)
+        if d.n_dc[p] != 1:
+            for i in range(0, d.n_dc[p] - 1):
+                g5_F33[i] = x_p[i + 1] - (x_p[i] + x_p[i + d.n_dc[p]])
+            g5_F33[i + 1] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)])
+        else:
+            g5_F33[0] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)])
+
+        g5 = torch.cat((g5, g5_F33))
+
     return g5
 
-jit(nopython=True)
+#jit(nopython=True)
 def gT_cont(x,d,id,log): # restrição de continuidade do nivel dos tanques
     flag_sol=0
     if(len(log.x_round)!=0):
@@ -795,7 +780,7 @@ def gT_cont(x,d,id,log): # restrição de continuidade do nivel dos tanques
     # print(g)
     return g
 
-jit(nopython=True)           
+#jit(nopython=True)           
 def gT_cont_perc(x,d,id,perc,log): # restrição de continuidade do nivel dos tanques -> percentagem a cima do hmin
     flag_sol=0
     if(len(log.x_round)!=0):
@@ -820,48 +805,45 @@ def gT_cont_perc(x,d,id,perc,log): # restrição de continuidade do nivel dos ta
     g=g_lim-g_end
     return g
 
-jit(nopython=True)
-def jac_TempLog(x,d):
-    # eps_aux=AF.eps_definition_F3(x,d) 
-    # jac=approx_fprime(x, g5_F3, eps_aux)
-    
-    n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
-    for p in range(0,d.n_pumps):
-        matriz1 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-        matriz2 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-        for i in range(0,d.n_dc[p]):
-            matriz1[i][i] = -1.  
-            matriz2[i][i] = -1.  
-            if(i!=d.n_dc[p]-1):
-                matriz1[i][i+1] = 1.  
-        jac_aux=np.concatenate((matriz1,matriz2), axis=1)
-        
-        if(d.n_pumps!=1):
-            if(p==0):
-                matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                jac=np.concatenate((jac_aux,matriz_d), axis=1)
-            
-            elif(p==d.n_pumps-1):
-                matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                jac1=np.concatenate((matriz_a,jac_aux), axis=1)
-                jac=np.concatenate((jac,jac1), axis=0)  
+def jac_TempLog(x, d):
+    # Número de variáveis por bomba (start + duration)
+    n_var_pump = torch.mul(torch.tensor(d.n_dc), 2)
 
-            else:                            
-                matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                jac1=np.concatenate((matriz_a,jac_aux,matriz_d), axis=1)
-                jac=np.concatenate((jac,jac1), axis=0)                               
+    jac = None
+
+    for p in range(d.n_pumps):
+        matriz1 = torch.zeros((d.n_dc[p], d.n_dc[p]), dtype=torch.float)
+        matriz2 = torch.zeros((d.n_dc[p], d.n_dc[p]), dtype=torch.float)
+
+        for i in range(d.n_dc[p]):
+            matriz1[i][i] = -1.0
+            matriz2[i][i] = -1.0
+            if i != d.n_dc[p] - 1:
+                matriz1[i][i + 1] = 1.0
+
+        jac_aux = torch.cat((matriz1, matriz2), dim=1)
+
+        if d.n_pumps != 1:
+            if p == 0:
+                matriz_d = torch.zeros((d.n_dc[p], sum(n_var_pump[p + 1:])), dtype=torch.float)
+                jac = torch.cat((jac_aux, matriz_d), dim=1)
+
+            elif p == d.n_pumps - 1:
+                matriz_a = torch.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=torch.float)
+                jac1 = torch.cat((matriz_a, jac_aux), dim=1)
+                jac = torch.cat((jac, jac1), dim=0)
+
+            else:
+                matriz_a = torch.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=torch.float)
+                matriz_d = torch.zeros((d.n_dc[p], sum(n_var_pump[p + 1:])), dtype=torch.float)
+                jac1 = torch.cat((matriz_a, jac_aux, matriz_d), dim=1)
+                jac = torch.cat((jac, jac1), dim=0)
         else:
-            jac=jac_aux
+            jac = jac_aux
 
-    #if(len(x)>d.dc_pos[d.n_pumps]): #VSP
-    #    jac_vsp=np.zeros((len(jac), sum(d.n_dc)), dtype=int)  
-    #    jac=np.concatenate((jac,jac_vsp),axis=1)
-    
-    # mod=np.linalg.norm(jac)
     return jac
 
-jit(nopython=True)
+
 def jac_gT(x,d,id,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)     
@@ -869,8 +851,12 @@ def jac_gT(x,d,id,log):
     elif(d.ftype==2): #continuous formulation
         eps_aux=eps_definition_F2(x,d)  
 
-    jac=approx_fprime(x, gT, eps_aux,*(d,id,log))
+    x_np = x.detach().numpy() if isinstance(x, torch.Tensor) else x
+    eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+
+    jac=approx_fprime(x_np, gT, eps_aux,*(d,id,log))
     
+    #jac = torch.stack(jac).detach().numpy()
     
     # print('pre=',x,g1_F123(x))
     # c=Cost(x,1,'EpanetFiles\AnyTown\ATM_otim.py')
@@ -882,7 +868,8 @@ def jac_gT(x,d,id,log):
     # mod=np.linalg.norm(jac)
     return (jac)
 
-jit(nopython=True)
+
+#jit(nopython=True)
 def jac_gT_id(x,d,id_t, id_p,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)     
@@ -893,7 +880,7 @@ def jac_gT_id(x,d,id_t, id_p,log):
     jac=approx_fprime(x, gT_id, eps_aux,*(d,id_t,id_p,log))
     return (jac)
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_gT_min(x,d,id,min,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -905,7 +892,7 @@ def jac_gT_min(x,d,id,min,log):
     
     return (jac)
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_gT_DC_min(x,d,id,min):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -916,7 +903,7 @@ def jac_gT_DC_min(x,d,id,min):
     jac=approx_fprime(x, gT_DC_min, eps_aux,*(d,id,min))
     return (jac)
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_WTL(x,eps_aux,id_tank,d): #NOT FINISHED
     g=gT(x,d,id_tank)
     x_pump=[]
@@ -1020,7 +1007,7 @@ def jac_WTL(x,eps_aux,id_tank,d): #NOT FINISHED
             
     return jac
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_WTL_vinitial(x, eps_aux,id_tank,d): # versão inicial
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,1)
     jac=np.zeros((len(x)+1,len(x)))
@@ -1038,7 +1025,7 @@ def jac_WTL_vinitial(x, eps_aux,id_tank,d): # versão inicial
             jac[j][i]=dif_i
     return jac
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_gT_cont(x,d,id,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1050,7 +1037,7 @@ def jac_gT_cont(x,d,id,log):
     # mod=np.linalg.norm(jac)
     return (jac)
 
-jit(nopython=True)
+#jit(nopython=True)
 def jac_gT_cont_perc(x,d,id,perc,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1062,7 +1049,7 @@ def jac_gT_cont_perc(x,d,id,perc,log):
     # mod=np.linalg.norm(jac)
     return (jac)
 
-jit(nopython=True)
+#jit(nopython=True)
 def grad_Cost(x,d,log,flag):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1088,6 +1075,8 @@ class CostOptimizationLog:
         #self.previous_objective = float('inf')
      
     def __call__(self,x,CostT,grad,d):
+        
+        x = x.detach().numpy()
         if(len(grad)==0):
             x_round=round_x(x,d)
             self.solutions.append(x_round.copy())
@@ -1099,7 +1088,7 @@ class CostOptimizationLog:
             self.x_grad.append(x.copy())
             self.grad.append(grad.copy())
 
-jit(nopython=True)
+#jit(nopython=True)
 def round_x(x,d): #arredondar aos segundos    
     x_round=[]
     for p in range(d.n_pumps):
