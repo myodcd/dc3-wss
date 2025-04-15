@@ -8,7 +8,7 @@ import os
 now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
-def plot_nivel_tanque(output_data, gT, total_cost, args):
+def plot_nivel_tanque(output_data, gT, total_cost, args, save_plot=False):
     # Tariffs per period
     tar_duration = [2, 4, 1, 2, 3, 12]
     tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
@@ -45,7 +45,19 @@ def plot_nivel_tanque(output_data, gT, total_cost, args):
     ax1.set_xlim(0, 24)
 
     # Tank levels
+     # Tank levels
     ax2 = ax1.twinx()
+
+    # Linha pontilhada antes do primeiro acionamento
+    first_start = horarios[0].item()
+    first_nivel_ini = gT[0]  # Primeiro nível no início
+    ax2.plot(
+        [0, first_start],
+        [first_nivel_ini, first_nivel_ini],
+        "r--",
+        label="Initial Level",
+    )
+
     for i in range(5):
         start = horarios[i].item()
         end = fim_bombas[i].item()
@@ -87,7 +99,7 @@ def plot_nivel_tanque(output_data, gT, total_cost, args):
     ax2.tick_params(axis="y", labelcolor="r")
 
     # Title and legend
-    fig.suptitle("Tariff, Pump Operation and Tank Levels")
+    fig.suptitle(f"Tariff, Pump Operation and Tank Levels - plot_tank_level_samples{args['qtySamples']}_epochs_{args['epochs']}_{now}")
 
     # Legend
     fig.legend(
@@ -108,14 +120,15 @@ def plot_nivel_tanque(output_data, gT, total_cost, args):
     )
 
     plt.tight_layout()
-    plt.savefig(
-        os.path.join(
-            "plots",
-            f"plot_tank_level_samples{args['qtySamples']}_epochs_{args['epochs']}_{now}.png",
+    
+    
+    if save_plot:
+        
+        plt.savefig(
+            os.path.join(
+                "plots",
+                f"plot_tank_level_samples{args['qtySamples']}_epochs_{args['epochs']}_{now}.png",
+            )
         )
-    )
 
     plt.show()
-
-    #plt.savefig
-

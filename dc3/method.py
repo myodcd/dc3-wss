@@ -216,19 +216,10 @@ def train_net(data, args, save_dir):
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
             solver_opt.zero_grad() # 0. Optimizer zero grad
-            Yhat_train = torch.tensor(solver_net(Xtrain), requires_grad=True) # 1. Forward pass
-            Ynew_train = torch.tensor(grad_steps(data, Xtrain, Yhat_train, args), requires_grad=True) # 1. Forward pass                                            
-            train_loss = torch.tensor(total_loss(data, Xtrain, Ynew_train, args), requires_grad=True) # 2. Calculate de loss           
-                        
-            #if args['probType'] == 'dc_wss':
-            #    log_dc_wss_metrics(data, Xtrain, Ynew_train, args, step=10, prefix="Train")            
-            
+            Yhat_train = solver_net(Xtrain) # 1. Forward pass
+            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                                            
+            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                    
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
-            #print(train_loss.requires_grad)
-
-            # Backward para a rede usando dLoss/dY
-            #Yhat_train.backward(gradient=Y_grad)
-            
             solver_opt.step() # 4. Performe gradiente descent
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
@@ -252,6 +243,9 @@ def train_net(data, args, save_dir):
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
         #print('TRAIN LOSS ', np.mean(epoch_stats['train_loss']))
+
+        print('----')
+        print('----')        
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
@@ -260,7 +254,7 @@ def train_net(data, args, save_dir):
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
             )
         )
-
+        print('----')
         print('----')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
@@ -350,7 +344,7 @@ def train_net(data, args, save_dir):
     print('Avaliation finished')
 
 
-    plot_nivel_tanque(output_data[0].cpu().detach().numpy(), data.gT(output_data, output_data), total_cost, args)
+    plot_nivel_tanque(output_data[0].cpu().detach().numpy(), data.gT(output_data, output_data), total_cost, args, save_plot=True)
 
 
     #plot_nivel_tanque(output_data[0].cpu().detach().numpy(),data.gT(output_data, output_data))
@@ -480,6 +474,7 @@ def grad_steps(data, X, Y, args):
         return Y
     
 
+
 def total_loss(data, X, Y, args):
     
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
@@ -496,6 +491,8 @@ def total_loss(data, X, Y, args):
     if args['probType'] == 'dc_wss':
         # Somente com restricao de desigualdade
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+
+        
 
     else:
         # Com equações de igualdade e desigualdade
@@ -559,7 +556,7 @@ def grad_steps_all(data, X, Y, args):
 ######### Models
 
 class NNSolver(nn.Module):
-    def __init__(self, data, args):
+    def __init__(self, data, args): 
         super().__init__()
         self._data = data
         self._args = args

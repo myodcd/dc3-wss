@@ -587,8 +587,6 @@ def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
     return g1
     
 #@#jit(nopython=True)
-import torch
-
 def gT(x, d, id, log):  # Lower and Higher Water Level 
     # print('g'+id)
     
@@ -737,7 +735,7 @@ def g_TempLog_correction(x,d): #correção de x0
 
 #@#jit(nopython=True)
 def g_TempLog(x, d):  # tstart(n+1) > tstop(n) (várias bombas)
-    g5 = torch.tensor([])
+    g5 = torch.tensor([], requires_grad=True)
     for p in range(0, d.n_pumps):
         g5_F33 = torch.zeros(d.n_dc[p])
         x_p = x[d.dc_pos[p]:d.dc_pos[p + 1]]
@@ -853,6 +851,8 @@ def jac_gT(x,d,id,log):
 
     x_np = x.detach().numpy() if isinstance(x, torch.Tensor) else x
     eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+    
+    
 
     jac=approx_fprime(x_np, gT, eps_aux,*(d,id,log))
     
