@@ -4,6 +4,7 @@ import torch
 
 from torch import nn
 from torch import optim
+import torch.nn.functional as F
 
 torch.set_default_dtype(torch.float64)
 
@@ -18,7 +19,11 @@ from setproctitle import setproctitle
 import os
 import argparse
 
+
 from utils import str_to_bool
+
+import utils as utils
+
 import default_args
 
 import matplotlib.pyplot as plt
@@ -27,19 +32,18 @@ from plot_nonlinear_evolution import plot_nonlinear_evolution
 from plot_nonlinear_2ineq_evolution import plot_nonlinear_2ineq_evolution
 from plot_dc_wss import plot_dc_wss
 from plot_nivel_tanque import plot_nivel_tanque
+from plot_nivel_tanque_new import plot_nivel_tanque_new
 
 import warnings
 import datetime
 
+import ClassAutogradPyTorch as autograd
+
+torch.set_printoptions(precision=4, sci_mode=False)
+
 warnings.filterwarnings("ignore")
 
 import EPANET_API as EPA_API
-
-
-# RESULTADO DE FONTINHAOPTIMIZATION: 110.65
-
-# to run:
-# python .\method.py --probType nonlinear --simpleEx 10000 --simpleVar 2 --simpleEq 1 --simpleIneq 1 --corrMode 'partial' --useCompl True --epoch 150
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
@@ -94,14 +98,16 @@ def main():
         help='number of duty cycles')
     parser.add_argument('--qtySamples', type=int, default=8)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int, default=1,
         help='number of neural network epochs')
+    parser.add_argument('--vector_format', type=str, default='td-td',
+        help='format of the input data: td-td or tt-dd')
  
     args = parser.parse_args()
     args = vars(args) # change to dictionary
         
     if args['fileName'] is None:
-            args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}"
+            args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}_{args['vector_format']}"
     
     defaults = default_args.method_default_args(args['probType'])
     
@@ -121,7 +127,7 @@ def main():
     elif prob_type == 'nonlinear_2ineq':
         filepath = os.path.join('datasets', 'nonlinear_2ineq', "random_nonlinear_2ineq_dataset_ex{}".format(args['simpleEx']))
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss', "dc_wss_dataset_dc5_ex{}".format(args['qtySamples']))
+        filepath = os.path.join('datasets', 'dc_wss',  f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}_{args['vector_format']}")
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -154,32 +160,6 @@ def main():
     # Run method
     train_net(data, args, save_dir)
 
-def log_dc_wss_metrics(data, X, Y, args, step=None, prefix=""):
-    obj_cost = data.obj_fn(Y)
-    ineq_dist = data.ineq_dist(X, Y)
-
-    # Separar as violações
-    tank_violation = ineq_dist[:, :20]
-    overlap_violation = ineq_dist[:, 20:]
-
-    tank_penalty = torch.norm(tank_violation, p=2, dim=1).mean().item()
-    overlap_penalty = torch.norm(overlap_violation, p=2, dim=1).mean().item()
-    obj_mean = obj_cost.mean().item()
-
-    print('')
-
-    if step is not None:
-        print(f"[{prefix} Step {step}] "
-              f"Obj: {obj_mean:.4f} | "
-              f"Tank Violation: {tank_penalty:.4f} | "
-              f"Overlap Violation: {overlap_penalty:.4f}")
-    else:
-        print(f"[{prefix}] "
-              f"Obj: {obj_mean:.4f} | "
-              f"Tank Violation: {tank_penalty:.4f} | "
-              f"Overlap Violation: {overlap_penalty:.4f}")
-
-
 def train_net(data, args, save_dir):
     
     solver_step = args['lr']
@@ -198,54 +178,68 @@ def train_net(data, args, save_dir):
     solver_net = NNSolver(data, args)
     solver_net.to(DEVICE)
     solver_opt = optim.Adam(solver_net.parameters(), lr=solver_step)
+    
 
     stats = {}
     train_losses = []
     
     y1_new_history = []
     y2_new_history = [] 
+
     
     for i in range(nepochs):
         epoch_stats = {}
 
-
+        # Get valid loss
+        solver_net.eval()
+        for Xvalid in valid_loader:
+            Xvalid = Xvalid[0].to(DEVICE)
+            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
             
+            
+            
+        solver_net.eval()
+        for Xtest in test_loader:
+            Xtest = Xtest[0].to(DEVICE)
+            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
+
             
         solver_net.train()
         for Xtrain in train_loader:                   
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
             solver_opt.zero_grad() # 0. Optimizer zero grad
+            
+            #print('XTrain ', Xtrain[0] )
+            #print('- - - - ')
+            
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
-            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                                            
-            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                    
-            train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to the parameters of the model
-            solver_opt.step() # 4. Performe gradiente descent
+            
+            #print('Yhat_train ', Yhat_train[0] )
+            #print('- - - - ')
+            
+            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
+            
+           
+                           
+            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                                
+            
+            train_loss.sum().backward(retain_graph=True) # 3. Performe backpropagation on the loss with respect to 
+
+            solver_opt.step() # 4. Performe gradiente descent            
+                    
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
 
 
-        solver_net.eval()
-        for Xtest in test_loader:
-            Xtest = torch.tensor(Xtest[0].to(DEVICE), requires_grad=True)
-            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
-            
-            
-        # Get valid loss
-        solver_net.eval()
-        for Xvalid in valid_loader:
-            Xvalid = torch.tensor(Xvalid[0].to(DEVICE), requires_grad=True)
-            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
-            
-            
+
+
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
-        #print('TRAIN LOSS ', np.mean(epoch_stats['train_loss']))
-
-        print('----')
-        print('----')        
+        
+      
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
@@ -254,7 +248,7 @@ def train_net(data, args, save_dir):
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
             )
         )
-        print('----')
+
         print('----')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
@@ -284,7 +278,7 @@ def train_net(data, args, save_dir):
     plt.title('Train Loss Over Epochs')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
+    plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{args['vector_format']}_{now}.png'))
     plt.show() 
 
 
@@ -296,10 +290,6 @@ def train_net(data, args, save_dir):
 
         plot_nonlinear_2ineq_evolution(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}_epochs_{args['epochs']}.png'))
         
-        
-#    if args['probType'] == 'dc_wss':
-#        plot_dc_wss(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}#_epochs_{args['epochs']}.png'))
-
     
     
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
@@ -312,7 +302,8 @@ def train_net(data, args, save_dir):
             torch.save(f'model_{now}_{args['simpleEx']}_epochs_{args['epochs']}.pt', f)
     
     save_model = os.path.join('models')
-    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt'), 'wb') as f:
+    
+    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}_softWeight{args['softWeight']}_{args['vector_format']}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
 
 
@@ -322,32 +313,48 @@ def train_net(data, args, save_dir):
     print('Training finished')   
 
     # Testar resultado do modelo
-    path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
-    args_ = {'probType': 'dc_wss', 'hiddenSize': 200, 'useCompl': False, 'corrMode': 'full'}
+    path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}_{args['vector_format']}.pt')
+    
+    hiddenSize_ = args['hiddenSize']
+    args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full', 'vector_format': args['vector_format']}
 
     newModel = NNSolver(data, args_)
     newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
     newModel.eval()    
 
-    #input_data = torch.tensor([[1, 5, 6, 7, 17, 2, 0.9, 0.9, 0.9, 1]])
-    input_data = torch.tensor([[1, 5, 6, 7, 17, 3, 0.9, 0.9, 5, 4]])
-    output_data = newModel(input_data)
-    total_cost = data.obj_fn(output_data)[0]
+    if args['dc'] == 3:
+        input_data = torch.tensor([[1,8,12,3,3,3.0]])
+    
+    if args['dc'] == 5:
+        input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
+    
+    
+    #if args['dc'] == 3:
+        
+    #    input_data = utils.parser_tt_to_td(input_data_dc3) if args['vector_format'] == 'td-td' else #input_data_dc3
+        
+    #elif args['dc'] == 5:            
+    #    input_data = utils.parser_tt_to_td(input_data_dc5) if args['vector_format'] == 'td-td' else #input_data_dc5
+        
+
+    output_data = newModel(input_data.to(DEVICE))
+    
+    #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
+    
+    total_cost = data.obj_fn(output_data, args)[0]
     print('#####')
     print('Input: ', input_data)
     print('#####')
     print('Output: ', output_data)    
     print('#####')
-    print('gT: ', data.gT(output_data, output_data) )
+    output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
+    print('gT: ', data.gT(output_data, args) )
     print('#####')
     print('Resultado: ',total_cost )
     print('Avaliation finished')
 
 
-    plot_nivel_tanque(output_data[0].cpu().detach().numpy(), data.gT(output_data, output_data), total_cost, args, save_plot=True)
-
-
-    #plot_nivel_tanque(output_data[0].cpu().detach().numpy(),data.gT(output_data, output_data))
+    plot_nivel_tanque_new(args, output_data[0].cpu().detach().numpy(), total_cost, save_plot=True)
 
     return solver_net, stats
 
@@ -383,16 +390,16 @@ def eval_net(data, X, solver_net, args, prefix, stats):
     dict_agg(stats, make_prefix('time'), end_time - start_time, op='sum')
     dict_agg(stats, make_prefix('steps'), np.array([steps]))
     dict_agg(stats, make_prefix('loss'), total_loss(data, X, Ynew, args).detach().cpu().numpy())
-    dict_agg(stats, make_prefix('eval'), data.obj_fn(Ycorr).detach().cpu().numpy())
+    dict_agg(stats, make_prefix('eval'), data.obj_fn(Ycorr, args).detach().cpu().numpy())
     dict_agg(stats, make_prefix('dist'), torch.norm(Ycorr - Y, dim=dim).detach().cpu().numpy())
-    dict_agg(stats, make_prefix('ineq_max'), torch.max(data.ineq_dist(X, Ycorr), dim=dim)[0].detach().cpu().numpy())
-    dict_agg(stats, make_prefix('ineq_mean'), torch.mean(data.ineq_dist(X, Ycorr), dim=dim).detach().cpu().numpy())
+    dict_agg(stats, make_prefix('ineq_max'), torch.max(data.ineq_dist(X, Ycorr, args), dim=dim)[0].detach().cpu().numpy())
+    dict_agg(stats, make_prefix('ineq_mean'), torch.mean(data.ineq_dist(X, Ycorr, args), dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('ineq_num_viol_0'),
-             torch.sum(data.ineq_dist(X, Ycorr) > eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ycorr, args) > eps_converge, dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('ineq_num_viol_1'),
-             torch.sum(data.ineq_dist(X, Ycorr) > 10 * eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ycorr, args) > 10 * eps_converge, dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('ineq_num_viol_2'),
-             torch.sum(data.ineq_dist(X, Ycorr) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ycorr, args) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
     
     
     if args['probType'] != 'dc_wss':
@@ -418,23 +425,51 @@ def eval_net(data, X, solver_net, args, prefix, stats):
                 torch.sum(torch.abs(data.eq_resid(X, Ynew)) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
                 
     dict_agg(stats, make_prefix('raw_time'), (raw_end_time-end_time) + (base_end_time-start_time), op='sum')
-    dict_agg(stats, make_prefix('raw_eval'), data.obj_fn(Ynew).detach().cpu().numpy())
+    dict_agg(stats, make_prefix('raw_eval'), data.obj_fn(Ynew, args).detach().cpu().numpy())
     
-    dict_agg(stats, make_prefix('raw_ineq_max'), torch.max(data.ineq_dist(X, Ynew), dim=dim)[0].detach().cpu().numpy())
-    dict_agg(stats, make_prefix('raw_ineq_mean'), torch.mean(data.ineq_dist(X, Ynew), dim=dim).detach().cpu().numpy())
+    dict_agg(stats, make_prefix('raw_ineq_max'), torch.max(data.ineq_dist(X, Ynew, args), dim=dim)[0].detach().cpu().numpy())
+    dict_agg(stats, make_prefix('raw_ineq_mean'), torch.mean(data.ineq_dist(X, Ynew, args), dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('raw_ineq_num_viol_0'),
-             torch.sum(data.ineq_dist(X, Ynew) > eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ynew, args) > eps_converge, dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('raw_ineq_num_viol_1'),
-             torch.sum(data.ineq_dist(X, Ynew) > 10 * eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ynew, args) > 10 * eps_converge, dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('raw_ineq_num_viol_2'),
-             torch.sum(data.ineq_dist(X, Ynew) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
+             torch.sum(data.ineq_dist(X, Ynew, args) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
 
         
     return stats
 
 
 
+def total_loss(data, X, Y, args):
+    
+    dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
+
+    obj_cost = data.obj_fn(Y, args)
+
+    
+    if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq':
+        ineq_dist = data.ineq_dist(Y, Y, args)
+    else:
+        ineq_dist = data.ineq_dist(X, Y, args)
+
+    ineq_cost = torch.norm(ineq_dist, dim=1)
+        
+    if args['probType'] == 'dc_wss':
+        
+        # Somente com restricao de desigualdade
+        result = obj_cost + args['softWeight'] * ineq_cost
+    else:
+        # Com equações de igualdade e desigualdade
+        eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+    
+    
+    return result
+
+
 def grad_steps(data, X, Y, args):
+
     
     take_grad_steps = args['useTrainCorr']
     
@@ -453,9 +488,11 @@ def grad_steps(data, X, Y, args):
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
-                if args['probType'] == 'dc_wss':                                         
-                    ineq_step = data.ineq_grad(X, Y_new)     
-                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                if args['probType'] == 'dc_wss':                                                             
+                    ineq_step = data.ineq_grad(X, Y_new, args)   
+                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                    Y_step =  ineq_step
+
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
                     eq_step = data.eq_grad(X, Y_new)
@@ -466,45 +503,14 @@ def grad_steps(data, X, Y, args):
             Y_new = Y_new - new_Y_step
 
 
-            old_Y_step = new_Y_step            
-
+            old_Y_step = new_Y_step   
+ 
         return Y_new
-        
+       
     else:
         return Y
     
 
-
-def total_loss(data, X, Y, args):
-    
-    dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
-
-    obj_cost = data.obj_fn(Y)
-    
-    if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq':
-        ineq_dist = data.ineq_dist(Y, Y)
-    else:
-        ineq_dist = data.ineq_dist(X, Y)
-
-    ineq_cost = torch.norm(ineq_dist, dim=1)
-        
-    if args['probType'] == 'dc_wss':
-        # Somente com restricao de desigualdade
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-
-        
-
-    else:
-        # Com equações de igualdade e desigualdade
-        eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
-    
-    
-    
-    #print("Obj:", obj_cost.mean().item(), "Ineq:", ineq_cost.mean().item())
-
-    
-    return result
 
 # Used only at test time, so let PyTorch avoid building the computational graph
 def grad_steps_all(data, X, Y, args):
@@ -526,19 +532,19 @@ def grad_steps_all(data, X, Y, args):
         with torch.no_grad():
             
             while (  i == 0 or ( args['probType'] != 'dc_wss' ) and torch.max(torch.abs(data.eq_resid(X, Y_new))) > eps_converge  or
-                           torch.max(data.ineq_dist(X, Y_new)) > eps_converge) and i < max_steps:
+                           torch.max(data.ineq_dist(X, Y_new, args)) > eps_converge) and i < max_steps:
                 if partial_corr:
                     Y_step = data.ineq_partial_grad(X, Y_new)
                 else:
                     
                     if args['probType'] == 'dc_wss':
-                        ineq_step = data.ineq_grad(X, Y_new)
+                        ineq_step = data.ineq_grad(X, Y_new, args)
                                                                                         
-                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                        
+                        #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                        Y_step = ineq_step
                     else:
                         
-                        ineq_step = data.ineq_grad(X, Y_new)
+                        ineq_step = data.ineq_grad(X, Y_new, args)
                         eq_step = data.eq_grad(X, Y_new)
                         Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
                                 
@@ -553,8 +559,8 @@ def grad_steps_all(data, X, Y, args):
         return Y, 0
 
 
-######### Models
-
+######### Models         
+         
 class NNSolver(nn.Module):
     def __init__(self, data, args): 
         super().__init__()
@@ -579,6 +585,9 @@ class NNSolver(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
+        
+        x = utils.parser_td_to_tt(x) if self._args['vector_format'] == 'td-td' else x
+        
         out = self.net(x)
 
         if self._args['useCompl']:
@@ -587,11 +596,13 @@ class NNSolver(nn.Module):
         else:
             
             if self._args['probType'] == 'dc_wss':
-                out_sig = nn.Sigmoid()(out)
+                
+                
+                result = self._data.process_output(x, out)            
+                result = utils.parser_tt_to_td(result) if self._args['vector_format'] == 'td-td' else result 
             
-            result = self._data.process_output(x, out_sig,)
-            
-            return result
+            return result   
+
 
 if __name__=='__main__':
     main()

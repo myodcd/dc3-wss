@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import torch.nn.functional as F
+
 torch.set_default_dtype(torch.float64)
 from scipy.optimize import approx_fprime
 import math
@@ -24,9 +26,10 @@ import OptimAuxFunctionsV2 as opt_func
 from functools import partial
 
 from torch.autograd import Function
+import ClassAutogradPyTorch as autograd_pt
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
+# DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
 
 
 def str_to_bool(value):
@@ -43,6 +46,45 @@ def my_hash(string):
     return hashlib.sha1(bytes(string, "utf-8")).hexdigest()
 
 
+
+def parser_tt_to_td(y):
+
+    if y.shape[1] % 2:
+        y_last_column = y[:,-1:]
+        y = y[:,:-1]
+        
+    n, cols = y.shape
+    qty = cols // 2  # Quantidade de pares (hora, duração)
+
+    # Divide as colunas em horas e durações
+    horarios = y[:, :qty]  # Primeira metade (horas)
+    duracoes = y[:, qty:]  # Segunda metade (durações)
+
+    # Intercala horas e durações
+    y_intercalado = torch.empty_like(y)
+    y_intercalado[:, ::2] = horarios
+    y_intercalado[:, 1::2] = duracoes
+        
+    
+    y_intercalado = torch.cat([y_intercalado, y_last_column], dim=1)  if y.shape[1] % 2  else y_intercalado
+
+    return y_intercalado
+
+def parser_td_to_tt(y):
+
+    n, cols = y.shape
+    qty = cols // 2  # Quantidade de pares (hora, duração)
+
+    # Seleciona as colunas de horas e durações
+    horarios = y[:, ::2]  # Colunas pares (horas)
+    duracoes = y[:, 1::2]  # Colunas ímpares (durações)
+
+    # Concatena horas e durações
+    y_separado = torch.cat([horarios, duracoes], dim=1)
+
+    return y_separado   
+
+    
 ###################################################################
 
 # PROBLEM DC_WSS
@@ -54,20 +96,21 @@ class Problem_DC_WSS:
     def __init__(self, d, x, valid_frac=0.0833, test_frac=0.0833):
 
         self._d = d
-        self._num_dc = d.num_dc
-        #self.hmin = d.hmin[0]
-        #self.hmax = d.hmax[0]
-        #self.tar_beg = d.tar_beg
-        #self.tariff_value = d.tariff_value
         self._X = torch.tensor(x)
         self._xdim = self._X.shape[1]
         self._ydim = self._X.shape[1]
-        self._num = len(x)
+        self._num = self._X.shape[0]
         self._nknowns = 0
         self._valid_frac = valid_frac
         self._test_frac = test_frac
         self._device = None
         self._qty_samples = self._X.shape[0]
+        self.hmin = 2
+        self.hmax = 8
+        self.timemin = 0.001
+        self.timemax = 23.9999
+        self.tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
+        self.tariff_time = [2, 4, 1, 2, 3, 12]
 
     @property
     def device(self):
@@ -80,10 +123,6 @@ class Problem_DC_WSS:
     @property
     def d(self):
         return self._d
-
-    @property
-    def num_dc(self):
-        return self._num_dc
 
     @property
     def num(self):
@@ -133,503 +172,272 @@ class Problem_DC_WSS:
     def qty_samples(self):
         return self._qty_samples
 
+
+
+ 
+    
     # def Cost
-    def obj_fn(self, y):  # ,d, pumps, tanks, pipes, valves, timeInc):
+    def obj_fn(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
         # COM EFICIÊNCIA
 
-        log_cost=opt_func.CostOptimizationLog()
-
-        y_np = y
-        cost_list = [opt_func.Cost(i, self.d, log_cost, 3) for i in y_np]
-        cost_tensor = torch.tensor(cost_list, dtype=torch.float32, requires_grad=True)
-
-        return cost_tensor
+        y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
 
 
-    def gT(self, x, y):
-        log_tank = opt_func.TanksOptimizationLog()
+        log = opt_func.CostOptimizationLog()
 
-        #with torch.no_grad():
-        #y_np = y.detach().cpu().numpy()
-        y_np = y
-        gt_list = [opt_func.gT(i, self.d, 0, log_tank) for i in y_np]
-        gt_list = torch.stack(gt_list)
+        result = torch.tensor([opt_func.Cost(i, self.d, log, 3) for i in y_parsed])
         
-        #gt_list_min_max = gt_list
-        
-        #gt_list = torch.clamp(gt_list,2,8)
-        
-        return gt_list
+        return result
+
+    # def Cost
+    def obj_fn_com_autograd(self, y):  # ,d, pumps, tanks, pipes, valves, timeInc):
+        # COM EFICIÊNCIA
+
+        result = autograd_pt.CostAutograd.apply(y, self.d, opt_func)
+
+        return result
 
 
-    def g_tankLevel(self, y):
-        log_tank = opt_func.TanksOptimizationLog()
-        #y_np = y.detach().cpu().numpy()
-        
-        y_np = y
+    def gT(self, y, args):
 
+        #print('y depois parser ', y[0])
+        #print('- - - - ')
+
+        log = opt_func.TanksOptimizationLog()
+
+        result = torch.tensor([opt_func.gT(i, self.d, 0, log) for i in y])
         
-        gt_list = [opt_func.gT(i, self.d, 0, log_tank) for i in y_np]
-        #gt_list = torch.stack(gt_list)
-        
-        #gt_up = gt_list - n_max
-        #gt_down = n_min - gt_list
+        #print('resultado gt[0] ', result[0])
+        #print('- - - - ')
+        #result = parser_tt_to_td(result) if  args['vector_format'] == 'td-td' else result
         
         
-        return gt_list
- 
-    def g_TempLog(self, x): 
-        #with torch.no_grad():
-        #x_np = x.detach().cpu().numpy()
-        x_np = x
-                
-        g_templog_list = [opt_func.g_TempLog(i,self.d) for i in x_np]
-                         
+        return result
+
+    def gT_com_autograd(self, y, limit=True):
+        result = autograd_pt.GTAutograd.apply(y, self.d, opt_func)
+
+        #if limit:
+        #    result = torch.clamp(result, 2, 8)
+
+        return result
+
+    def g_TempLog(self, y):
+
+        g_templog_list = [-1 * opt_func.g_TempLog(i, self.d) for i in y]
+
         return torch.stack(g_templog_list)
 
-    def g_overlap(self, y):
-        horarios = y[:, :5]
-        duracoes = y[:, 5:]
-        overlap = torch.zeros(y.shape[0], 5, device=y.device)
-
-        for i in range(5):
-            h_i = horarios[:, i]
-            f_i = h_i + duracoes[:, i]
-            for j in range(i + 1, 5):
-                h_j = horarios[:, j]
-                f_j = h_j + duracoes[:, j]
-
-                ini_sobre = torch.maximum(h_i, h_j)
-                fim_sobre = torch.minimum(f_i, f_j)
-                overlap_ij = torch.clamp(fim_sobre - ini_sobre, min=0.0)  # nova variável temporária
-
-                overlap[:, i] = torch.where(overlap_ij > 0.0, torch.tensor(1.0, device=y.device), overlap[:, i])
-
-            return overlap  # [n x 5]
 
 
-    def g_tariff(self, y):
-        duracao_tarifas = torch.tensor([2, 4, 1, 2, 3, 12], device=y.device)
-        valores_tarifas = torch.tensor([0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094], device=y.device)
-
-        inicio_tarifas = torch.cumsum(torch.cat([torch.tensor([0.0], device=y.device), duracao_tarifas[:-1]]), dim=0)
-        fim_tarifas = inicio_tarifas + duracao_tarifas
-
-        horarios = y[:, :5]
-        duracoes = y[:, 5:]
-
-        tarifa_limite = 0.13
-        penalidade_alta = 1000.0
-
-        restricoes = []
-
-        for i in range(5):  # para cada ciclo
-            h_ini = horarios[:, i]
-            h_fim = h_ini + duracoes[:, i]
-            penal = torch.zeros_like(h_ini)
-
-            for j in range(len(valores_tarifas)):
-                if valores_tarifas[j] >= tarifa_limite:
-                    t_ini = inicio_tarifas[j]
-                    t_fim = fim_tarifas[j]
-
-                    sobre_ini = torch.maximum(h_ini, t_ini)
-                    sobre_fim = torch.minimum(h_fim, t_fim)
-                    duracao_sobreposta = torch.clamp(sobre_fim - sobre_ini, min=0.0)
-
-                    penal += duracao_sobreposta * penalidade_alta
-
-            restricoes.append(penal.unsqueeze(1))  # [n, 1]
-
-        return torch.cat(restricoes, dim=1)  # [n x 5]
-
-
-    def ineq_dist(self, x, y):
-
-        ineq_dist = self.ineq_resid(x, y)
-
-        return ineq_dist
-
-
-
-    def get_yvars(self,y):
-        d = self.d
-        g_tl = torch.cat(self.g_tankLevel(y))
-        g_tlog = self.g_TempLog(y)
-        g_o = self.g_overlap(y)  # [n x 5]
-        g_tf = self.g_tariff(y)  # [n x 5]
+    def g_x(self, y, args, numpy=False ):
         
         
-        return g_tl, g_tlog, g_o, g_tf, d
-
-    # ineq_dist
-    def ineq_resid(self, x, y):
+        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+        #y = y[:,:3]
         
-        
-        
-        g_tl, g_tlog, g_o, g_tf, d = self.get_yvars(y)
-
-        resids = torch.cat([g_tl - d.hmax[0],d.hmin[0] - g_tl,g_tlog]
-            , dim=1)  # [n x 25]
-
-        #gt_up, gt_down = self.g_tankLevel(x, y)
-        
-        #g_templog = torch.clamp(self.g_TempLog(y),0)
-        
-        #overlap = self.g_overlap(y)  # [n x 5]
-        
-        # torch.round((y *100)/100)
-        
-        #tariff = self.g_tariff(y)  # [n x 5]
-        
-        
-
-        # Ajuste para garantir que o total seja 35 restrições (somando 10 + 5 + 10 + 5 + 5)
-        return resids
-    
-            
-    def jac_gT_teste(self, y):
-        
-        log_tank = opt_func.TanksOptimizationLog()
-        
-        class JacGTFunction(torch.autograd.Function):
-            @staticmethod
-            def forward(ctx, y_input, d, log_tank):
-                y_np = y_input.detach().cpu().numpy()
-                output_list = [opt_func.jac_gT(i, d, 0, log_tank) for i in y_np]
-                output = torch.tensor(output_list, dtype=y_input.dtype, device=y_input.device)
-                
-                # Salva para o backward (se possível — depende do que você pode fazer)
-                ctx.save_for_backward(y_input)
-                return output
-
-            @staticmethod
-            def backward(ctx, grad_output):
-                y_input, = ctx.saved_tensors
-
-
-
-                # Aqui você precisa colocar a derivada de jac_gT em relação a y.
-                # Se isso não for possível, você pode usar um truque como identidade:
-                grad_input = grad_output  # ou grad_output * some_jacobian_estimation
-                return grad_input, None, None  # uma entrada para cada argumento da forward
-        
-
-
-        jac_gt_tensor = JacGTFunction.apply(y, self.d, log_tank)
-
-
-    def jac_gT(self, y):
-  
-        log_tank = opt_func.TanksOptimizationLog()
-
         y_np = y
         
-        jac_gt_list = [ opt_func.jac_gT(i, self.d, 0, log_tank)  for i in y_np]
-
-        jac_list_pos = torch.tensor(jac_gt_list, dtype=torch.float32, device=y.device)
+        if numpy:
+            y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
         
-        jac_list_neg = -jac_list_pos.clone()                
+        return y_np
 
-        jac_list = torch.cat((jac_list_pos, jac_list_neg), dim=1)
+
+    def ineq_dist(self, x, y, args):
+
+        ineq_dist = torch.relu(self.ineq_resid(x, y, args))
+        
+        #print('ineq_dist relu', ineq_dist[0])
+        
+        return ineq_dist
+
+    def get_yvars(self, y, args):
+
+
+        #print('y antes parser ', y[0])
+        #print('- - - - ')
+        
+        y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+        g_tl = self.gT(y_parsed, args)
+        g_tlog = self.g_TempLog(y)
+        g_x = self.g_x(y_parsed, args)
+
+        return g_tl, g_tlog, g_x
+
+
+    # ineq_dist
+    def ineq_resid(self, x, y, args):
+
+        gt, g_tlog, g_x = self.get_yvars(y, args)
+
+   
+        gt_grater = gt - self.hmax
+        gt_minor = self.hmin - gt
+        
+        g_x_grater = g_x - self.timemax
+        g_x_minor = self.timemin - g_x
+
+        #print('shape ineq_dist ', torch.cat(
+        #    [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
+        #)[0].shape)
         
         
-        return jac_list
 
-
-    def jac_TempLog(self, x):
-
-        x_np = x
-        jac_templog_list = torch.clamp(opt_func.jac_TempLog(x_np, self.d),0)
+        resids = torch.cat(
+            [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
+        )
         
-        jac_templog_list = torch.tensor(jac_templog_list, dtype=torch.float32, device=x.device)
+        
+        #print('Ineq Dist ', resids[0])
+        #print('- - - - ')      
+
+        return resids
+
+    def jac_gT_before_parser(self, y, args):
+
+
+        log = opt_func.TanksOptimizationLog()
+
+        jac = torch.tensor([opt_func.jac_gT(i, self.d, 0, log) for i in y])
+        
+
+        jac_pos = jac
+        jac_neg = -jac.clone()
+
+        return torch.cat([jac_pos, jac_neg], dim=1)  # [batch, 20, 10]
+    
+    def jac_gT(self, y, args):
+
+        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+        log = opt_func.TanksOptimizationLog()
+
+        jac = torch.tensor([opt_func.jac_gT(i, self.d, 0, log) for i in y])
+        
+        #print('jac_gT_before_parser ', jac[0])
+        #print('- - - - ') 
+        
+        jac = torch.stack([parser_tt_to_td(i) for i in jac]) if args['vector_format'] == 'td-td' else jac
+
+        
+        #print('jac_gT_after_parser ', jac[0])
+        #print('- - - - ') 
+        
+        jac_pos = jac
+        jac_inv = -jac.clone()
+        
+        all_jac_gT = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
+
+        #print('all_jac_gT ', all_jac_gT[0].shape)
+        #print('jac_gT_pos_neg ', all_jac_gT[0])
+        #print('- - - - ') 
+
+        return all_jac_gT # [batch, 20, 10]
+
+    def jac_gT_com_autograd(self, y):
+
+        result = autograd_pt.JacGTAutograd.apply(y, self.d, opt_func)
+
+        return result
+
+    def jac_TempLog(self, y):
+
+        jac_templog_list = opt_func.jac_TempLog(y, self.d)
+        
+        #print('jac_TempLog ', jac_templog_list[0])
+        #print('- - - - ') 
         
         return jac_templog_list
 
 
-
-
-
-
-    def g_tankLevel_original(self, x, y):
-        log_tank = opt_func.TanksOptimizationLog()
-        #y_np = y.detach().cpu().numpy()
-        y_np = y
-        n_min = 2
-        n_max = 8
+    def jac_x(self, y, args):
         
-        gt_list = [opt_func.gT(i, self.d, 0, log_tank) for i in y_np]
-        gt_list = torch.stack(gt_list)
+        #y = y[:,:3]
         
-        gt_list_min_max = torch.clamp(gt_list,n_min,n_max)
-                
+        eps_aux = [opt_func.eps_definition_F3(i, self.d) for i in y]
+
+        y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y    
+        eps_aux = torch.stack(eps_aux, dim=0)
+        eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
         
-        gt_up = gt_list_min_max - n_max
-        gt_down = n_min - gt_list_min_max
-
-        return gt_up, gt_down
-
-
-
-
-
-    def g_tariff_old(self, y):
-        duracao_tarifas = torch.tensor([2, 4, 1, 2, 3, 12], device=y.device)
-        valores_tarifas = torch.tensor([0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094], device=y.device)
-
-        inicio_tarifas = torch.cumsum(torch.cat([torch.tensor([0.0], device=y.device), duracao_tarifas[:-1]]), dim=0)
-        fim_tarifas = inicio_tarifas + duracao_tarifas
-
-        horarios = y[:, :5]
-        duracoes = y[:, 5:]
-
-        penalidade_base = 1000.0  # Penalidade proporcional
-
-        restricoes = []
-
-        for i in range(5):
-            h_ini = horarios[:, i]
-            h_fim = h_ini + duracoes[:, i]
-            penal = torch.zeros_like(h_ini)
-
-            for j in range(len(valores_tarifas)):
-                t_ini = inicio_tarifas[j]
-                t_fim = fim_tarifas[j]
-                tarifa = valores_tarifas[j]
-
-                sobre_ini = torch.maximum(h_ini, t_ini)
-                sobre_fim = torch.minimum(h_fim, t_fim)
-                duracao_sobreposta = torch.clamp(sobre_fim - sobre_ini, min=0.0)
-
-                penal += duracao_sobreposta * tarifa * penalidade_base
-
-            restricoes.append(penal.unsqueeze(1))
-
-        return torch.cat(restricoes, dim=1)  # [n x 5]
-
-
-
-
-
-
-
-    def jac_overlap(self,horarios, duracoes):
+        jac_x_list = torch.tensor([approx_fprime(y_np[i], self.g_x, eps_aux[i], *(1, args)) for i in range(len(y_np))])
         
-        n = horarios.shape[0]
-        jac_sobreposicoes = torch.zeros((n, 5, 5), device=horarios.device)
-
-        for i in range(5):
-            for j in range(i + 1, 5):
-                # Horário de início e término das bombas i e j
-                h_i = horarios[:, i]
-                h_j = horarios[:, j]
-                f_i = h_i + duracoes[:, i]
-                f_j = h_j + duracoes[:, j]
-
-                # Cálculo da sobreposição
-                sobre_ini = torch.maximum(h_i, h_j)
-                sobre_fim = torch.minimum(f_i, f_j)
-                overlap = torch.clamp(sobre_fim - sobre_ini, min=0.0)
-
-                # Derivadas parciais para o jacobiano
-                d_overlap_d_hi = torch.where(overlap > 0, -1.0 * (sobre_ini < f_i), 0.0)
-                d_overlap_d_hj = torch.where(overlap > 0, -1.0 * (sobre_ini < f_j), 0.0)
-                d_overlap_d_duracao_i = torch.where(overlap > 0, 1.0 * (sobre_fim > h_i), 0.0)
-                d_overlap_d_duracao_j = torch.where(overlap > 0, 1.0 * (sobre_fim > h_j), 0.0)
-
-                # Preencher o jacobiano com as derivadas
-                jac_sobreposicoes[:, i, j] = d_overlap_d_hi
-                jac_sobreposicoes[:, j, i] = d_overlap_d_hj
-                jac_sobreposicoes[:, i, i] = d_overlap_d_duracao_i
-                jac_sobreposicoes[:, j, j] = d_overlap_d_duracao_j
-
-        return jac_sobreposicoes
-
-
-
-    def jac_tariff(self, y):
-        penalidade_base = 1000.0
-
-        duracao_tarifas = torch.tensor([2, 4, 1, 2, 3, 12], device=y.device)
-        valores_tarifas = torch.tensor([0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094], device=y.device)
-
-        inicio_tarifas = torch.cumsum(torch.cat([torch.tensor([0.0], device=y.device), duracao_tarifas[:-1]]), dim=0)
-        fim_tarifas = inicio_tarifas + duracao_tarifas
-
-        horarios = y[:, :5]
-        duracoes = y[:, 5:]
-
-        n = horarios.shape[0]
-        jac_tarifas = torch.zeros(n, 10, device=y.device)
-
-        for i in range(5):
-            h_ini = horarios[:, i]
-            dur = duracoes[:, i]
-            h_fim = h_ini + dur
-
-            for j in range(len(valores_tarifas)):
-                tarifa = valores_tarifas[j]
-                t_ini = inicio_tarifas[j]
-                t_fim = fim_tarifas[j]
-
-                sobre_ini = torch.maximum(h_ini, t_ini)
-                sobre_fim = torch.minimum(h_fim, t_fim)
-                dur_sobre = torch.clamp(sobre_fim - sobre_ini, min=0.0)
-
-                mask = (dur_sobre > 0).float()
-
-                d_penal_d_hi = -penalidade_base * tarifa * mask
-                d_penal_d_dur =  penalidade_base * tarifa * mask
-
-                jac_tarifas[:, i] += d_penal_d_hi
-                jac_tarifas[:, 5 + i] += d_penal_d_dur
-
-        return jac_tarifas
-
-
-    def ineq_jac(self, Y):
-        jac_gT = self.jac_gT(Y)  # [n x 20 x 10]
-        jac_TempLog = self.jac_TempLog(Y)  # [5 x 10]
-
-        # Jacobiano das tarifas (restrições de tarifas)
-        jac_tariff = self.jac_tariff(Y)  # [n x 10]
-        jac_tariff = jac_tariff.unsqueeze(1).repeat(1, 5, 1)  # [n x 5 x 10]
         
-        # Ajustar jac_TempLog para que tenha a forma [n x 5 x 10]
-        # Repetir jac_TempLog para cada amostra em n
-        jac_TempLog = jac_TempLog.unsqueeze(0).repeat(jac_gT.shape[0], 1, 1)  # [n x 5 x 10]
+        jac_x_pos = jac_x_list
+        jac_x_neg = -jac_x_list.clone()
         
-        # Jacobiano das sobreposições
-        jac_overlap = self.jac_overlap(Y[:, :5], Y[:, 5:])  # [n x 5 x 5]
-        jac_overlap = jac_overlap.repeat(1, 1, 2) 
-        # Concatenando ao longo da dimensão 1 (a segunda dimensão das matrizes)
-        jac_combined = torch.cat([jac_gT, jac_TempLog, jac_tariff, jac_overlap], dim=1)  # [n x 25 x 10]
+        #print('jac_x ', torch.cat([jac_x_pos, jac_x_neg], dim=1).shape)        
+        #print('jac_x ', torch.cat([jac_x_pos, jac_x_neg], dim=1))
+        #print('- - - - ') 
+        
+        return torch.cat([jac_x_pos, jac_x_neg], dim=1)  # [batch, 20, 10]
+       
+    def ineq_jac(self, y,args):
+
+
+        y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+        # jac_gT: [batch, 5, 10] (supondo que você tenha 5 ciclos e 10 variáveis)
+        jac_gT = self.jac_gT(y_parsed, args)  # Output de jac_gT, forma: [batch, 5, 10]
+
+        # jac_TempLog: [batch, 5], será ajustado para [batch, 5, 1]
+        jac_TempLog = self.jac_TempLog(y)  # Output de jac_TempLog, forma: [batch, 5]
+        # jac_TempLog = jac_TempLog.unsqueeze(2)
+
+        jac_TempLog = jac_TempLog.unsqueeze(0).repeat(
+            jac_gT.shape[0], 1, 1
+        )  # Forma ajustada: [batch, 5, 1]
+
+
+        jac_x = self.jac_x(y_parsed, args)  # [batch, 5]
+
+        jac_combined = torch.cat([jac_gT, jac_x, jac_TempLog], dim=1)
 
         return jac_combined
 
-        
-    def ineq_jac_original(self, Y):
-
-        # [samples x 20 x 10]
-        jac_gT = self.jac_gT(Y)
-
-        # [5 x 10]
-        jac_TempLog = self.jac_TempLog(Y)
-
-        # [samples x 5 x 10]
-        jac_combined = torch.cat([jac_gT, jac_TempLog.unsqueeze(0).repeat(jac_gT.shape[0], 1, 1)], dim=1)
-
-        return jac_combined
-
-    def ineq_grad_original(self, x, y):
-        # [samples x 25] ineq_resid = ineq_dist
-        ineq_dist_relu = torch.clamp(self.ineq_dist(x, y),0)
-        
-        # [samples x 1 x 25]
-        ineq_dist_expanded = ineq_dist_relu.unsqueeze(1).type(torch.float32)  
-
-        # [samples X 25 X 10]
-        ineq_jac = self.ineq_jac(y).type(torch.float32)
-        
-        return torch.matmul(ineq_dist_expanded, ineq_jac).squeeze(1)
-
-
-    def ineq_grad(self, x, y):
+    def ineq_grad(self, x, y, args):
         # [samples x 25]
-        ineq_resid = self.ineq_dist(x, y)
+        ineq_dist = self.ineq_dist(x, y, args)
+        ineq_jac = self.ineq_jac(y, args)  # [batch x n_constraints x n_vars]
+                                
+        return ineq_jac.transpose(1,2).bmm(ineq_dist.unsqueeze(-1)).squeeze(-1)
 
-        # Máscara booleana onde há violação (valor > 0)
-        
-        
-        #mask = (ineq_resid > 0).float()  # [samples x 25]
-
-        # Jacobiano das restrições (samples x 25 x 10)
-        ineq_jac = self.ineq_jac(y)  # [batch x n_constraints x n_vars]
-
-        # Aplica a máscara no jacobiano: zera os gradientes onde não há violação
-        #masked_jac = ineq_jac * mask.unsqueeze(2)  # Broadcasting
-        #masked_jac = masked_jac.float()
-
-        # Produto do resíduo clamped com o jacobiano mascarado
-        grad = torch.matmul(ineq_resid.unsqueeze(1), ineq_jac).squeeze(1)  # [batch x 10]
-
-#        return 2 * torch.clamp(grad,0)
-    
-        return torch.clamp(grad,0)
-    
-
-
+            
     def process_output(self, X, out):
-        qty = out.shape[1] // 2
+        
+        out2 = nn.Sigmoid()(out)  # Normaliza a saída para [0, 1]
+        
+        qty = out2.shape[1] // 2  # Quantidade de duty cycles
 
-        start_times = out[:, :qty] * 23.8
-        durations = out[:, qty:] * (5.0 - 0.1) + 0.1
+        # Escala os tempos normalizados para [0, 23.8] e durações para [0.1, 5.0]
+        start_times = out2[:, :qty] * 23.8
+        durations = out2[:, qty:] * (5.0 - 0.1) + 0.1
 
-        # Ordena os tempos de início
+        # Ordena os horários de início e ajusta as durações na mesma ordem
         start_times_sorted, sorted_idx = torch.sort(start_times, dim=1)
-        durations_sorted = torch.gather(durations, 1, sorted_idx)
+        durations_sorted = durations.gather(1, sorted_idx)
 
-        # Corrige sobreposições impondo espaçamento de 0.001
-        adjusted_start_times = start_times_sorted.clone()
-
+        # Garante que os ciclos não se sobreponham
+        adjusted_start_times = [start_times_sorted[:, 0:1]]
         for i in range(1, qty):
-            prev_end = adjusted_start_times[:, i - 1] + durations_sorted[:, i - 1]
-            min_start = prev_end + 0.001  # Espaço mínimo obrigatório
+            prev_end = adjusted_start_times[i - 1] + durations_sorted[:, i - 1:i]
+            min_start = prev_end + 0.001  # Pequeno intervalo de segurança
+            current_start = torch.max(start_times_sorted[:, i:i+1], min_start)
+            adjusted_start_times.append(current_start)
 
-            current_start = adjusted_start_times[:, i]
-            adjusted_value = torch.maximum(current_start, min_start)
+        adjusted_start_times = torch.cat(adjusted_start_times, dim=1)
 
-            # Atualiza o tensor ajustado
-            adjusted_start_times = torch.cat([
-                adjusted_start_times[:, :i],
-                adjusted_value.unsqueeze(1),
-                adjusted_start_times[:, i+1:]
-            ], dim=1)
+        # Garante que nenhum ciclo ultrapasse o final do dia
+        max_end = adjusted_start_times + durations_sorted
+        durations_sorted = torch.where(max_end > 23.8, 23.8 - adjusted_start_times, durations_sorted)
 
-        # Corrige durações para não ultrapassar o tempo máximo
-        end_times = adjusted_start_times + durations_sorted
-        over_limit = end_times > 23.8
-        durations_sorted = torch.where(over_limit, 23.8 - adjusted_start_times, durations_sorted)
-
-        # Reaplica os clamps
+        # Trunca valores finais para garantir domínio válido
         adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
-        durations_sorted = torch.clamp(durations_sorted, 0.1, 5)
+        durations_sorted = torch.clamp(durations_sorted, 0.1, 5.0)
 
         return torch.cat([adjusted_start_times, durations_sorted], dim=1)
-
-    def process_output_original(self, X, out):
-        qty = out.shape[1] // 2
-
-        start_times = out[:, :qty] * 23.8
-        durations = out[:, qty:] * (5.0 - 0.1) + 0.1
-
-        # Ordena os tempos de início
-        start_times_sorted, sorted_idx = torch.sort(start_times, dim=1)
-        durations_sorted = torch.gather(durations, 1, sorted_idx)
-
-        # Corrige sobreposições de forma segura (sem in-place)
-        adjusted_start_times = start_times_sorted.clone()
-
-        for i in range(1, qty):
-            prev_end = adjusted_start_times[:, i - 1] + durations_sorted[:, i - 1]
-            adjusted_start_times = torch.cat([
-                adjusted_start_times[:, :i],
-                torch.max(adjusted_start_times[:, i:i+1], prev_end.unsqueeze(1)),
-                adjusted_start_times[:, i+1:]
-            ], dim=1)
-
-        # Corrige durações para não ultrapassar o tempo máximo
-        end_times = adjusted_start_times + durations_sorted
-        over_limit = end_times > 23.8
-        durations_sorted = torch.where(over_limit, 23.8 - adjusted_start_times, durations_sorted)
-
-        # Reaplica os clamps
-        adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
-        durations_sorted = torch.clamp(durations_sorted, 0.1, 5)
-
-        return torch.cat([adjusted_start_times, durations_sorted], dim=1)
-
-    
 
 
 ###################################################################
@@ -853,6 +661,7 @@ class Problem_Non_Linear:
 
         return Y
 
+
 ###################################################################
 
 # PROBLEM NON LINEAR - 2 INEQUALITIES
@@ -860,7 +669,7 @@ class Problem_Non_Linear:
 ###################################################################
 
 
-class Problem_Non_Linear_2Ineq: 
+class Problem_Non_Linear_2Ineq:
     def __init__(self, X, valid_frac=0.0833, test_frac=0.0833):
 
         self._X = torch.tensor(X)
@@ -940,8 +749,8 @@ class Problem_Non_Linear_2Ineq:
     def __str__(self):
         return "Problem_Non_Linear_2ineq-{}-{}-{}-{}".format(
             str(self.ydim), str(self.nineq), str(self.neq), str(self.num)
-            )
-        
+        )
+
     def obj_fn(self, x):
         x1 = x[:, 0]
         x2 = x[:, 1]
@@ -997,7 +806,7 @@ class Problem_Non_Linear_2Ineq:
 
         # Distâncias (resíduos clampados)
         dists = self.ineq_dist(x, y)  # shape: [batch, 2]
-        
+
         # y pesos para cada restrição e variável
         y1 = y[:, 0].unsqueeze(1)
         y2 = y[:, 1].unsqueeze(1)
@@ -1005,14 +814,16 @@ class Problem_Non_Linear_2Ineq:
         # Gradientes para g1
         grad_g1_x1 = 1.5 * x1
         grad_g1_x2 = 0.5 * x2
-        grad_g1 = torch.cat((y1 * grad_g1_x1 * dists[:, 0:1],
-                            y2 * grad_g1_x2 * dists[:, 0:1]), dim=1)
+        grad_g1 = torch.cat(
+            (y1 * grad_g1_x1 * dists[:, 0:1], y2 * grad_g1_x2 * dists[:, 0:1]), dim=1
+        )
 
         # Gradientes para g2
         grad_g2_x1 = x2
         grad_g2_x2 = x1
-        grad_g2 = torch.cat((y1 * grad_g2_x1 * dists[:, 1:2],
-                            y2 * grad_g2_x2 * dists[:, 1:2]), dim=1)
+        grad_g2 = torch.cat(
+            (y1 * grad_g2_x1 * dists[:, 1:2], y2 * grad_g2_x2 * dists[:, 1:2]), dim=1
+        )
 
         grad = grad_g1 + grad_g2
         grad = torch.clamp(grad, 0)
@@ -1040,7 +851,6 @@ class Problem_Non_Linear_2Ineq:
         Y_out[:, 1] = grad_g1_x2 + grad_g2_x2
 
         return Y_out
-
 
     def process_output(self, X, Y):
         return Y

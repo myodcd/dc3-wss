@@ -33,17 +33,17 @@ def method_default_args(prob_type):
         defaults['batchSize'] = 200
         defaults['lr'] = 1e-3
         defaults['hiddenSize'] = 200
-        defaults['softWeight'] = 100           # use 100 if useCompl=False
+        defaults['softWeight'] = 100 # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
         defaults['useCompl'] = False
         defaults['useTrainCorr'] = True
         defaults['useTestCorr'] = True
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
-        defaults['corrTrainSteps'] = 4
+        defaults['corrTrainSteps'] = 5
         defaults['corrTestMaxSteps'] = 5
         defaults['corrEps'] = 1e-4
         defaults['corrLr'] = 1e-4           # use 1e-5 if useCompl=False
-        defaults['corrMomentum'] = 0.5 
+        defaults['corrMomentum'] = 0.4 
     elif 'nonlinear_2ineq' in prob_type:
         defaults['epochs'] = 100
         defaults['batchSize'] = 200

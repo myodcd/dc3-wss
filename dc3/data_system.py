@@ -16,7 +16,7 @@ class data_system:
         self.hmax=[8]
         self.h0=[4]   
         
-        self.num_dc=4
+        self.num_dc=3
           
         self.tar_beg=[2,4,1,2,3,12] # duração tarifas
         self.tar_end=[2,6,7,9,12,24] #tempo final tarifários

@@ -29,7 +29,8 @@ def plot_nivel_tanque(output_data, gT, total_cost, args, save_plot=False):
     fim_bombas = horarios + duracoes
 
     # Convert gT from tensor to array
-    gT = gT.numpy()[0]
+    gT = gT.detach().numpy()[0]
+
 
     # Plot
     fig, ax1 = plt.subplots(figsize=(12, 6))
