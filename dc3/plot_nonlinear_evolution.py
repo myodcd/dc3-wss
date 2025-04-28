@@ -18,7 +18,7 @@ def plot_nonlinear_evolution(data, y1_new_history, y2_new_history, filename):
 
     x1_vec, x2_vec = np.meshgrid(x1, x2)
     X_vec = np.column_stack([x1_vec.ravel(), x2_vec.ravel()])
-    z = data.obj_fn(X_vec)  # Função objetivo
+    z = data.obj_fn_Original(X_vec, 'args')  # Função objetivo
     z = z.reshape(x1_vec.shape)
 
     # Calculando as restrições de equações e desigualdades
@@ -51,10 +51,10 @@ def plot_nonlinear_evolution(data, y1_new_history, y2_new_history, filename):
     ax.plot(trajectory_x1, trajectory_x2, linestyle='-', linewidth=2, color='orange')
 
     # Calculando os valores da função objetivo para os pontos inicial e final
-    obj_initial = data.obj_fn(np.array([[y1_new_history[0], y2_new_history[0]]]))  # Ajuste aqui
-    obj_final = data.obj_fn(np.array([[y1_new_history[-1], y2_new_history[-1]]]))  # Ajuste aqui
+    obj_initial = data.obj_fn_Original(np.array([[y1_new_history[0], y2_new_history[0]]]), 'args')  # Ajuste aqui
+    obj_final = data.obj_fn_Original(np.array([[y1_new_history[-1], y2_new_history[-1]]]),'args')  # Ajuste aqui
 
-    # Extrair os valores escalares da função objetivo (assumindo que obj_fn retorna um array)
+    # Extrair os valores escalares da função objetivo (assumindo que obj_fn_Original retorna um array)
     obj_initial_value = obj_initial.item() if isinstance(obj_initial, np.ndarray) else obj_initial
     obj_final_value = obj_final.item() if isinstance(obj_final, np.ndarray) else obj_final
 
@@ -66,7 +66,7 @@ def plot_nonlinear_evolution(data, y1_new_history, y2_new_history, filename):
 
     # Barra de cores para os pontos intermediários (não é necessário para legendas)
     scatter = ax.scatter(trajectory_x1[1:], trajectory_x2[1:], 
-                         c=data.obj_fn(np.array([trajectory_x1[1:], trajectory_x2[1:]]).T), 
+                         c=data.obj_fn_Original(np.array([trajectory_x1[1:], trajectory_x2[1:]]).T, 'args'), 
                          cmap='viridis', edgecolors='black')
 
     # Barra de cores (caso haja)

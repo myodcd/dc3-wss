@@ -10,24 +10,34 @@ class data_system:
         self.timeInc_s=0
         self.n_tariffs=0
         self.T_s=0        
-        self.tariffpatern='Tariff' #nome do pattern no inp com o tarifário
-        self.tariff_idx=0
+        self.tariffpatern=["T_Tariff"] #nome do pattern no inp com o tarifário
+        self.tariff_idx=[] 
         self.hmin=[2] 
         self.hmax=[8]
         self.h0=[4]   
-        
+        self.units_flow=0 # 0 -> CMH AND 1 -> LPS
         self.num_dc=3
+        
+        self.flag_naive=0
+        self.flag_def_pattern=0 # -> flag para criação de novo .inp
+        self.flag_def_h0=0
+          
+        self.pumps_to_opt=[0]
+          
+        self.eff_flow_points=[[0, 105, 210, 316]]
+        self.eff_points=[[0, 50, 75, 55]]
           
         self.tar_beg=[2,4,1,2,3,12] # duração tarifas
         self.tar_end=[2,6,7,9,12,24] #tempo final tarifários
         self.tariff_value=[0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094] # valor tarifas
         self.ncontrols_idx=0 #nº de regras a ignorar, caso existem controlos a não mexer (valvulas) 
-        self.flag_t_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl)        
+         
         self.n_points_tank=n_points_t #nº de pontos a avaliar dentro de cada DC para cada tanque
         self.flag_pat=0
 
         self.EpanetFile='Bomba-deposito_v1.inp'  
-        self.flag_t_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
+        self.flag_t_inicio=0
+        self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
         self.nomerpt='report.rpt'
         self.nomebin='output.bin'
 
@@ -44,6 +54,6 @@ class data_system:
         #Formulação 3 - Duty-Cycles       
         self.epsF_i=0.01 #0.01
         self.epsF_d=0.01 #0.018
-        self.dif_DC=8e-4 #diferença entre DC's (2 seg)
+        self.dif_DC=4/(60*60)
         self.n_dc=n_dc  #numeros de DC's por bomba 
         self.dc_pos=np.concatenate(([0],np.cumsum(np.multiply(self.n_dc,2)))) #posições das variaveis por bomba

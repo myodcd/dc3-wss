@@ -27,9 +27,12 @@ from functools import partial
 
 from torch.autograd import Function
 import ClassAutogradPyTorch as autograd_pt
+from torch.autograd.functional import jacobian
+
+import utils as utils
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
+#DEVICE = torch.device("xpu" if torch.xpu.is_available() else DEVICE)
 
 
 def str_to_bool(value):
@@ -84,7 +87,21 @@ def parser_td_to_tt(y):
 
     return y_separado   
 
-    
+
+
+def finite_diff_jac(func,x,eps,*func_args):
+
+    f0 = func(x, *func_args)           # [m]
+    m = f0.numel()
+    n = x.numel()
+    J = torch.zeros(m, n, device=x.device, dtype=x.dtype)
+    for k in range(n):
+        delta = torch.zeros_like(x)
+        delta[k] = eps[k]
+        f_plus = func(x + delta, *func_args)
+        J[:, k] = (f_plus - f0) / eps[k]
+    return J
+
 ###################################################################
 
 # PROBLEM DC_WSS
@@ -177,71 +194,153 @@ class Problem_DC_WSS:
  
     
     # def Cost
-    def obj_fn(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
+    def obj_fn_PyTorch(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
         # COM EFICIÊNCIA
 
         y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
 
 
-        log = opt_func.CostOptimizationLog()
+        log = opt_func.OptimizationLog_PyTorch()
 
-        result = torch.tensor([opt_func.Cost(i, self.d, log, 3) for i in y_parsed])
+        result = torch.stack([opt_func.Cost_PyTorch(i, self.d, log, 3) for i in y_parsed])
+        
+        #print('OBJ requires ', result.requires_grad)
         
         return result
 
     # def Cost
-    def obj_fn_com_autograd(self, y):  # ,d, pumps, tanks, pipes, valves, timeInc):
+    def obj_fn_Autograd(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
         # COM EFICIÊNCIA
 
-        result = autograd_pt.CostAutograd.apply(y, self.d, opt_func)
+        y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+
+        result = autograd_pt.CostAutograd.apply(y_parsed, self.d, opt_func)
 
         return result
 
+    # def Cost
+    def obj_fn_Original(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
+        # COM EFICIÊNCIA
 
-    def gT(self, y, args):
+        y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+
+        log = opt_func.OptimizationLog_Original()
+
+        result = [opt_func.Cost_Original(i, self.d, log, 3) for i in y_parsed]
+        
+        return torch.stack(result)
+
+
+    def gT_Original(self, y, args):
 
         #print('y depois parser ', y[0])
         #print('- - - - ')
 
-        log = opt_func.TanksOptimizationLog()
+        log = opt_func.OptimizationLog_Original()
 
         result = torch.tensor([opt_func.gT(i, self.d, 0, log) for i in y])
-        
+                
+        #print('resultado gt[0] ', result[0])
+        #print('- - - - ')
+        #result = parser_tt_to_td(result) if  args['vector_format'] == 'td-td' else result
+        #print('Len y ', len(y))
+        #print('GT requires ', result.requires_grad)
+        #print('###')
+        return result
+    
+    def gT_PyTorch(self, y, args):
+
+        #print('y depois parser ', y[0])
+        #print('- - - - ')
+
+        log = opt_func.OptimizationLog_PyTorch()
+
+        result = torch.stack([opt_func.gT_PyTorch(i, self.d, 0, log) for i in y])
+                
         #print('resultado gt[0] ', result[0])
         #print('- - - - ')
         #result = parser_tt_to_td(result) if  args['vector_format'] == 'td-td' else result
         
+        #print('GT requires ', result.requires_grad)
         
         return result
 
-    def gT_com_autograd(self, y, limit=True):
+    def gT_Autograd(self, y, args):
+        
         result = autograd_pt.GTAutograd.apply(y, self.d, opt_func)
 
         #if limit:
         #    result = torch.clamp(result, 2, 8)
-
+        #print('Len y ', len(y))
+        #print('GT requires ', result.requires_grad)
+        #print('###')
         return result
 
-    def g_TempLog(self, y):
+    def g_TempLog_Autograd(self, y):
 
-        g_templog_list = [-1 * opt_func.g_TempLog(i, self.d) for i in y]
+        g_templog_list = autograd_pt.GTempLogAutograd.apply(y, self.d, opt_func)
+        
+        #g_templog_list_ = [-1 * opt_func.g_TempLog(i, self.d) for i in y]
+        #print('Len y ', len(y))
+        #print('G Templog ', g_templog_list.requires_grad)
+        #print('Len y ', len(y))
+        return g_templog_list
 
-        return torch.stack(g_templog_list)
 
+    def g_TempLog_PyTorch(self, y):
 
+        result = torch.stack([-1 * opt_func.g_TempLog_PyTorch(i, self.d) for i in y])
+        
+        #print('g templog ', result.requires_grad)
 
-    def g_x(self, y, args, numpy=False ):
+        return result
+    
+    def g_TempLog_Original(self, y):
+        
+        g_templog_list = torch.tensor([-1 * opt_func.g_TempLog(i, self.d) for i in y])
+
+        return g_templog_list       
+
+    def g_x_Autograd(self, y, args, numpy=False ):
         
         
         #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
         #y = y[:,:3]
         
-        y_np = y
+        #y_np = y
         
-        if numpy:
-            y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
+        #if numpy:
+        #    y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
         
-        return y_np
+        
+        return y
+
+        
+        
+        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+        #y = y[:,:3]
+        
+        #y_np = y
+        
+        #if numpy:
+        #    y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
+        
+        return y
+
+    def g_x_Original(self, y, args, numpy=False ):
+        
+        
+        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+        #y = y[:,:3]
+        
+        #y_np = y
+        
+        #if numpy:
+        #    y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
+        
+        return y
 
 
     def ineq_dist(self, x, y, args):
@@ -260,9 +359,18 @@ class Problem_DC_WSS:
         
         y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
 
-        g_tl = self.gT(y_parsed, args)
-        g_tlog = self.g_TempLog(y)
-        g_x = self.g_x(y_parsed, args)
+        #g_tl = self.gT_PyTorch(y_parsed, args)
+        #g_tlog = self.g_TempLog_PyTorch(y)
+        #g_x = self.g_x_PyTorch(y_parsed, args)
+
+
+        #g_tl = self.gT_Original(y_parsed, args)
+        #g_tlog = self.g_TempLog_Original(y)
+        #g_x = self.g_x_Original(y_parsed, args)
+
+        g_tl = self.gT_Autograd(y_parsed, args)
+        g_tlog = self.g_TempLog_Autograd(y)
+        g_x = self.g_x_Autograd(y_parsed, args)
 
         return g_tl, g_tlog, g_x
 
@@ -283,7 +391,6 @@ class Problem_DC_WSS:
         #    [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
         #)[0].shape)
         
-        
 
         resids = torch.cat(
             [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
@@ -295,24 +402,44 @@ class Problem_DC_WSS:
 
         return resids
 
-    def jac_gT_before_parser(self, y, args):
-
-
-        log = opt_func.TanksOptimizationLog()
-
-        jac = torch.tensor([opt_func.jac_gT(i, self.d, 0, log) for i in y])
-        
-
-        jac_pos = jac
-        jac_neg = -jac.clone()
-
-        return torch.cat([jac_pos, jac_neg], dim=1)  # [batch, 20, 10]
-    
-    def jac_gT(self, y, args):
+    def jac_gT_PyTorch(self, y, args):
 
         #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
 
-        log = opt_func.TanksOptimizationLog()
+        log = opt_func.OptimizationLog_PyTorch()
+
+        #jac_ = [opt_func.jac_gT(i, self.d, 0, log) for i in y]
+
+        jac = [opt_func.jac_gT_PyTorch(i, self.d, 0, log) for i in y]
+        
+        
+        
+        #print('jac_gT_before_parser ', jac[0])
+        #print('- - - - ') 
+        
+        jac = torch.stack([parser_tt_to_td(i) for i in jac]) if args['vector_format'] == 'td-td' else jac
+
+        
+        #print('jac_gT_after_parser ', jac[0])
+        #print('- - - - ') 
+        
+        jac_pos = jac
+        jac_inv = -jac.clone()
+        
+        all_jac_gT = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
+
+        #print('all_jac_gT ', all_jac_gT[0].shape)
+        #print('jac_gT_pos_neg ', all_jac_gT[0])
+        #print('- - - - ') 
+
+        return all_jac_gT # [batch, 20, 10]
+    
+    
+    def jac_gT_Original(self, y, args):
+
+        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
+
+        log = opt_func.OptimizationLog_Original()
 
         jac = torch.tensor([opt_func.jac_gT(i, self.d, 0, log) for i in y])
         
@@ -336,66 +463,173 @@ class Problem_DC_WSS:
 
         return all_jac_gT # [batch, 20, 10]
 
-    def jac_gT_com_autograd(self, y):
+    def jac_gT_Autograd(self, y, args):
 
-        result = autograd_pt.JacGTAutograd.apply(y, self.d, opt_func)
+        jac = autograd_pt.JacGTAutograd.apply(y, self.d, opt_func)
 
-        return result
 
-    def jac_TempLog(self, y):
+        jac = torch.stack([parser_tt_to_td(i) for i in jac]) if args['vector_format'] == 'td-td' else jac
+
+        jac_pos = jac
+        jac_inv = -jac.clone()
+        
+        all_jac_gT = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
+
+        #print('all_jac_gT ', all_jac_gT[0].shape)
+        #print('jac_gT_pos_neg ', all_jac_gT[0])
+        #print('- - - - ') 
+        
+        #print('Len y ', len(y))
+        #print('jac GT requires ', y.requires_grad)
+        #print('###')
+
+        return all_jac_gT # [batch, 20, 10]
+
+
+
+    def jac_TempLog_PyTorch(self, y):
+
+        
+        jac_templog_list = opt_func.jac_TempLog_PyTorch(y, self.d)
+            
+        jac_templog_list_ = opt_func.jac_TempLog(y, self.d)
+        
+        return jac_templog_list
+
+
+    def jac_TempLog_Autograd(self, y):
+        
+        jac_templog_list = autograd_pt.JacTempLogAutograd.apply(y, self.d, opt_func)
+        
+        return jac_templog_list
+
+
+
+    
+
+    def jac_TempLog_Original(self, y):
+        
+        
 
         jac_templog_list = opt_func.jac_TempLog(y, self.d)
         
         #print('jac_TempLog ', jac_templog_list[0])
         #print('- - - - ') 
         
-        return jac_templog_list
+        return torch.tensor(jac_templog_list)
 
 
-    def jac_x(self, y, args):
+
+    def jac_x_Original(self, y, args):
+        
+        y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y   
+        
+        
+        eps_aux = torch.tensor([opt_func.eps_definition_F3(i, self.d) for i in y_np])
+        
+        #eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+        #eps_aux = torch.stack(eps_aux, dim=0)
+        
+        eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+
+        jac_x_list = torch.tensor([approx_fprime(y_np[i], self.g_x_Original, eps_aux[i], *(1, args)) for i in range(len(y_np))]) 
+        
+        J_pos = jac_x_list
+        J_neg = -J_pos
+                
+        return torch.cat([J_pos, J_neg], dim=1) # [batch, 20, 10]
+    
+    def jac_x_Autograd(self, y: torch.Tensor, args) -> torch.Tensor:
+        """
+        Para cada amostra y[b] (shape [D]), calcula a Jacobiana de g_x_Original:
+        J[b]_{c,d} = d/d y[b,d] ( g_x_Original(y[b])_c ).
+        Retorna um tensor [B, 2*C, D], concatenando J e -J.
+        """
+        # 1) Garantir que y participe do grafo
+        y = y.clone().requires_grad_(True)     # [B, D]
+        B, D = y.shape
+
+        # 2) cria um “wrapper” que pega y[b] e retorna g_x_Original → [C]
+        def g_vec(y_i: torch.Tensor) -> torch.Tensor:
+            # y_i: [D]
+            # g_x_Original espera [1, D] → retorna [1, C]
+            out = self.g_x_Original(y_i.unsqueeze(0), args)
+            return out.squeeze(0)              # [C]
+
+        # 3) loop sobre o batch (pode ser lento, mas preserva grafo)
+        jac_list = []
+        for b in range(B):
+            # jacobian retorna tensor [C, D]
+            Jb = jacobian(
+                g_vec,
+                y[b],
+                create_graph=True,  # se quiser derivar em cima desta Jacobiana
+                strict=False        # permite que partes constantes não disparem erro
+            )
+            jac_list.append(Jb)
+
+        # [B, C, D]
+        J_pos = torch.stack(jac_list, dim=0)
+        # [B, C, D]
+        J_neg = -J_pos
+        # concatena em [B, 2*C, D]
+        return torch.cat([J_pos, J_neg], dim=1) # [B, 2*C, D]
+    
+    
+    def jac_x_PyTorch(self, y, args):
         
         #y = y[:,:3]
         
-        eps_aux = [opt_func.eps_definition_F3(i, self.d) for i in y]
+        eps_aux = [opt_func.eps_definition_F3_PyTorch(i, self.d) for i in y]
 
-        y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y    
-        eps_aux = torch.stack(eps_aux, dim=0)
-        eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+        #y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y    
+        #eps_aux = torch.stack(eps_aux, dim=0)
+        #eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
         
-        jac_x_list = torch.tensor([approx_fprime(y_np[i], self.g_x, eps_aux[i], *(1, args)) for i in range(len(y_np))])
+        J_list = [finite_diff_jac(self.g_x_PyTorch, y[i], eps_aux[i], *(1,args))
+            for i in range(len(y))
+        ]
+        #jac_x_list = torch.tensor([approx_fprime(y_np[i], self.g_x, eps_aux[i], *(1, args)) for i in range(len(y_np))])        
         
-        
-        jac_x_pos = jac_x_list
-        jac_x_neg = -jac_x_list.clone()
+        J_pos = torch.stack(J_list, dim=0)
+        J_neg = -J_pos
         
         #print('jac_x ', torch.cat([jac_x_pos, jac_x_neg], dim=1).shape)        
         #print('jac_x ', torch.cat([jac_x_pos, jac_x_neg], dim=1))
         #print('- - - - ') 
         
-        return torch.cat([jac_x_pos, jac_x_neg], dim=1)  # [batch, 20, 10]
+        return torch.cat([J_pos, J_neg], dim=1) # [batch, 20, 10]
        
     def ineq_jac(self, y,args):
 
 
         y_parsed = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
 
-        # jac_gT: [batch, 5, 10] (supondo que você tenha 5 ciclos e 10 variáveis)
-        jac_gT = self.jac_gT(y_parsed, args)  # Output de jac_gT, forma: [batch, 5, 10]
+        #jac_gT = self.jac_gT_Original(y_parsed, args)  # Output de jac_gT, forma: [batch, 5, 10]
 
-        # jac_TempLog: [batch, 5], será ajustado para [batch, 5, 1]
-        jac_TempLog = self.jac_TempLog(y)  # Output de jac_TempLog, forma: [batch, 5]
+        #jac_TempLog = self.jac_TempLog_Original(y)  # Output de jac_TempLog, forma: [batch, 5]
         # jac_TempLog = jac_TempLog.unsqueeze(2)
 
-        jac_TempLog = jac_TempLog.unsqueeze(0).repeat(
-            jac_gT.shape[0], 1, 1
-        )  # Forma ajustada: [batch, 5, 1]
 
 
-        jac_x = self.jac_x(y_parsed, args)  # [batch, 5]
+        #jac_x = self.jac_x_Original(y_parsed, args)  # [batch, 5]
 
-        jac_combined = torch.cat([jac_gT, jac_x, jac_TempLog], dim=1)
+        jac_gT = self.jac_gT_Autograd(y_parsed, args)  # Output de jac_gT, forma: [batch, 5, 10]
 
-        return jac_combined
+        # jac_TempLog: [batch, 5], será ajustado para [batch, 5, 1]
+        jac_TempLog = self.jac_TempLog_Autograd(y)  # Output de jac_TempLog, forma: [batch, 5]
+        # jac_TempLog = jac_TempLog.unsqueeze(2)
+
+        jac_x = self.jac_x_Autograd(y_parsed, args)  # [batch, 5]
+
+        #jac_TempLog = jac_TempLog.unsqueeze(1).repeat(
+        #    jac_gT.shape[0], 1, 1
+        #)  # Forma ajustada: [batch, 5, 1]
+
+
+        result = torch.cat([jac_gT, jac_x, jac_TempLog], dim=1)
+
+        return result
 
     def ineq_grad(self, x, y, args):
         # [samples x 25]
@@ -419,11 +653,11 @@ class Problem_DC_WSS:
         start_times_sorted, sorted_idx = torch.sort(start_times, dim=1)
         durations_sorted = durations.gather(1, sorted_idx)
 
-        # Garante que os ciclos não se sobreponham
+        # Garante que os horários não se sobreponham e respeitem o intervalo mínimo de 0.01
         adjusted_start_times = [start_times_sorted[:, 0:1]]
         for i in range(1, qty):
             prev_end = adjusted_start_times[i - 1] + durations_sorted[:, i - 1:i]
-            min_start = prev_end + 0.001  # Pequeno intervalo de segurança
+            min_start = prev_end + 0.01  # Intervalo mínimo ajustado para 0.01
             current_start = torch.max(start_times_sorted[:, i:i+1], min_start)
             adjusted_start_times.append(current_start)
 
@@ -437,8 +671,7 @@ class Problem_DC_WSS:
         adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
         durations_sorted = torch.clamp(durations_sorted, 0.1, 5.0)
 
-        return torch.cat([adjusted_start_times, durations_sorted], dim=1)
-
+        return torch.cat([adjusted_start_times, durations_sorted], dim=1)   
 
 ###################################################################
 
@@ -529,7 +762,7 @@ class Problem_Non_Linear:
             str(self.ydim), str(self.nineq), str(self.neq), str(self.num)
         )
 
-    def obj_fn(self, x):
+    def obj_fn_Original(self, x, args):
 
         x1 = x[:, 0]
         x2 = x[:, 1]
@@ -550,7 +783,7 @@ class Problem_Non_Linear:
 
         return 0.75 * x1**2 + 0.25 * x2**2 - 0.5
 
-    def ineq_dist(self, x, y):
+    def ineq_dist(self, x, y, args):
         """
         Clampe os resíduos de desigualdade.
         """
@@ -578,7 +811,7 @@ class Problem_Non_Linear:
 
         return grad
 
-    def ineq_grad(self, x, y):
+    def ineq_grad(self, x, y, args):
         """
         Gradiente do resíduo de desigualdade.
         Derivadas parciais:
@@ -587,7 +820,7 @@ class Problem_Non_Linear:
         x2 = x[:, 1]
 
         # Calcula a distância clamped
-        dist = self.ineq_dist(x, y)  # Tamanho esperado: [25]
+        dist = self.ineq_dist(x, y, args)  # Tamanho esperado: [25]
 
         grad_x1 = 1.5 * x1
         grad_x2 = 0.5 * x2
@@ -751,7 +984,7 @@ class Problem_Non_Linear_2Ineq:
             str(self.ydim), str(self.nineq), str(self.neq), str(self.num)
         )
 
-    def obj_fn(self, x):
+    def obj_fn_Original(self, x, args):
         x1 = x[:, 0]
         x2 = x[:, 1]
         return x1 * ((x1 - x2) ** 2 + (x1 - 2)) + 5
@@ -771,7 +1004,7 @@ class Problem_Non_Linear_2Ineq:
         x2 = x[:, 1]
         return x1 * x2 - 0.3
 
-    def ineq_dist(self, x, y):
+    def ineq_dist(self, x, y, args):
         """
         Clampe os resíduos de desigualdade das duas restrições.
         """
@@ -797,7 +1030,7 @@ class Problem_Non_Linear_2Ineq:
         grad = torch.cat((grad_x1, grad_x2), dim=1)
         return grad
 
-    def ineq_grad(self, x, y):
+    def ineq_grad(self, x, y, args):
         """
         Gradiente combinado dos resíduos de desigualdade g1 e g2.
         """
@@ -805,7 +1038,7 @@ class Problem_Non_Linear_2Ineq:
         x2 = x[:, 1].unsqueeze(1)
 
         # Distâncias (resíduos clampados)
-        dists = self.ineq_dist(x, y)  # shape: [batch, 2]
+        dists = self.ineq_dist(x, y, args)  # shape: [batch, 2]
 
         # y pesos para cada restrição e variável
         y1 = y[:, 0].unsqueeze(1)
@@ -835,7 +1068,7 @@ class Problem_Non_Linear_2Ineq:
         """
         x1 = X[:, 0]
         x2 = X[:, 1]
-        dists = self.ineq_dist(X, Y)  # shape: [batch, 2]
+        dists = self.ineq_dist(X, Y, args)  # shape: [batch, 2]
 
         # Gradientes para g1
         grad_g1_x1 = 1.5 * x1 * dists[:, 0]

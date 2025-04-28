@@ -33,11 +33,15 @@ from plot_nonlinear_2ineq_evolution import plot_nonlinear_2ineq_evolution
 from plot_dc_wss import plot_dc_wss
 from plot_nivel_tanque import plot_nivel_tanque
 from plot_nivel_tanque_new import plot_nivel_tanque_new
+from plot_simple import plot_simple
 
 import warnings
 import datetime
 
 import ClassAutogradPyTorch as autograd
+
+import OptimAuxFunctionsV2 as op
+import data_system
 
 torch.set_printoptions(precision=4, sci_mode=False)
 
@@ -94,11 +98,11 @@ def main():
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
-    parser.add_argument('--dc', type=int, default=5,
+    parser.add_argument('--dc', type=int, default=3,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=8)
+    parser.add_argument('--qtySamples', type=int, default=50)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=100,
         help='number of neural network epochs')
     parser.add_argument('--vector_format', type=str, default='td-td',
         help='format of the input data: td-td or tt-dd')
@@ -186,6 +190,8 @@ def train_net(data, args, save_dir):
     y1_new_history = []
     y2_new_history = [] 
 
+
+    sample_x_zero = []
     
     for i in range(nepochs):
         epoch_stats = {}
@@ -220,13 +226,26 @@ def train_net(data, args, save_dir):
             
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
             
-           
-                           
-            train_loss = total_loss(data, Xtrain, Ynew_train, args) # 2. Calculate de loss                                
+                       
+            train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
             
-            train_loss.sum().backward(retain_graph=True) # 3. Performe backpropagation on the loss with respect to 
+            sample_x_zero.append(Xtrain[0].cpu().detach().numpy())
+            
+                                         
+            #train_loss.sum().backward(retain_graph=True) # 3. Performe backpropagation on the loss with respect to 
+            time_start = time.time()    
+            train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to
 
             solver_opt.step() # 4. Performe gradiente descent            
+
+            time_end = time.time()
+            elapsed_seconds = time_end - time_start
+
+            minutes = int(elapsed_seconds // 60)
+            seconds = int(elapsed_seconds % 60)
+
+            print(f'Train loss backward time: {minutes} min {seconds} sec')
+
                     
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
@@ -234,11 +253,36 @@ def train_net(data, args, save_dir):
 
 
 
+            #print("Yhat_train.requires_grad:", Yhat_train.requires_grad)
+            #print("Ynew_train.requires_grad:", Ynew_train.requires_grad)
+            #print("train_loss.requires_grad:", train_loss.requires_grad)
+            
+            #print("Yhat_train.grad_fn:", Yhat_train.grad_fn)
+            #print("Ynew_train.grad_fn:", Ynew_train.grad_fn)
+            #print("train_loss.grad_fn:", train_loss.grad_fn)
 
+            #grad = torch.autograd.grad(outputs=train_loss.sum(), inputs=solver_net.parameters(), retain_graph=True, #allow_unused=True)
+            #for g in grad:
+            #    print(g)
+
+
+            for name, param in solver_net.named_parameters():
+                
+                ######################################
+                #print(f"{name}: {param.grad}")
+                pass
+                
+                    
+                    
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
         train_losses.append(avg_train_loss)
         
+        
+        if args['probType'] == 'dc_wss':
+        
+            plot_simple(Ynew_train[0].detach().numpy(), i, args) # Plota os níveis do tanque 0 e as linhas de referência
+ 
       
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
@@ -312,49 +356,61 @@ def train_net(data, args, save_dir):
     print('----')    
     print('Training finished')   
 
-    # Testar resultado do modelo
-    path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}_{args['vector_format']}.pt')
-    
-    hiddenSize_ = args['hiddenSize']
-    args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full', 'vector_format': args['vector_format']}
 
-    newModel = NNSolver(data, args_)
-    newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
-    newModel.eval()    
+    if args['probType'] == 'dc_wss':
 
-    if args['dc'] == 3:
-        input_data = torch.tensor([[1,8,12,3,3,3.0]])
-    
-    if args['dc'] == 5:
-        input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
-    
-    
-    #if args['dc'] == 3:
+        # Testar resultado do modelo
+        path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}_{args['vector_format']}.pt')
         
-    #    input_data = utils.parser_tt_to_td(input_data_dc3) if args['vector_format'] == 'td-td' else #input_data_dc3
+        hiddenSize_ = args['hiddenSize']
+        args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full', 'vector_format': args['vector_format']}
+
+        newModel = NNSolver(data, args_)
+        newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
+        newModel.eval()    
+
+        if args['dc'] == 3:
+            input_data = torch.tensor([[1,8,12,3,3,3.0]])
         
-    #elif args['dc'] == 5:            
-    #    input_data = utils.parser_tt_to_td(input_data_dc5) if args['vector_format'] == 'td-td' else #input_data_dc5
+        if args['dc'] == 4:
+            input_data = torch.tensor([[1,8,12,18,3,3,3.0,2.5]])
+
+        if args['dc'] == 5:
+            input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
         
+        
+        #if args['dc'] == 3:
+            
+        #    input_data = utils.parser_tt_to_td(input_data_dc3) if args['vector_format'] == 'td-td' else #input_data_dc3
+            
+        #elif args['dc'] == 5:            
+        #    input_data = utils.parser_tt_to_td(input_data_dc5) if args['vector_format'] == 'td-td' else #input_data_dc5
+            
 
-    output_data = newModel(input_data.to(DEVICE))
-    
-    #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
-    
-    total_cost = data.obj_fn(output_data, args)[0]
-    print('#####')
-    print('Input: ', input_data)
-    print('#####')
-    print('Output: ', output_data)    
-    print('#####')
-    output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
-    print('gT: ', data.gT(output_data, args) )
-    print('#####')
-    print('Resultado: ',total_cost )
-    print('Avaliation finished')
+        output_data = newModel(input_data)
+        
+        #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
+        
+        if args['probType'] == 'dc_wss':
+            
+            total_cost = data.obj_fn_Autograd(output_data, args)[0]
+        else:
+            total_cost = data.obj_fn_Original(output_data, args)[0]
+        
+        
+        print('#####')
+        print('Input: ', input_data)
+        print('#####')
+        print('Output: ', output_data)    
+        print('#####')
+        output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
+        print('gT: ', data.gT_Original(output_data, args) )
+        print('#####')
+        print('Resultado: ',total_cost )
+        print('Avaliation finished')
 
 
-    plot_nivel_tanque_new(args, output_data[0].cpu().detach().numpy(), total_cost, save_plot=True)
+        plot_nivel_tanque_new(args, output_data[0].cpu().detach().numpy(), total_cost, save_plot=True)
 
     return solver_net, stats
 
@@ -389,8 +445,13 @@ def eval_net(data, X, solver_net, args, prefix, stats):
     
     dict_agg(stats, make_prefix('time'), end_time - start_time, op='sum')
     dict_agg(stats, make_prefix('steps'), np.array([steps]))
-    dict_agg(stats, make_prefix('loss'), total_loss(data, X, Ynew, args).detach().cpu().numpy())
-    dict_agg(stats, make_prefix('eval'), data.obj_fn(Ycorr, args).detach().cpu().numpy())
+    dict_agg(stats, make_prefix('loss'), total_loss(data, X, Ynew, args, 0).detach().cpu().numpy())
+    
+    if args['probType'] == 'dc_wss':    
+        dict_agg(stats, make_prefix('eval'), data.obj_fn_Autograd(Ycorr, args).detach().cpu().numpy())        
+    else:
+        dict_agg(stats, make_prefix('eval'), data.obj_fn_Original(Ycorr, args).detach().cpu().numpy())
+    
     dict_agg(stats, make_prefix('dist'), torch.norm(Ycorr - Y, dim=dim).detach().cpu().numpy())
     dict_agg(stats, make_prefix('ineq_max'), torch.max(data.ineq_dist(X, Ycorr, args), dim=dim)[0].detach().cpu().numpy())
     dict_agg(stats, make_prefix('ineq_mean'), torch.mean(data.ineq_dist(X, Ycorr, args), dim=dim).detach().cpu().numpy())
@@ -425,7 +486,11 @@ def eval_net(data, X, solver_net, args, prefix, stats):
                 torch.sum(torch.abs(data.eq_resid(X, Ynew)) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
                 
     dict_agg(stats, make_prefix('raw_time'), (raw_end_time-end_time) + (base_end_time-start_time), op='sum')
-    dict_agg(stats, make_prefix('raw_eval'), data.obj_fn(Ynew, args).detach().cpu().numpy())
+    
+    if args['probType'] == 'dc_wss':
+        dict_agg(stats, make_prefix('raw_eval'), data.obj_fn_Autograd(Ynew, args).detach().cpu().numpy())
+    else:
+        dict_agg(stats, make_prefix('raw_eval'), data.obj_fn_Original(Ynew, args).detach().cpu().numpy())
     
     dict_agg(stats, make_prefix('raw_ineq_max'), torch.max(data.ineq_dist(X, Ynew, args), dim=dim)[0].detach().cpu().numpy())
     dict_agg(stats, make_prefix('raw_ineq_mean'), torch.mean(data.ineq_dist(X, Ynew, args), dim=dim).detach().cpu().numpy())
@@ -441,12 +506,17 @@ def eval_net(data, X, solver_net, args, prefix, stats):
 
 
 
-def total_loss(data, X, Y, args):
+def total_loss(data, X, Y, args, i):
     
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
 
-    obj_cost = data.obj_fn(Y, args)
+    #if len(data.trainX) == len(Y):
+    #    plot_simple(Y[0].cpu().detach().numpy(), args['dc'], i)
 
+    if args['probType'] == 'dc_wss':
+        obj_cost = data.obj_fn_Autograd(Y, args)
+    else:
+        obj_cost = data.obj_fn_Original(Y, args)
     
     if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq':
         ineq_dist = data.ineq_dist(Y, Y, args)
@@ -482,29 +552,45 @@ def grad_steps(data, X, Y, args):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
-        old_Y_step = 0        
-        
+        old_Y_step = 0       
+        if len(data.trainX) == len(Y): 
+            print('Y ', Y[0])
         for i in range(num_steps):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
                 if args['probType'] == 'dc_wss':                                                             
                     ineq_step = data.ineq_grad(X, Y_new, args)   
-                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                    Y_step =  ineq_step
-
+                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                    
+                    
+                    if len(data.trainX) == len(Y):
+                    
+                        print('Step num. : ', i)
+                        
+                        print('Y step: ', Y_step[0])
+                        
+                        
+                        print('###')   
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
                     eq_step = data.eq_grad(X, Y_new)
                                 
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
-                
+                    
+                    
+                    
             new_Y_step = lr * Y_step + momentum * old_Y_step
+            
+
+
             Y_new = Y_new - new_Y_step
 
 
             old_Y_step = new_Y_step   
- 
+
+            
+
         return Y_new
        
     else:
@@ -540,8 +626,8 @@ def grad_steps_all(data, X, Y, args):
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new, args)
                                                                                         
-                        #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                        Y_step = ineq_step
+                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                        
                     else:
                         
                         ineq_step = data.ineq_grad(X, Y_new, args)
@@ -587,9 +673,9 @@ class NNSolver(nn.Module):
     def forward(self, x):
         
         x = utils.parser_td_to_tt(x) if self._args['vector_format'] == 'td-td' else x
-        
+ 
         out = self.net(x)
-
+        #print('OUT ', out.requires_grad, out.grad_fn)  # depois da rede
         if self._args['useCompl']:
             result = self._data.complete_partial(x, out)
             return result
@@ -600,6 +686,10 @@ class NNSolver(nn.Module):
                 
                 result = self._data.process_output(x, out)            
                 result = utils.parser_tt_to_td(result) if self._args['vector_format'] == 'td-td' else result 
+                #print('RESULT', result.requires_grad, result.grad_fn)  # depois do pós-processamento
+            
+            
+            
             
             return result   
 
