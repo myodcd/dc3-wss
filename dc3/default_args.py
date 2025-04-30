@@ -15,7 +15,7 @@ def method_default_args(prob_type):
     if prob_type == 'nonlinear':
         defaults['epochs'] = 100
         defaults['batchSize'] = 200
-        defaults['lr'] = 1e-3
+        defaults['lr'] = 0.1
         defaults['hiddenSize'] = 200
         defaults['softWeight'] = 100          # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
@@ -34,16 +34,16 @@ def method_default_args(prob_type):
         defaults['batchSize'] = 50
         defaults['lr'] = 1e-4
         defaults['hiddenSize'] = 64
-        defaults['softWeight'] = 100 # use 100 if useCompl=False
+        defaults['softWeight'] = 50 # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
         defaults['useCompl'] = False
         defaults['useTrainCorr'] = True
         defaults['useTestCorr'] = True
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
-        defaults['corrTrainSteps'] = 3
-        defaults['corrTestMaxSteps'] = 3
+        defaults['corrTrainSteps'] = 5
+        defaults['corrTestMaxSteps'] = 5
         defaults['corrEps'] = 1e-4
-        defaults['corrLr'] = 1e-5           # use 1e-5 if useCompl=False
+        defaults['corrLr'] = 0.3          # use 1e-5 if useCompl=False
         defaults['corrMomentum'] = 0.5 
     elif 'nonlinear_2ineq' in prob_type:
         defaults['epochs'] = 100

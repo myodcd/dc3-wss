@@ -6,7 +6,7 @@ import torch.nn.functional as F
 torch.set_default_dtype(torch.float64)
 from scipy.optimize import approx_fprime
 import math
-
+import plot_simple as plot_simple
 import numpy as np
 
 # import osqp
@@ -318,17 +318,6 @@ class Problem_DC_WSS:
         return y
 
         
-        
-        #y = parser_td_to_tt(y) if args['vector_format'] == 'td-td' else y
-        #y = y[:,:3]
-        
-        #y_np = y
-        
-        #if numpy:
-        #    y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y
-        
-        return y
-
     def g_x_Original(self, y, args, numpy=False ):
         
         
@@ -353,7 +342,6 @@ class Problem_DC_WSS:
 
     def get_yvars(self, y, args):
 
-
         #print('y antes parser ', y[0])
         #print('- - - - ')
         
@@ -372,13 +360,13 @@ class Problem_DC_WSS:
         g_tlog = self.g_TempLog_Autograd(y)
         g_x = self.g_x_Autograd(y_parsed, args)
 
-        return g_tl, g_tlog, g_x
+        return g_tl, g_x, g_tlog
 
 
     # ineq_dist
     def ineq_resid(self, x, y, args):
 
-        gt, g_tlog, g_x = self.get_yvars(y, args)
+        gt,  g_x, g_tlog = self.get_yvars(y, args)
 
    
         gt_grater = gt - self.hmax
@@ -473,7 +461,7 @@ class Problem_DC_WSS:
         jac_pos = jac
         jac_inv = -jac.clone()
         
-        all_jac_gT = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
+        result = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
 
         #print('all_jac_gT ', all_jac_gT[0].shape)
         #print('jac_gT_pos_neg ', all_jac_gT[0])
@@ -483,7 +471,7 @@ class Problem_DC_WSS:
         #print('jac GT requires ', y.requires_grad)
         #print('###')
 
-        return all_jac_gT # [batch, 20, 10]
+        return result # [batch, 20, 10]
 
 
 
@@ -492,23 +480,18 @@ class Problem_DC_WSS:
         
         jac_templog_list = opt_func.jac_TempLog_PyTorch(y, self.d)
             
-        jac_templog_list_ = opt_func.jac_TempLog(y, self.d)
         
         return jac_templog_list
 
 
     def jac_TempLog_Autograd(self, y):
+            
+        result = autograd_pt.JacTempLogAutograd.apply(y, self.d, opt_func)
         
-        jac_templog_list = autograd_pt.JacTempLogAutograd.apply(y, self.d, opt_func)
-        
-        return jac_templog_list
+        return result
 
-
-
-    
 
     def jac_TempLog_Original(self, y):
-        
         
 
         jac_templog_list = opt_func.jac_TempLog(y, self.d)
@@ -539,20 +522,14 @@ class Problem_DC_WSS:
                 
         return torch.cat([J_pos, J_neg], dim=1) # [batch, 20, 10]
     
-    def jac_x_Autograd(self, y: torch.Tensor, args) -> torch.Tensor:
-        """
-        Para cada amostra y[b] (shape [D]), calcula a Jacobiana de g_x_Original:
-        J[b]_{c,d} = d/d y[b,d] ( g_x_Original(y[b])_c ).
-        Retorna um tensor [B, 2*C, D], concatenando J e -J.
-        """
-        # 1) Garantir que y participe do grafo
+    def jac_x_Autograd(self, y, args):
+
+        
         y = y.clone().requires_grad_(True)     # [B, D]
         B, D = y.shape
 
-        # 2) cria um “wrapper” que pega y[b] e retorna g_x_Original → [C]
-        def g_vec(y_i: torch.Tensor) -> torch.Tensor:
-            # y_i: [D]
-            # g_x_Original espera [1, D] → retorna [1, C]
+        def g_vec(y_i):
+
             out = self.g_x_Original(y_i.unsqueeze(0), args)
             return out.squeeze(0)              # [C]
 
@@ -563,33 +540,27 @@ class Problem_DC_WSS:
             Jb = jacobian(
                 g_vec,
                 y[b],
-                create_graph=True,  # se quiser derivar em cima desta Jacobiana
-                strict=False        # permite que partes constantes não disparem erro
+                create_graph=True,  
+                strict=False       
             )
             jac_list.append(Jb)
 
-        # [B, C, D]
         J_pos = torch.stack(jac_list, dim=0)
-        # [B, C, D]
         J_neg = -J_pos
-        # concatena em [B, 2*C, D]
-        return torch.cat([J_pos, J_neg], dim=1) # [B, 2*C, D]
+        
+        result = torch.cat([J_pos, J_neg], dim=1) 
+        
+        return result
     
     
     def jac_x_PyTorch(self, y, args):
-        
-        #y = y[:,:3]
-        
+
         eps_aux = [opt_func.eps_definition_F3_PyTorch(i, self.d) for i in y]
 
-        #y_np = y.detach().numpy() if isinstance(y, torch.Tensor) else y    
-        #eps_aux = torch.stack(eps_aux, dim=0)
-        #eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
         
         J_list = [finite_diff_jac(self.g_x_PyTorch, y[i], eps_aux[i], *(1,args))
             for i in range(len(y))
         ]
-        #jac_x_list = torch.tensor([approx_fprime(y_np[i], self.g_x, eps_aux[i], *(1, args)) for i in range(len(y_np))])        
         
         J_pos = torch.stack(J_list, dim=0)
         J_neg = -J_pos
@@ -609,8 +580,6 @@ class Problem_DC_WSS:
 
         #jac_TempLog = self.jac_TempLog_Original(y)  # Output de jac_TempLog, forma: [batch, 5]
         # jac_TempLog = jac_TempLog.unsqueeze(2)
-
-
 
         #jac_x = self.jac_x_Original(y_parsed, args)  # [batch, 5]
 
@@ -635,6 +604,8 @@ class Problem_DC_WSS:
         # [samples x 25]
         ineq_dist = self.ineq_dist(x, y, args)
         ineq_jac = self.ineq_jac(y, args)  # [batch x n_constraints x n_vars]
+                         
+        plot_simple.plot_simple(y[0].cpu().detach().numpy(), 0, args)
                                 
         return ineq_jac.transpose(1,2).bmm(ineq_dist.unsqueeze(-1)).squeeze(-1)
 

@@ -98,13 +98,13 @@ def main():
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
-    parser.add_argument('--dc', type=int, default=3,
+    parser.add_argument('--dc', type=int, default=2,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=50)
+    parser.add_argument('--qtySamples', type=int, default=10)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=100,
+    parser.add_argument('--epochs', type=int, default=1,
         help='number of neural network epochs')
-    parser.add_argument('--vector_format', type=str, default='td-td',
+    parser.add_argument('--vector_format', type=str, default='tt-dd',
         help='format of the input data: td-td or tt-dd')
  
     args = parser.parse_args()
@@ -196,19 +196,6 @@ def train_net(data, args, save_dir):
     for i in range(nepochs):
         epoch_stats = {}
 
-        # Get valid loss
-        solver_net.eval()
-        for Xvalid in valid_loader:
-            Xvalid = Xvalid[0].to(DEVICE)
-            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
-            
-            
-            
-        solver_net.eval()
-        for Xtest in test_loader:
-            Xtest = Xtest[0].to(DEVICE)
-            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
-
             
         solver_net.train()
         for Xtrain in train_loader:                   
@@ -272,6 +259,19 @@ def train_net(data, args, save_dir):
                 #print(f"{name}: {param.grad}")
                 pass
                 
+
+        # Get valid loss
+        solver_net.eval()
+        for Xvalid in valid_loader:
+            Xvalid = Xvalid[0].to(DEVICE)
+            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
+            
+            
+            
+        solver_net.eval()
+        for Xtest in test_loader:
+            Xtest = Xtest[0].to(DEVICE)
+            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
                     
                     
         # Média da loss durante a época
@@ -281,8 +281,9 @@ def train_net(data, args, save_dir):
         
         if args['probType'] == 'dc_wss':
         
-            plot_simple(Ynew_train[0].detach().numpy(), i, args) # Plota os níveis do tanque 0 e as linhas de referência
+#            plot_simple(Ynew_train[0].detach().numpy(), i, args) # Plota os níveis do tanque 0 e as linhas de referência
  
+            plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True) # Plota os níveis do tanque 0 e as linhas de referência
       
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
@@ -294,6 +295,8 @@ def train_net(data, args, save_dir):
         )
 
         print('----')
+        print('')
+        print('')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
 
@@ -369,15 +372,15 @@ def train_net(data, args, save_dir):
         newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
         newModel.eval()    
 
-        if args['dc'] == 3:
+        if args['dc'] == 2:
+            input_data = torch.tensor([[1,8,12,3,3.0]])
+        elif args['dc'] == 3:
             input_data = torch.tensor([[1,8,12,3,3,3.0]])
-        
-        if args['dc'] == 4:
+        elif args['dc'] == 4:
             input_data = torch.tensor([[1,8,12,18,3,3,3.0,2.5]])
-
-        if args['dc'] == 5:
+        elif args['dc'] == 5:
             input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
-        
+            
         
         #if args['dc'] == 3:
             
@@ -540,6 +543,37 @@ def total_loss(data, X, Y, args, i):
 
 def grad_steps(data, X, Y, args):
 
+#    Y = torch.tensor(
+#        [
+#        [ 4.0593, 7.6167, 9.1142, 3.4316, 1.4875, 1.5599],        
+#        [ 3.1022,  8.1681, 13.3940,  3.7563,  3.3325,  2.3924],
+#        [11.0350, 13.5247, 16.2748,  1.8924,  2.7401,  1.1183],
+#        [ 6.8718, 11.1181, 18.3650,  1.6713,  2.6805,  1.4288],
+#        [16.3424, 18.1100, 22.5063,  1.7576,  4.3864,  1.2937],
+#        [10.0655, 12.9162, 15.5558,  2.7773,  2.6296,  2.1464],
+#        [ 9.5660, 16.9316, 21.3305,  3.7980,  4.3889,  2.4695],
+#        [ 3.5570,  5.6951, 19.2034,  2.1281,  1.9240,  2.9097]                
+#        
+#        ]
+#    ).requires_grad_(True)
+
+
+    Y = torch.tensor(
+        [
+        [ 4.0593, 7.6167, 3.4316,    1.5599],        
+        [ 3.1022,  8.1681,  3.7563,  2.3924],
+        [11.0350, 13.5247,  1.8924,  1.1183],
+        [ 6.8718, 11.1181,  1.6713,  1.4288],
+        [16.3424, 18.1100,  1.7576,  1.2937],
+        [10.0655, 12.9162,  2.7773,  2.1464],
+        [ 9.5660, 16.9316,  3.7980,  2.4695],
+        [ 3.5570,  5.6951,  2.1281,  2.9097]                
+        
+        ]
+    ).requires_grad_(True)
+                     
+                                          
+    y0_history = []
     
     take_grad_steps = args['useTrainCorr']
     
@@ -570,7 +604,6 @@ def grad_steps(data, X, Y, args):
                         
                         print('Y step: ', Y_step[0])
                         
-                        
                         print('###')   
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
@@ -578,19 +611,57 @@ def grad_steps(data, X, Y, args):
                                 
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
                     
-                    
-                    
+            y0_history.append(Y_step[0].detach().numpy())       
             new_Y_step = lr * Y_step + momentum * old_Y_step
-            
+
+            #if len(data.trainX) == len(Y):
+            #plot_simple(Y_new[0].cpu().detach().numpy(), i, args)
+
+            Y_new = Y_new + new_Y_step
+
+            if len(data.trainX) == len(Y):
+                plot_simple(Y_new[0].cpu().detach().numpy(), i, args)
 
 
-            Y_new = Y_new - new_Y_step
 
 
             old_Y_step = new_Y_step   
 
-            
+        if len(data.trainX) == len(Y):
+            now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            # cria pasta
+            os.makedirs("plots", exist_ok=True)
+            # filename conforme solicitado
+            filename = (
+                f"plot_yStep_dc{args['dc']}_"
+                f"{args.get('vector_format','')}_"
+                f"swef{args['softWeightEqFrac']}_"
+                f"samples{args['qtySamples']}_{now}.png"
+            )
 
+            # plota evolução de Y_step[0]
+            fig, ax = plt.subplots(figsize=(6, 4))
+            iters = list(range(1, len(y0_history) + 1))
+            ax.plot(iters,
+                    y0_history,
+                    marker='o',
+                    linestyle='-',
+                    label='Y_step[0]')
+            ax.set_xlabel('Iteração')
+            ax.set_ylabel('Y_step[0]')
+            ax.set_title(f'Evolução de Y_step[0] - , Y = {Y[0].detach().numpy()} - Lr - {args['lr']} - SoftWeightEqFrac: {args['softWeightEqFrac']} - Momentum - {args['corrMomentum']} ')
+            # força ticks inteiros no eixo-x
+            ax.set_xticks(iters)
+            ax.grid(True, linestyle='--', alpha=0.5)
+            ax.legend()
+            plt.tight_layout()
+
+            # salva o plot
+            plt.savefig(os.path.join("plots", filename),
+                        dpi=300,
+                        bbox_inches='tight')
+            plt.show()
+        
         return Y_new
        
     else:

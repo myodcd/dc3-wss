@@ -25,14 +25,17 @@ def plot_simple(results, epoch, args):
     ax.axhline(y=2, color="red", linestyle="--", linewidth=1, label="Nível 2")
     ax.axhline(y=8, color="green", linestyle="--", linewidth=1, label="Nível 8")
     ax.plot((timeInc["StartTime"] / 3600), tanks["tank0_h"][:-1])
-    ax.set_title(f"Epoch: {str(epoch)} ")
+    ax.set_title(f"Epoch: {str(epoch)} - Y Step: {results}")
     ax.set_xlabel("Tempo (h)")
     ax.set_ylabel("Nível do tanque")
+    ax.plot((timeInc['StartTime']/3600), pumps['pump0_s'], label='pump 0')
     ax.legend()
     ax.grid(True, linestyle="--", alpha=0.5)
 
+   
+
     os.makedirs("plots", exist_ok=True)
-    filename = f"plot_simple_epochNr{str(epoch)}_dc{args['dc']}_{args.get('vector_format','')}_{now}.png"
+    filename = f"plot_simple_epochNr{str(epoch)}_dc{args['dc']}_{args.get('vector_format','')}_sw{args['softWeight']}_sw{args['softWeight']}_{now}.png"
     plt.savefig(os.path.join("plots", filename), dpi=300, bbox_inches="tight")
 
     # mostra figura
