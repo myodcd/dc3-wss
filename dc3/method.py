@@ -92,13 +92,17 @@ def main():
         help='correction procedure tolerance')
     parser.add_argument('--corrLr', type=float,
         help='learning rate for correction procedure')
+    parser.add_argument('--corrLrStart', type=float,
+        help='starting learning rate for correction procedure')
+    parser.add_argument('--corrLrDuration', type=float,
+        help='duration of learning rate for correction procedure')
     parser.add_argument('--corrMomentum', type=float,
         help='momentum for correction procedure')
     parser.add_argument('--saveAllStats', type=str_to_bool,
         help='whether to save all stats, or just those from latest epoch')
     parser.add_argument('--resultsSaveFreq', type=int,
         help='how frequently (in terms of number of epochs) to save stats to file')
-    parser.add_argument('--dc', type=int, default=2,
+    parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
     parser.add_argument('--qtySamples', type=int, default=10)
     parser.add_argument('--fileName', type=str, default=None)   
@@ -106,7 +110,11 @@ def main():
         help='number of neural network epochs')
     parser.add_argument('--vector_format', type=str, default='tt-dd',
         help='format of the input data: td-td or tt-dd')
- 
+    parser.add_argument('--softWeightEqFracStart', type=float,
+        help='starting value of softWeightEqFrac')
+    parser.add_argument('--softWeightEqFracDuration', type=float, 
+        help='duration of softWeightEqFrac')
+     
     args = parser.parse_args()
     args = vars(args) # change to dictionary
         
@@ -166,6 +174,12 @@ def main():
 
 def train_net(data, args, save_dir):
     
+    
+    time_trainning_start = time.time()
+        
+    # UTILIZADO PARA USAR UM Y FIXO
+    y_fixed_values = False
+    
     solver_step = args['lr']
     nepochs = args['epochs']
     batch_size = args['batchSize']
@@ -210,8 +224,30 @@ def train_net(data, args, save_dir):
             
             #print('Yhat_train ', Yhat_train[0] )
             #print('- - - - ')
+
+            # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
+            if y_fixed_values:
+                
+
+                Yhat_train = torch.tensor(
+                    [
+                    [ 2.5, 9.1142, 13, 2.5, 2, 5],        
+                    [ 3.1022,  8.1681, 13.3940,  3.7563,  3.3325,  2.3924],
+                    [11.0350, 13.5247, 16.2748,  1.8924,  2.7401,  1.1183],
+                    [ 6.8718, 11.1181, 18.3650,  1.6713,  2.6805,  1.4288],
+                    [16.3424, 18.1100, 22.5063,  1.7576,  4.3864,  1.2937],
+                    [10.0655, 12.9162, 15.5558,  2.7773,  2.6296,  2.1464],
+                    [ 9.5660, 16.9316, 21.3305,  3.7980,  4.3889,  2.4695],
+                    [ 3.5570,  5.6951, 19.2034,  2.1281,  1.9240,  2.9097]                
+                    
+                    ]
+                ).requires_grad_(True)  
+                
+                y_fixed_values = False          
+
             
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
+            
             
                        
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
@@ -256,8 +292,8 @@ def train_net(data, args, save_dir):
             for name, param in solver_net.named_parameters():
                 
                 ######################################
-                #print(f"{name}: {param.grad}")
-                pass
+                print(f"{name}: {param.grad}")
+                #pass
                 
 
         # Get valid loss
@@ -281,9 +317,7 @@ def train_net(data, args, save_dir):
         
         if args['probType'] == 'dc_wss':
         
-#            plot_simple(Ynew_train[0].detach().numpy(), i, args) # Plota os níveis do tanque 0 e as linhas de referência
- 
-            plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True) # Plota os níveis do tanque 0 e as linhas de referência
+            plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True, show=False)
       
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
@@ -293,7 +327,7 @@ def train_net(data, args, save_dir):
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
             )
         )
-
+        print('Y new [0]: ', Ynew_train[0].cpu().detach().numpy())
         print('----')
         print('')
         print('')
@@ -326,7 +360,7 @@ def train_net(data, args, save_dir):
     plt.legend()
     plt.grid(True)
     plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{args['vector_format']}_{now}.png'))
-    plt.show() 
+    #plt.show() 
 
 
 
@@ -359,6 +393,8 @@ def train_net(data, args, save_dir):
     print('----')    
     print('Training finished')   
 
+
+    print('Elapsed time: ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_trainning_start)))
 
     if args['probType'] == 'dc_wss':
 
@@ -543,42 +579,16 @@ def total_loss(data, X, Y, args, i):
 
 def grad_steps(data, X, Y, args):
 
-#    Y = torch.tensor(
-#        [
-#        [ 4.0593, 7.6167, 9.1142, 3.4316, 1.4875, 1.5599],        
-#        [ 3.1022,  8.1681, 13.3940,  3.7563,  3.3325,  2.3924],
-#        [11.0350, 13.5247, 16.2748,  1.8924,  2.7401,  1.1183],
-#        [ 6.8718, 11.1181, 18.3650,  1.6713,  2.6805,  1.4288],
-#        [16.3424, 18.1100, 22.5063,  1.7576,  4.3864,  1.2937],
-#        [10.0655, 12.9162, 15.5558,  2.7773,  2.6296,  2.1464],
-#        [ 9.5660, 16.9316, 21.3305,  3.7980,  4.3889,  2.4695],
-#        [ 3.5570,  5.6951, 19.2034,  2.1281,  1.9240,  2.9097]                
-#        
-#        ]
-#    ).requires_grad_(True)
-
-
-    Y = torch.tensor(
-        [
-        [ 4.0593, 7.6167, 3.4316,    1.5599],        
-        [ 3.1022,  8.1681,  3.7563,  2.3924],
-        [11.0350, 13.5247,  1.8924,  1.1183],
-        [ 6.8718, 11.1181,  1.6713,  1.4288],
-        [16.3424, 18.1100,  1.7576,  1.2937],
-        [10.0655, 12.9162,  2.7773,  2.1464],
-        [ 9.5660, 16.9316,  3.7980,  2.4695],
-        [ 3.5570,  5.6951,  2.1281,  2.9097]                
-        
-        ]
-    ).requires_grad_(True)
-                     
-                                          
-    y0_history = []
+                    
+    y_step_0_history = []
+    y_step_5_history = []
     
     take_grad_steps = args['useTrainCorr']
     
     if take_grad_steps:
         lr = args['corrLr']
+        lr_start = args['corrLrStart']
+        lr_duration = args['corrLrDuration']
         num_steps = args['corrTrainSteps']
         momentum = args['corrMomentum']
         partial_var = args['useCompl']
@@ -595,7 +605,17 @@ def grad_steps(data, X, Y, args):
             else:       
                 if args['probType'] == 'dc_wss':                                                             
                     ineq_step = data.ineq_grad(X, Y_new, args)   
-                    Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+                    
+                    
+                    mid_point = ineq_step.shape[1] // 2
+                    
+                    new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
+                    new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
+                    
+                    Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
+                    
+                    
+                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
                     
                     
                     if len(data.trainX) == len(Y):
@@ -610,57 +630,55 @@ def grad_steps(data, X, Y, args):
                     eq_step = data.eq_grad(X, Y_new)
                                 
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
+
+            
+            if i % 10 == 0 and len(data.trainX) == len(Y):
+                
+            
+                histories = [[] for _ in range(len(Y_step))]
+                for j in range(len(Y_step) // 2):
+                    histories[j].append(Y_step[j].detach().numpy())
                     
-            y0_history.append(Y_step[0].detach().numpy())       
+
+                     
+            #y0_history.append(Y_step[0].detach().numpy())       
+            
+            #new_Y_step_start = lr_start * Y_step[:len(Y.shape)/2] + momentum * old_Y_step
+            #new_Y_step_end = lr_start * Y_step[len(Y)/2:] + momentum * old_Y_step
+            
+                        
+            #mid_point = Y_step.shape[1] // 2
+
+            #new_Y_step_start = lr_start * Y_step[:, :mid_point]
+            #new_Y_step_end = lr_duration * Y_step[:, mid_point:]        
+            
+            #Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
+            
             new_Y_step = lr * Y_step + momentum * old_Y_step
+
+            
+
 
             #if len(data.trainX) == len(Y):
             #plot_simple(Y_new[0].cpu().detach().numpy(), i, args)
 
             Y_new = Y_new + new_Y_step
 
-            if len(data.trainX) == len(Y):
-                plot_simple(Y_new[0].cpu().detach().numpy(), i, args)
-
-
+            if i % 20 == 0 and len(data.trainX) == len(Y):
+                
+                
+                for j in range(len(Y_step)):
+                    
+                    plot_simple(Y_new[j].cpu().detach().numpy(), i, args, histories[j], n_sample=j)
+                
+                #plot_simple(Y_new[0].cpu().detach().numpy(), i, args, y_step_0_history, n_sample=0)
+                
 
 
             old_Y_step = new_Y_step   
-
-        if len(data.trainX) == len(Y):
-            now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            # cria pasta
-            os.makedirs("plots", exist_ok=True)
-            # filename conforme solicitado
-            filename = (
-                f"plot_yStep_dc{args['dc']}_"
-                f"{args.get('vector_format','')}_"
-                f"swef{args['softWeightEqFrac']}_"
-                f"samples{args['qtySamples']}_{now}.png"
-            )
-
-            # plota evolução de Y_step[0]
-            fig, ax = plt.subplots(figsize=(6, 4))
-            iters = list(range(1, len(y0_history) + 1))
-            ax.plot(iters,
-                    y0_history,
-                    marker='o',
-                    linestyle='-',
-                    label='Y_step[0]')
-            ax.set_xlabel('Iteração')
-            ax.set_ylabel('Y_step[0]')
-            ax.set_title(f'Evolução de Y_step[0] - , Y = {Y[0].detach().numpy()} - Lr - {args['lr']} - SoftWeightEqFrac: {args['softWeightEqFrac']} - Momentum - {args['corrMomentum']} ')
-            # força ticks inteiros no eixo-x
-            ax.set_xticks(iters)
-            ax.grid(True, linestyle='--', alpha=0.5)
-            ax.legend()
-            plt.tight_layout()
-
-            # salva o plot
-            plt.savefig(os.path.join("plots", filename),
-                        dpi=300,
-                        bbox_inches='tight')
-            plt.show()
+        
+        
+        
         
         return Y_new
        
@@ -674,6 +692,10 @@ def grad_steps_all(data, X, Y, args):
     take_grad_steps = args['useTestCorr']
     if take_grad_steps:
         lr = args['corrLr']
+        
+        lr_start = args['corrLrStart']
+        lr_duration = args['corrLrDuration']
+                
         eps_converge = args['corrEps']
         max_steps = args['corrTestMaxSteps']
         momentum = args['corrMomentum']
@@ -696,16 +718,39 @@ def grad_steps_all(data, X, Y, args):
                     
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new, args)
-                                                                                        
-                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
+
+
+                    
+                        mid_point = ineq_step.shape[1] // 2
+                        
+                        new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
+                        new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
+                        
+                        Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
+                        
+                                                                                                            
+#                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
                         
                     else:
                         
                         ineq_step = data.ineq_grad(X, Y_new, args)
                         eq_step = data.eq_grad(X, Y_new)
                         Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
-                                
+
+
+
+                #mid_point = Y_step.shape[1] // 2
+
+                #new_Y_step_start = lr_start * Y_step[:, :mid_point]
+                #new_Y_step_end = lr_duration * Y_step[:, mid_point:]        
+                
+                #Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
+                
                 new_Y_step = lr * Y_step + momentum * old_Y_step
+
+
+                                
+ #              new_Y_step = lr * Y_step + momentum * old_Y_step
                 Y_new = Y_new - new_Y_step
 
                 old_Y_step = new_Y_step

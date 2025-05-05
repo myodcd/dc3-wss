@@ -369,11 +369,11 @@ class Problem_DC_WSS:
         gt,  g_x, g_tlog = self.get_yvars(y, args)
 
    
-        gt_grater = gt - self.hmax
-        gt_minor = self.hmin - gt
+        gt_max = gt - self.hmax
+        gt_min = self.hmin - gt
         
-        g_x_grater = g_x - self.timemax
-        g_x_minor = self.timemin - g_x
+        g_x_max = g_x - self.timemax
+        g_x_min = self.timemin - g_x
 
         #print('shape ineq_dist ', torch.cat(
         #    [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
@@ -381,7 +381,7 @@ class Problem_DC_WSS:
         
 
         resids = torch.cat(
-            [gt_grater, gt_minor, g_x_grater, g_x_minor, g_tlog], dim=1
+            [gt_max, gt_min, g_x_max, g_x_min, g_tlog], dim=1
         )
         
         
@@ -605,7 +605,7 @@ class Problem_DC_WSS:
         ineq_dist = self.ineq_dist(x, y, args)
         ineq_jac = self.ineq_jac(y, args)  # [batch x n_constraints x n_vars]
                          
-        plot_simple.plot_simple(y[0].cpu().detach().numpy(), 0, args)
+        #plot_simple.plot_simple(y[0].cpu().detach().numpy(), 0, args)
                                 
         return ineq_jac.transpose(1,2).bmm(ineq_dist.unsqueeze(-1)).squeeze(-1)
 

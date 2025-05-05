@@ -11,7 +11,8 @@ now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 def plot_nivel_tanque_new(args,
                           example,
                           total_cost: float,
-                          save_plot: bool = False):
+                          save_plot: bool = False,
+                          show: bool = False):
     """
     Plots pump schedule, tank level, and tariff curve.
 
@@ -123,4 +124,8 @@ def plot_nivel_tanque_new(args,
             bbox_inches='tight'
         )
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+    

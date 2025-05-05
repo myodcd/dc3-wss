@@ -281,7 +281,19 @@ def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodu
     em.ENopenH() # abrir a simulação
     em.ENsetstatusreport(2)
     em.ENinitH(10) 
-       
+
+    idx=np.where(x<0)
+    
+    #print(idx)
+    
+    if(len(idx[0])!=0): 
+        x[idx[0]]=0.0
+        
+    idx=np.where(x>24)
+    
+    if(len(idx[0])!=0):
+        x[idx[0]]=24.0
+
     #Get pump, pipes e tanks indexes
     n_links=em.ENgetcount(em.EN_LINKCOUNT)
     n_nodes=em.ENgetcount(em.EN_NODECOUNT)
