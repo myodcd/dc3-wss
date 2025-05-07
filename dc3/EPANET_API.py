@@ -284,8 +284,6 @@ def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodu
 
     idx=np.where(x<0)
     
-    #print(idx)
-    
     if(len(idx[0])!=0): 
         x[idx[0]]=0.0
         

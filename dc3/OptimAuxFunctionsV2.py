@@ -26,128 +26,6 @@ def eps_definition_F2(x,d): #definição do eps para a 2a formulação (continuo
 
     return eps_aux
 
-import torch
-
-def eps_definition_F3_PyTorch(x: torch.Tensor, d) -> torch.Tensor:
-    """
-    Versão PyTorch de eps_definition_F3.
-    - x: Tensor 1-D (n_vars) ou 2-D (batch, n_vars)
-    - d: objeto com atributos:
-        .epsF_i, .epsF_d (floats)
-        .dif_DC (float)
-        .pumps_to_opt (lista)
-        .dc_pos (lista de índices)
-        .n_dc (lista de ints)
-        opcionalmente:
-        .eps_VSP (float),
-        .lim_max_VSP, .lim_min_VSP (tensors ou listas)
-    Retorna um tensor da mesma forma de x (1-D ou 2-D) com as perturbações eps.
-    """
-    def _single(x1d: torch.Tensor):
-        device, dtype = x1d.device, x1d.dtype
-        D = x1d.numel()
-        eps = torch.zeros_like(x1d)
-        sec_to_h = 1.0 / 3600.0
-
-        epsF_i, epsF_d = d.epsF_i, d.epsF_d
-        dif_DC = d.dif_DC
-
-        # 1) duty-cycles
-        for p in range(len(d.pumps_to_opt)):
-            start, end = d.dc_pos[p], d.dc_pos[p+1]
-            x_p = x1d[start:end]
-            n_dc = d.n_dc[p]
-            eps_aux = torch.zeros_like(x_p)
-
-            # a) perturbação nos tempos de start
-            for i in range(n_dc):
-                inicio = x_p[i]
-                dur    = x_p[i + n_dc]
-                next_t = x_p[i+1] if i < n_dc-1 else 24.0
-
-                forward = torch.clamp(inicio, min=1.0) * epsF_i
-                cond1 = (inicio + forward + dur) <= next_t
-                cond2 = (next_t - inicio - dur) >= (dif_DC - sec_to_h)
-
-                # valor prévio para regressiva
-                prev_end = (x_p[i-1] + x_p[i-1+n_dc]) if i>0 else 0.0
-                cond3 = (inicio - forward) >= prev_end
-
-                eps_i = torch.where(
-                    cond1,
-                    forward,
-                    torch.where(
-                        cond2,
-                        next_t - inicio - dur,
-                        torch.where(
-                            cond3,
-                            -forward,
-                            # fallback regressivo via gap ou forward
-                            torch.where(
-                                i>0,
-                                -(inicio - prev_end).clamp(min=0.0),
-                                forward
-                            )
-                        )
-                    )
-                )
-                eps_aux[i] = eps_i
-
-            # b) perturbação nas durações
-            for j in range(n_dc, 2*n_dc):
-                dur    = x_p[j]
-                inicio = x_p[j - n_dc]
-                next_t = x_p[j+1-n_dc] if j < 2*n_dc-1 else 24.0
-
-                forward = torch.clamp(dur, min=1.0) * epsF_d
-                cond1 = (dur + forward + inicio) <= next_t
-                cond2 = (next_t - inicio - dur) >= (dif_DC - sec_to_h)
-                cond3 = (dur - forward) >= 0.0
-
-                eps_d = torch.where(
-                    cond1,
-                    forward,
-                    torch.where(
-                        cond2,
-                        next_t - inicio - dur,
-                        torch.where(
-                            cond3,
-                            -forward,
-                            torch.where(dur >= (dif_DC - sec_to_h), -dur, forward)
-                        )
-                    )
-                )
-                eps_aux[j] = eps_d
-
-            eps[start:end] = eps_aux
-
-        # 2) limitar a ±5 minutos (5/60 h)
-        five_mins = 5.0 / 60.0
-        eps = torch.clamp(eps, min=-five_mins, max=five_mins)
-
-        # 3) VSP (se houver variáveis além de d.dc_pos[-1])
-        if x1d.numel() > d.dc_pos[-1]:
-            base = d.dc_pos[-1]
-            for idx in range(base, x1d.numel()):
-                v = x1d[idx]
-                # calculamos índice de VSP
-                k = idx - base
-                val = torch.clamp(v, min=1.0) * d.eps_VSP
-                max_ok = v + val <= d.lim_max_VSP[k]
-                eps_v = torch.where(max_ok, val, -val)
-                eps[idx] = eps_v
-
-        return eps
-
-    # suporte a batch
-    if x.dim() == 1:
-        return _single(x)
-    elif x.dim() == 2:
-        return torch.stack([_single(row) for row in x], dim=0)
-    else:
-        raise ValueError(f"entrada x deve ter 1 ou 2 dims, mas recebeu {x.dim()}")
-
-
 
 def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VSPs
     # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
@@ -165,12 +43,13 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
             next = x_p[i+1] if i < n_dc - 1 else 24
             flagR_i = 0
 
-            if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
+            if(inicio + (max(inicio,1)*epsF_i) + dur < next): # progressivas standard com eps = max(inicio,1)*epsF_i
                 eps_aux[i]=max(inicio,1)*epsF_i
             else: 
                 dif=next-inicio-dur
-                if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-                    eps_aux[i]=dif
+                #if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
+                if(dif >= d.dif_DC):
+                    eps_aux[i]=dif - (1/(60*60)) # Para não juntar
                 else: # regressivas
                     pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
 
@@ -183,7 +62,8 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
 
             if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
                 dif=(inicio-pre) 
-                if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
+                if(dif>= d.dif_DC): # regressiva com eps igual a diferente entre dc's
+                #if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
                     eps_aux[i]=-dif
                 else:
                     eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
@@ -194,12 +74,13 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
             inicio, dur = x_p[j - n_dc], x_p[j]
             next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
             flagR_d = 0
-            if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
+            if(dur + (max(dur,1)*epsF_d) + inicio < next): # progressiva standard com eps=max(dur,1)*epsF_d
                 eps_aux[j]=max(dur,1)*epsF_d
             else:
                 dif=next - (inicio+dur)
-                if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
-                    eps_aux[j]=dif 
+                if(dif>= d.dif_DC): # progressivas com a diferença entre DCs
+                #if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
+                    eps_aux[j]=dif - (1/(60*60)) # Para não juntar
                 else: # regressivas
                     if(dur - max(dur,1)*epsF_d >= 0):                
                         eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
@@ -226,175 +107,6 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
 
     return eps  
 
-jit(nopython=True)
-def eps_definition_F3_Original(x,d): #definição do eps para a 3a formulação (DC) + VSPs
-    # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
-    epsF_i=d.epsF_i # % de perturbação para inicio
-    epsF_d=d.epsF_d # % de perturbação para duração
-    #eps = np.zeros(len(x))
-    eps = torch.zeros(len(x)) 
-    for p in range(0,d.n_pumps):
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
-        n_dc=d.n_dc[p]
-        #eps_aux=np.zeros(len(x_p))
-        eps_aux=torch.zeros(len(x_p))
-        ### definição de perturbação para inicio de DC ###
-        for i in range(0,n_dc): 
-            inicio, dur = x_p[i], x_p[i + n_dc]
-            next = x_p[i+1] if i < n_dc - 1 else 24
-            flagR_i = 0
-
-            if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
-                eps_aux[i]=max(inicio,1)*epsF_i
-            else: 
-                dif=next-inicio-dur
-                if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-                    eps_aux[i]=dif
-                else: # regressivas
-                    pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
-
-                    if(inicio - (max(inicio,1)*epsF_i) >= pre):                
-                        eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
-                    else:
-                        flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
-                        print('starting time: standard progressive and regressive not applied')
-                        print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
-
-            if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
-                dif=(inicio-pre) 
-                if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
-                    eps_aux[i]=-dif
-                else:
-                    eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping for starting time') 
-
-        ### definição de perturbação para duração de DC ###
-        for j in range(n_dc,len(x_p)): 
-            inicio, dur = x_p[j - n_dc], x_p[j]
-            next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
-            flagR_d = 0
-            if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
-                eps_aux[j]=max(dur,1)*epsF_d
-            else:
-                dif=next - (inicio+dur)
-                if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
-                    eps_aux[j]=dif 
-                else: # regressivas
-                    if(dur - max(dur,1)*epsF_d >= 0):                
-                        eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
-                    else:
-                        flagR_d=1 # Não se pode aplicar a regressiva standard 
-                        print('duration: standard progressive and regressive not applied')                        
-                        print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
-
-            if(flagR_d==1): # dif. regressiva para duração 
-                # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
-                if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
-                    eps_aux[j]= -dur 
-                else:
-                    eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping -> duration is to low to regressive')
-        
-        eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-    
-    #retificar perturbações maiores que 5 minutos
-    idx1=np.where(eps > 5/60)
-    if(len(idx1[0])!=0): eps[idx1[0]]=5/60
-    idx2=np.where(eps < - 5/60)
-    if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
-
-    return eps 
-
-#jit(nopython=True)
-def eps_definition_F3_old(x,d): #definição do eps para a 3a formulação (DC) + VSPs
-    # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
-    epsF_i=d.epsF_i # % de perturbação para inicio
-    epsF_d=d.epsF_d # % de perturbação para duração
-    #eps = np.zeros(len(x))
-    eps = torch.zeros(len(x)) 
-    for p in range(0,d.n_pumps):
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]] # operação por bomba
-        n_dc=d.n_dc[p]
-        #eps_aux=np.zeros(len(x_p))
-        eps_aux=torch.zeros(len(x_p))
-        ### definição de perturbação para inicio de DC ###
-        for i in range(0,n_dc): 
-            inicio, dur = x_p[i], x_p[i + n_dc]
-            next = x_p[i+1] if i < n_dc - 1 else 24
-            flagR_i = 0
-
-            if(inicio + (max(inicio,1)*epsF_i) + dur <= next): # progressivas standard com eps = max(inicio,1)*epsF_i
-                eps_aux[i]=max(inicio,1)*epsF_i
-            else: 
-                dif=next-inicio-dur
-                if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-                    eps_aux[i]=dif
-                else: # regressivas
-                    pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
-
-                    if(inicio - (max(inicio,1)*epsF_i) >= pre):                
-                        eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
-                    else:
-                        flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
-                        print('starting time: standard progressive and regressive not applied')
-                        print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
-
-            if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
-                dif=(inicio-pre) 
-                if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
-                    eps_aux[i]=-dif
-                else:
-                    eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping for starting time') 
-
-        ### definição de perturbação para duração de DC ###
-        for j in range(n_dc,len(x_p)): 
-            inicio, dur = x_p[j - n_dc], x_p[j]
-            next = x_p[j + 1 - n_dc] if j < len(x_p) - 1 else 24
-            flagR_d = 0
-            if(dur + (max(dur,1)*epsF_d) + inicio <= next): # progressiva standard com eps=max(dur,1)*epsF_d
-                eps_aux[j]=max(dur,1)*epsF_d
-            else:
-                dif=next - (inicio+dur)
-                if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
-                    eps_aux[j]=dif 
-                else: # regressivas
-                    if(dur - max(dur,1)*epsF_d >= 0):                
-                        eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
-                    else:
-                        flagR_d=1 # Não se pode aplicar a regressiva standard 
-                        print('duration: standard progressive and regressive not applied')                        
-                        print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
-
-            if(flagR_d==1): # dif. regressiva para duração 
-                # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
-                if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
-                    eps_aux[j]= -dur 
-                else:
-                    eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping -> duration is to low to regressive')
-        
-        eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
-    
-    #retificar perturbações maiores que 5 minutos
-    idx1=np.where(eps > 5/60)
-    if(len(idx1[0])!=0): eps[idx1[0]]=5/60
-    idx2=np.where(eps < - 5/60)
-    if(len(idx2[0])!=0): eps[idx2[0]]=-5/60
-
-    if(len(x)>d.dc_pos[d.n_pumps]): #caso hajam VSPS
-
-        for v in range(d.dc_pos[d.n_pumps],len(x)):
-            val = max(x[v], 1) * d.eps_VSP
-            if(x[v] + val < d.lim_VSP[1]): #forward
-                eps[v] = val
-            else: #regressive
-                eps[v] = - val
-                if(x[v] - val < d.lim_VSP[0]):
-                    print('ERROR: VSP eps not respecting boundaries') 
-            if(val<0.0001):
-                print('WARNING: VPS eps is too low!') 
-    return eps  
 
 #jit(nopython=True)
 def TempLog(d): #bounds da restrição da logica temporal entre DCs
@@ -501,57 +213,6 @@ def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC +
                 else:                    
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
-
-### Niveis do Tanque ###
-#jit(nopython=True)
-def h_red3_acordeao_PyTorch(x: torch.Tensor, htank: torch.Tensor, timeInc: dict, d, n_points: int) -> torch.Tensor:
-    device, dtype = x.device, x.dtype
-    # build event times
-    N = x.numel() // 2
-    slots = N*(2 + n_points) + 1
-    times = torch.zeros(slots, device=device)
-    idx = 0
-    total_h = d.flag_t_inicio*3600 if d.flag_t_inicio else 86400
-    for i in range(N):
-        xi = x[i].clamp(0,24).item()
-        dur = x[i+N].item()
-        if d.flag_t_inicio:
-            st = (xi + d.flag_t_inicio)*3600 % 86400
-            ed = ((xi+dur+d.flag_t_inicio)*3600) % 86400
-        else:
-            st = xi*3600; ed = (xi+dur)*3600
-        times[idx] = round(st); idx += 1
-        delta = dur*3600/(n_points+1) if n_points else 0
-        for k in range(n_points):
-            iv = (st + (k+1)*delta) % 86400
-            times[idx] = round(iv); idx += 1
-        times[idx] = round(ed); idx += 1
-    times[-1] = total_h
-    # sample levels
-    out = torch.full((slots,), 999.0, dtype=dtype, device=device)
-    start_ts = torch.tensor(timeInc['StartTime'], device=device)
-    end_ts   = torch.tensor(timeInc['EndTime'],   device=device)
-    stride = 2 + n_points
-    for base in range(0, slots-1, stride):
-        mask = start_ts == times[base]
-        if mask.any(): out[base] = htank[mask.nonzero()[0]]
-        for k in range(1, n_points+1):
-            mask = start_ts == times[base+k]
-            if mask.any(): out[base+k] = htank[mask.nonzero()[0]]
-    for base in range(1+n_points, slots-1, stride):
-        mask = end_ts == times[base]
-        if mask.any(): out[base] = htank[mask.nonzero()[0]+1]
-    # final 24h
-    mask = end_ts == times[-1]
-    if mask.any(): out[-1] = htank[mask.nonzero()[0]+1]
-    # fill gaps
-    zeros = (out==999.0).nonzero().flatten()
-    for iz in zeros:
-        ts = times[iz]
-        mask = (start_ts<=ts)&(end_ts>=ts)
-        if mask.any(): out[iz] = htank[mask.nonzero()[0]+1]
-        else: out[iz] = htank[-1]
-    return out
 
 
 jit(nopython=True)
@@ -764,41 +425,7 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
                     h_tmin[idx_zero[i]]=h[aux[0]+1] 
                 else:
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
-    return h_tmin
-
-#jit(nopython=True)
-def h_tmin_PyTorch(d, htank: torch.Tensor, timeInc: dict, tmin: float) -> torch.Tensor:
-    device, dtype = htank.device, htank.dtype
-    # prepare time grid
-    step = int(tmin * 60)
-    if d.flag_t_inicio:
-        t0 = d.flag_t_inicio * 3600
-        seg2 = torch.arange(t0, 24*3600 + step, step, device=device)
-        seg1 = torch.arange(0, t0, step, device=device)
-        times = torch.cat([seg2, seg1])
-    else:
-        times = torch.arange(0, 24*3600, step, device=device)
-    # init output
-    h_out = torch.full_like(times, 999.0, dtype=dtype)
-    start_ts = torch.tensor(timeInc['StartTime'], device=device)
-    end_ts   = torch.tensor(timeInc['EndTime'],   device=device)
-    # direct matches
-    for idx, ts in enumerate(times):
-        mask = start_ts == ts
-        if mask.any():
-            h_out[idx] = htank[mask.nonzero(as_tuple=False)[0]]
-    # fill gaps
-    miss = (h_out == 999.0).nonzero(as_tuple=False).flatten()
-    for idx in miss:
-        ts = times[idx]
-        mask = (start_ts <= ts) & (end_ts >= ts)
-        if mask.any():
-            j = mask.nonzero(as_tuple=False)[0]
-            h_out[idx] = htank[j+1]
-        else:
-            # fallback to last
-            h_out[idx] = htank[-1]
-    return h_out
+    return h_
 
 #jit(nopython=True)
 def linear_interpolation(x_values, y_values, x_prime):
@@ -866,7 +493,7 @@ def plot_cons_pattern():
 ########### CONSTRAINTS #############
 #####################################
 
-def Cost_Original(x, d, log, flag):
+def Cost(x, d, log, flag):
     # Converta x em tensor caso ainda não esteja
 
     if flag == 1:
@@ -963,97 +590,6 @@ def linear_interpolation_torch(x_vals: torch.Tensor,
     t = (xq_clamped - x_lower) / denom
     return y_lower + t * (y_upper - y_lower)
 
-def Cost_PyTorch(x: torch.Tensor, d, log, flag) -> torch.Tensor:
-    """
-    Custo vetorizado em PyTorch, sem recorrer a floats/pandas no meio do cálculo.
-    x: tensor 1D com horários/durações (requires_grad=True)
-    d: objeto com parâmetros do problema
-    log: cachê de soluções
-    """
-    # 1) simulação EPANET (supondo que retorna numpy arrays)
-    d, pumps_np, tanks, pipes, valves, timeInc_np, controls = EPA_API.EpanetSimulation(x, d, 0)
-
-    # 2) converte tudo que precisa para tensores no mesmo device/dtype de x
-    device, dtype = x.device, x.dtype
-    # durações de operação em horas → tensor [T]
-    durations_h = torch.tensor(timeInc_np["duration"], dtype=dtype, device=device) / 3600.0
-    # para cada pump p, tarifap = durations_h * pump_tar, etc.
-    # vamos montar 2D: [n_pumps, T]
-    # supondo que todas as arrays têm mesmo comprimento T:
-    T = durations_h.numel()
-    n_pumps = d.n_pumps
-
-    # extrai vetores de cada pump e empilha num tensor [n_pumps, T]
-    tariffs = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_tar"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-    q_vals = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_q"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-    h_vals = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_h"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-    sp = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_sp"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-    s_on = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_s"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-    p_nominal = torch.stack([
-        torch.tensor(pumps_np[f"pump{p}_p"], dtype=dtype, device=device)
-        for p in range(n_pumps)
-    ], dim=0)
-
-    # 3) calcule tarifa horária [n_pumps, T]
-    tariff_inc = (durations_h.unsqueeze(0) * tariffs)  # broadcast T→ [1,T]
-
-    # 4) calcule eficiência (vetorizado) — você precisa reimplementar 
-    #    linear_interpolation como função que aceita vetores Torch.
-    eff = torch.stack([
-        linear_interpolation_torch(
-            torch.tensor(d.eff_flow_points[p], dtype=dtype, device=device),
-            torch.tensor(d.eff_points[p],      dtype=dtype, device=device),
-            q_vals[p]
-        )
-        for p in range(n_pumps)
-    ], dim=0)  # → [n_pumps, T]
-
-    # 5) monte máscara de “caso especial”
-    mask = (sp != 0) & (sp != 1) & (s_on == 1)  # [n_pumps, T]
-
-    # 6) calcule n2 e up vetorizados
-    n2 = 1 - (1 - eff) * (sp ** (-0.1))
-    # escolha fórmula de up dependendo de d.units_flow
-    if d.units_flow == 1:
-        up = (h_vals.abs() * q_vals * 9.81) / 1000.0
-    else:
-        up = (h_vals.abs() * (q_vals / 3600.0) * 9.81)
-
-    # 7) custo por instante e pump
-    cost_special = tariff_inc * up / n2
-    cost_default = tariff_inc * p_nominal
-
-    cost_matrix = torch.where(mask, cost_special, cost_default)  # [n_pumps, T]
-
-    # 8) some sobre o tempo e depois sobre bombas
-    cost_pump = cost_matrix.sum(dim=1)    # [n_pumps]
-    CostT = cost_pump.sum()               # escalar
-
-    # 9) armazene no log se quiser
-    if flag == 3 and getattr(log, 'solutions', None) is not None:
-        # mantém a lógica de cache, mas logando tensor + coste
-        x_round = round_x_Original(x.detach().cpu().numpy(), d)
-        if x_round not in log.solutions:
-            log.solutions.append(x_round)
-            log.cost_solutions.append(CostT)
-            log.n_cost += 1
-
-    return CostT
 
 #jit(nopython=True)
 def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
@@ -1087,104 +623,6 @@ def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
         g1=np.concatenate((g1,[g_aux[-1]])) #24h
     return g1
     
-
-def level_plot(x, d):
-    
-    d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-
-    return tanks, timeInc, pumps     
-
-def gT_PyTorch(x, d, tank_id, log):
-    device, dtype = x.device, x.dtype
-    # run sim once, convert necessary arrays
-    d, _, tanks_np, _, _, timeInc_np, _ = EPA_API.EpanetSimulation(x, d, 0)
-    htank = torch.as_tensor(tanks_np[f'tank{tank_id}_h'], device=device, dtype=dtype)
-    timeInc = {'StartTime': list(timeInc_np['StartTime']), 'EndTime': list(timeInc_np['EndTime'])}
-    parts = []
-    seg = len(x) // len(d.pumps_to_opt)
-    for p in range(len(d.pumps_to_opt)):
-        x_p = x[p*seg:(p+1)*seg] if p<len(d.pumps_to_opt)-1 else x[p*seg:]
-        if d.ftype==2:
-            g_aux = h_red2(x_p, htank, timeInc, d.flag_t_inicio, d.n_dc[p])
-        else:
-            g_aux = h_red3_acordeao_PyTorch(x_p, htank, timeInc, d, d.n_points_tank[tank_id])
-        parts.append(g_aux[:-1] if p < len(d.pumps_to_opt)-1 else g_aux)
-    return torch.cat(parts, dim=0)
-
-
-
-def gT_Original(x,d,id,log): #Lower and Higher Water Level 
-    # print('g'+id)
-    
-    if(d.ftype==2):
-        d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-        # g1_p1=AF.h_red2(x[0:7],tanks['tank0_h'],timeInc) # h no inicio e fim de cada arranque + 24h  - Pump 1A
-        # g1_p2=AF.h_red2(x[7:14],tanks['tank0_h'],timeInc)  # h no inicio e fim de cada arranque + 24h  - Pump 2B
-        # g1_p3=AF.h_red2(x[14:21],tanks['tank0_h'],timeInc)  # h no inicio e fim de cada arranque + 24h  - Pump 3B
-        # g1=np.concatenate((g1_p1[0:len(g1_p1)-1],g1_p2[0:len(g1_p2)-1],g1_p3))
-        g1=[]
-        for i in range(0,len(x)-int(len(x)/len(d.pumps_to_opt)),int(len(x)/len(d.pumps_to_opt))):
-            ini=i
-            fin=i+int(len(x)/len(d.pumps_to_opt))
-            g1_aux=h_red2(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc)
-            g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque
-
-        ini=(len(d.pumps_to_opt)-1)*int(len(x)/len(d.pumps_to_opt))
-        fin=len(x)
-        g1_aux= h_red2(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc) # h no inicio e fim de cada arranque + 24h       
-        g1=np.concatenate((g1,g1_aux)) 
-            
-    elif(d.ftype==3):
-            # flag_sol=0
-            # log.solutions=[]
-            # if(len(log.solutions)!=0):
-            #     roundx=round_x(x,d)
-            #     # procurar solução
-            #     try:
-            #         idx=log.solutions.index(roundx)
-            #     except ValueError:
-            #         idx=-1
-    
-            #     if(idx!=-1):
-            #         flag_sol=1
-            #         tanks=log.tanks[idx]
-            #         timeInc=log.timeInc[idx]
-            #         log.n_tank+=1
-            # else:
-            #     roundx=round_x(x,d)
-            
-            # if(flag_sol==0):
-                # C=Cost(x,d,log,0)        
-                # idx=log.solutions.index(roundx)
-                # tanks=log.tanks[idx]
-                # timeInc=log.timeInc[idx]
-            d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
-            g1=[]
-            for i in range(0,len(d.dc_pos)-1):
-                ini=d.dc_pos[i]
-                fin=d.dc_pos[i+1]
-                g1_aux=h_red3_acordeao(x[ini:fin],tanks['tank'+str(id)+'_h'],timeInc,d,d.n_points_tank[id])
-                g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque
-    
-            g1=np.concatenate((g1, [g1_aux[-1]])) #Acrescentar as 24h
-            # print(id)
-            # print(x)
-            # print(g1)
-
-    elif(d.ftype==1):
-        g1=h_tmin(d,tanks['tank'+str(id)+'_h'],timeInc)
-    
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as x_g:
-    #     np.savetxt(x_g,x*np.ones((1,len(x))),delimiter=";") 
-
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as c:
-    #     np.savetxt(c,np.ones((1,1))*g1,delimiter=";") 
-    
-    # print('Water --> x_T'+id)
-    # print(x)
-    # print(g1)
-    return g1
-
     
 def gT(x,d,id,log): #Lower and Higher Water Level 
     # print('g'+id)
@@ -1365,47 +803,6 @@ def g_TempLog(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
     # print(g5)
     return g5
 
-
-def g_TempLog_Original(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
-    # print('Temporal Logic Const. --> x(start-stop)')
-    g5=[]
-    for p in range(0,len(d.pumps_to_opt)): #d.n_pumps
-        g5_F33=np.zeros(d.n_dc[p])
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-        
-        if(d.n_dc[p]!=1):
-            for i in range(0,d.n_dc[p]-1):
-                g5_F33[i]=x_p[i+1]-(x_p[i]+x_p[i+d.n_dc[p]])
-            g5_F33[i+1]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-        else:
-            g5_F33[0]=24-(x_p[d.n_dc[p]-1] + x_p[int(2*d.n_dc[p]-1)]) # garantir que a ultima duração não é superior a T
-                  
-        g5=np.concatenate((g5,g5_F33))
-
-    # print(x)
-    # print(g5)
-    return g5
-
-
-
-#@#jit(nopython=True)
-def g_TempLog_PyTorch(x, d):  # tstart(n+1) > tstop(n) (várias bombas)
-    g5 = torch.tensor([])
-    for p in range(0, d.n_pumps):
-        g5_F33 = torch.zeros(d.n_dc[p])
-        x_p = x[d.dc_pos[p]:d.dc_pos[p + 1]]
-
-        if d.n_dc[p] != 1:
-            for i in range(0, d.n_dc[p] - 1):
-                g5_F33[i] = x_p[i + 1] - (x_p[i] + x_p[i + d.n_dc[p]])
-            g5_F33[i + 1] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)])
-        else:
-            g5_F33[0] = 24 - (x_p[d.n_dc[p] - 1] + x_p[int(2 * d.n_dc[p] - 1)])
-
-        g5 = torch.cat((g5, g5_F33))
-
-    return torch.tensor(g5, requires_grad=True)
-
 #jit(nopython=True)
 def gT_cont(x,d,id,log): # restrição de continuidade do nivel dos tanques
     flag_sol=0
@@ -1458,87 +855,6 @@ def gT_cont_perc(x,d,id,perc,log): # restrição de continuidade do nivel dos ta
     g=g_lim-g_end
     return g
 
-def jac_TempLog_PyTorch(x, d):
-    # Número de variáveis por bomba (start + duration)
-    n_var_pump = torch.mul(torch.tensor(d.n_dc), 2)
-
-    jac = None
-
-    for p in range(d.n_pumps):
-        matriz1 = torch.zeros((d.n_dc[p], d.n_dc[p]), dtype=torch.float)
-        matriz2 = torch.zeros((d.n_dc[p], d.n_dc[p]), dtype=torch.float)
-
-        for i in range(d.n_dc[p]):
-            matriz1[i][i] = -1.0
-            matriz2[i][i] = -1.0
-            if i != d.n_dc[p] - 1:
-                matriz1[i][i + 1] = 1.0
-
-        jac_aux = torch.cat((matriz1, matriz2), dim=1)
-
-        if d.n_pumps != 1:
-            if p == 0:
-                matriz_d = torch.zeros((d.n_dc[p], sum(n_var_pump[p + 1:])), dtype=torch.float)
-                jac = torch.cat((jac_aux, matriz_d), dim=1)
-
-            elif p == d.n_pumps - 1:
-                matriz_a = torch.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=torch.float)
-                jac1 = torch.cat((matriz_a, jac_aux), dim=1)
-                jac = torch.cat((jac, jac1), dim=0)
-
-            else:
-                matriz_a = torch.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=torch.float)
-                matriz_d = torch.zeros((d.n_dc[p], sum(n_var_pump[p + 1:])), dtype=torch.float)
-                jac1 = torch.cat((matriz_a, jac_aux, matriz_d), dim=1)
-                jac = torch.cat((jac, jac1), dim=0)
-        else:
-            jac = jac_aux
-
-    return torch.tensor(jac)
-
-
-
-def jac_TempLog_Original(x,d):
-    # V2 1
-    # eps_aux=AF.eps_definition_F3(x,d) 
-    # jac=approx_fprime(x, g5_F3, eps_aux)
-    
-    n_var_pump=np.multiply(d.n_dc,2) #numero de variaveis por bomba
-    for p in range(0,len(d.pumps_to_opt)):
-        matriz1 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-        matriz2 = np.zeros((d.n_dc[p], d.n_dc[p]), dtype=int)  
-        for i in range(0,d.n_dc[p]):
-            matriz1[i][i] = -1.  
-            matriz2[i][i] = -1.  
-            if(i!=d.n_dc[p]-1):
-                matriz1[i][i+1] = 1.  
-        jac_aux=np.concatenate((matriz1,matriz2), axis=1)
-        
-        if(len(d.pumps_to_opt)!=1):
-            if(p==0):
-                matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                jac=np.concatenate((jac_aux,matriz_d), axis=1)
-            
-            elif(p==len(d.pumps_to_opt)-1):
-                matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                jac1=np.concatenate((matriz_a,jac_aux), axis=1)
-                jac=np.concatenate((jac,jac1), axis=0)  
-
-            else:                            
-                matriz_a=np.zeros((d.n_dc[p], sum(n_var_pump[0:p])), dtype=int)
-                matriz_d=np.zeros((d.n_dc[p], sum(n_var_pump[p+1:len(n_var_pump)])), dtype=int)
-                jac1=np.concatenate((matriz_a,jac_aux,matriz_d), axis=1)
-                jac=np.concatenate((jac,jac1), axis=0)                               
-        else:
-            jac=jac_aux
-
-    #if(len(x)>d.dc_pos[len(d.pumps_to_opt)]): #VSP
-    #    jac_vsp=np.zeros((len(jac), sum(d.n_dc)), dtype=int)  
-    #    jac=np.concatenate((jac,jac_vsp),axis=1)
-    
-    # mod=np.linalg.norm(jac)
-    return jac
-
 
 def jac_TempLog(x,d):
     # V2 1
@@ -1579,28 +895,6 @@ def jac_TempLog(x,d):
     #    jac=np.concatenate((jac,jac_vsp),axis=1)
     
     # mod=np.linalg.norm(jac)
-    return jac
-
-
-def jac_gT_PyTorch(x: torch.Tensor, d, tank_id: int, log) -> torch.Tensor:
-    eps = eps_definition_F3_PyTorch(x, d) if d.ftype==3 else eps_definition_F2(x, d)
-    return utils.finite_diff_jac(gT_PyTorch, x, eps, d, tank_id, log)
-
-def jac_gT_Original(x,d,id,log):
-    if(d.ftype==3): #duty-cycles formulation
-        eps_aux=eps_definition_F3(x,d)     
-
-    elif(d.ftype==2): #continuous formulation
-        eps_aux=eps_definition_F2(x,d)  
-
-    #x = x.detach().numpy() if isinstance(x, torch.Tensor) else x
-    
-    #eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
-    
-
-    jac=approx_fprime(x, gT, eps_aux,*(d,id,log))
-    
-    
     return jac
 
 
@@ -1817,83 +1111,7 @@ def grad_Cost(x,d,log,flag):
 ######################################
 
 
-class OptimizationLog_PyTorch:
-    def __init__(self):
-        self.solutions = []        # lista de tensores inteiros
-        self.x = []                # lista de tensores float
-        self.cost_solutions = []   # lista de scalars (float ou tensor)
-        self.n_cost = 0
-        self.tanks = []            # lista de dicionários de tensores
-        self.pumps = []            # idem
-        self.timeInc = []          # idem
-        self.n_tank = 0
-
-    def __call__(self, x, timeInc, tanks, pumps, CostT, d):
-        # garante que x é tensor float na CPU, sem grad
-        if not torch.is_tensor(x):
-            x = torch.as_tensor(x, dtype=torch.float64)
-        x = x.detach().cpu()
-
-        # arredonda para segundos via torch
-        x_r = round_x_PyTorch(x, d)
-
-        # armazena
-        self.x.append(x)
-        self.solutions.append(x_r)
-        # custo: se for tensor, tira grad e envia pra CPU
-        if torch.is_tensor(CostT):
-            self.cost_solutions.append(CostT.detach().cpu().item())
-        else:
-            self.cost_solutions.append(float(CostT))
-
-        # converte cada campo de timeInc, tanks e pumps em tensor na CPU
-        def to_tensor_dict(dct):
-            out = {}
-            for k, v in dct.items():
-                if torch.is_tensor(v):
-                    out[k] = v.detach().cpu()
-                else:
-                    out[k] = torch.as_tensor(v)
-            return out
-
-        self.timeInc.append(to_tensor_dict(timeInc))
-        self.tanks.append(to_tensor_dict(tanks))
-        self.pumps.append(to_tensor_dict(pumps))
-        self.n_cost += 1
-
-
-class TanksOptimizationLog_PyTorch:
-    def __init__(self):
-        self.x_round = []   # lista de tensores long
-        self.x = []         # lista de tensores float
-        self.tanks = []     # lista de dicionários de tensores
-        self.timeInc = []   # idem
-        self.n_tank = 0
-
-    def __call__(self, x, tanks, timeInc, d):
-        if not torch.is_tensor(x):
-            x = torch.as_tensor(x, dtype=torch.float64)
-        x = x.detach().cpu()
-
-        xr = round_x_PyTorch(x, d)
-        self.x_round.append(xr)
-        self.x.append(x)
-
-        # mesmíssima conversão de dicts
-        def to_tensor_dict(dct):
-            out = {}
-            for k, v in dct.items():
-                if torch.is_tensor(v):
-                    out[k] = v.detach().cpu()
-                else:
-                    out[k] = torch.as_tensor(v)
-            return out
-
-        self.tanks.append(to_tensor_dict(tanks))
-        self.timeInc.append(to_tensor_dict(timeInc))
-        self.n_tank += 1
-
-def round_x_Original(x,d): #arredondar aos segundos    
+def round_x(x,d): #arredondar aos segundos    
     x_round=[]
     for p in range(len(d.pumps_to_opt)):
         x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
@@ -1916,42 +1134,8 @@ def round_x_Original(x,d): #arredondar aos segundos
                 x_round=x_round+x_aux
     return x_round
 
-def round_x_PyTorch(x: torch.Tensor, d) -> torch.Tensor:
-    """
-    Arredonda cada bloco de [start_times, durations] para segundos,
-    exatamente como seu round_x original, mas usando torch.floor.
-    Retorna um tensor 1D inteiro (dtype=torch.long).
-    """
-    parts = []
-    # 1) Duty cycles
-    for p in range(len(d.pumps_to_opt)):
-        start, end = d.dc_pos[p], d.dc_pos[p+1]
-        x_p = x[start:end]
-        n_dc = d.n_dc[p]
 
-        # starts em segundos
-        starts = torch.floor(x_p[:n_dc] * 3600.0 + 0.5).to(torch.long)
-
-        # durações em segundos a partir dos próprios x_p
-        # nota: o valor original somava start_rounded + dur*3600,
-        # mas para manter consistência, podemos simplesmente round(dur*3600)
-        durs = torch.floor(x_p[n_dc:] * 3600.0 + 0.5).to(torch.long)
-
-        parts.append(torch.cat([starts, durs], dim=0))
-
-    # 2) VSP (se houver)
-    total_dc_vars = sum(2 * n for n in d.n_dc)
-    if x.numel() > total_dc_vars:
-        vsp = x[total_dc_vars:]
-        # arredondamento com 6 casas decimais
-        vsp_rounded = torch.round(vsp * 1e6).to(torch.long)
-        parts.append(vsp_rounded)
-
-    # concatena tudo num único tensor longo
-    return torch.cat(parts, dim=0)
-
-
-class OptimizationLog_Original:
+class OptimizationLog:
     def __init__(self):
         self.solutions = []
         self.x=[]
@@ -1967,7 +1151,7 @@ class OptimizationLog_Original:
         
         x = x.detach().numpy() if isinstance(x, torch.Tensor) else x    
         
-        x_r=round_x_Original(x,d)          
+        x_r=round_x(x,d)          
         self.x.append(x.copy())
         self.solutions.append(x_r.copy())
         self.cost_solutions.append(CostT)
@@ -1975,31 +1159,8 @@ class OptimizationLog_Original:
         self.tanks.append(tanks.copy())     
         self.pumps.append(pumps.copy())                
 
-jit(nopython=True)
-def round_x_Original(x,d): #arredondar aos segundos    
-    x_round=[]
-    for p in range(len(d.pumps_to_opt)):
-        x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-        x_aux=[math.floor(x_p[i]*3600 + 0.5) for i in range(0,d.n_dc[p])]
-        for i in range(d.n_dc[p],2*d.n_dc[p]):
-            x_aux.append(math.floor(x_aux[i-d.n_dc[p]] + (x_p[i]*3600) + 0.5))
-        x_round=x_round+x_aux
 
-    # x_round=[math.floor(x[i]*3600 + 0.5) for i in range(len(x))]    
-    if(len(x)>2*np.sum(d.n_dc)): #VSP
-        x_vel=x[d.dc_pos[len(d.pumps_to_opt)]:len(x)]
-        n_var_dc=np.sum(np.multiply(d.n_dc,4)) # nº variáveis com M_ini e M_start
-        if(len(x)==n_var_dc):
-            vel_pos=np.concatenate(([0],2*np.cumsum(d.n_dc))) # velocidade no inicio e fim
-        else:
-            vel_pos=np.concatenate(([0],np.cumsum(d.n_dc))) 
-        for p in range(0,len(d.pumps_to_opt)):
-                x_v=x_vel[vel_pos[p]:vel_pos[p+1]]
-                x_aux=[round(x_v[i], 6) for i in range(len(x_v))]
-                x_round=x_round+x_aux
-    return x_round
-
-class TanksOptimizationLog_Original:
+class TanksOptimizationLog:
     def __init__(self):
         self.x_round = []
         self.x=[]
@@ -2009,8 +1170,16 @@ class TanksOptimizationLog_Original:
         #self.previous_objective = float('inf')
      
     def __call__(self,x,tanks,timeInc,d):
-        round=round_x_Original(x,d)
+        round=round_x(x,d)
         self.x_round.append(round.copy())
         self.timeInc.append(timeInc)
         self.tanks.append(tanks.copy())
         self.x.append(x.copy())
+        
+        
+        
+def level_plot(x, d):
+    
+    d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
+
+    return tanks, timeInc, pumps     

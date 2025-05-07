@@ -12,6 +12,9 @@ def method_default_args(prob_type):
     defaults['resultsSaveFreq'] = 50
 
 
+
+
+
     if prob_type == 'nonlinear':
         defaults['epochs'] = 100
         defaults['batchSize'] = 200
@@ -33,26 +36,26 @@ def method_default_args(prob_type):
         defaults['qtySamples'] = 2         
     elif 'dc_wss' in prob_type:
         defaults['epochs'] = 10
-        defaults['batchSize'] = 50
+        defaults['batchSize'] = 16
         defaults['lr'] = 1e-4
         defaults['hiddenSize'] = 64
-        defaults['softWeight'] = 100 # use 100 if useCompl=False
+        defaults['softWeight'] = 10        # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
         
-        defaults['softWeightEqFracStart'] = 1.7
-        defaults['softWeightEqFracDuration'] = 1.1
+        defaults['softWeightEqFracStart'] =  0.2 # 1.7 # 0.2
+        defaults['softWeightEqFracDuration'] = 0.95 # 1.1 # 0.8
         
         defaults['useCompl'] = False
         defaults['useTrainCorr'] = True
         defaults['useTestCorr'] = True
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
-        defaults['corrTrainSteps'] = 100
+        defaults['corrTrainSteps'] = 80 # 80
         defaults['corrTestMaxSteps'] = 60
         defaults['corrEps'] = 1e-4
         defaults['corrLr'] = 0.1         # use 1e-5 if useCompl=False
         
-        defaults['corrLrStart'] = 0.2
-        defaults['corrLrDuration'] = 0.05
+        #defaults['corrLrStart'] = 0.2
+        #defaults['corrLrDuration'] = 0.05
         
         defaults['corrMomentum'] = 0.5 
     elif 'nonlinear_2ineq' in prob_type:

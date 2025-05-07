@@ -49,6 +49,8 @@ warnings.filterwarnings("ignore")
 
 import EPANET_API as EPA_API
 
+QTY_EPOCH_SAVE = 20
+CERATE_GRAPH_YSTEP = False
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
         
@@ -173,8 +175,7 @@ def main():
     train_net(data, args, save_dir)
 
 def train_net(data, args, save_dir):
-    
-    
+        
     time_trainning_start = time.time()
         
     # UTILIZADO PARA USAR UM Y FIXO
@@ -204,8 +205,6 @@ def train_net(data, args, save_dir):
     y1_new_history = []
     y2_new_history = [] 
 
-
-    sample_x_zero = []
     
     for i in range(nepochs):
         epoch_stats = {}
@@ -216,77 +215,93 @@ def train_net(data, args, save_dir):
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
             solver_opt.zero_grad() # 0. Optimizer zero grad
+
+########################################################################
             
-            #print('XTrain ', Xtrain[0] )
-            #print('- - - - ')
-            
+            print('Begin Y hat')
+            y_hat_start_time = time.time()
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
             
-            #print('Yhat_train ', Yhat_train[0] )
-            #print('- - - - ')
+            print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
+            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
+########################################################################
+            
             # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
             if y_fixed_values:
                 
 
                 Yhat_train = torch.tensor(
                     [
-                    [ 2.5, 9.1142, 13, 2.5, 2, 5],        
-                    [ 3.1022,  8.1681, 13.3940,  3.7563,  3.3325,  2.3924],
-                    [11.0350, 13.5247, 16.2748,  1.8924,  2.7401,  1.1183],
-                    [ 6.8718, 11.1181, 18.3650,  1.6713,  2.6805,  1.4288],
-                    [16.3424, 18.1100, 22.5063,  1.7576,  4.3864,  1.2937],
-                    [10.0655, 12.9162, 15.5558,  2.7773,  2.6296,  2.1464],
-                    [ 9.5660, 16.9316, 21.3305,  3.7980,  4.3889,  2.4695],
-                    [ 3.5570,  5.6951, 19.2034,  2.1281,  1.9240,  2.9097]                
-                    
+                                                
+                     [10.9925, 15.8876, 17.6809, 20.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404]
+
                     ]
                 ).requires_grad_(True)  
                 
                 y_fixed_values = False          
 
-            
+########################################################################            
+
+            print('Begin Y_new')
+            y_new_start_time = time.time()            
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
+            print('Time Y new_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_new_start_time)))
+            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+
+
+
+            for j in range(len(Ynew_train)):
+                # salva o plot do novo y_new   
+                plot_simple(Ynew_train[j].cpu().detach().numpy(), i, args, 0, n_sample=j)
+
+
             
-            
-                       
+########################################################################            
+
+            print('Begin train_loss')
+            train_loss_time = time.time()           
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
+            print('Time train loss ', time.strftime("%H:%M:%S", time.gmtime(time.time() - train_loss_time)))
+            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
             
-            sample_x_zero.append(Xtrain[0].cpu().detach().numpy())
-            
+########################################################################
                                          
-            #train_loss.sum().backward(retain_graph=True) # 3. Performe backpropagation on the loss with respect to 
-            time_start = time.time()    
+
+            print('Begin loss backward')
+            time_start_backward = time.time()    
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to
+            print('Time backward ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_backward)))
+            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
+
+
+########################################################################
+
+            time_start_solveropt = time.time()
+            print('Begin solver_opt')
             solver_opt.step() # 4. Performe gradiente descent            
+            print('Time solver_opt ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_solveropt)))
+            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
-            time_end = time.time()
-            elapsed_seconds = time_end - time_start
-
-            minutes = int(elapsed_seconds // 60)
-            seconds = int(elapsed_seconds % 60)
-
-            print(f'Train loss backward time: {minutes} min {seconds} sec')
-
-                    
+########################################################################             
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
-
-
-
-            #print("Yhat_train.requires_grad:", Yhat_train.requires_grad)
-            #print("Ynew_train.requires_grad:", Ynew_train.requires_grad)
-            #print("train_loss.requires_grad:", train_loss.requires_grad)
-            
-            #print("Yhat_train.grad_fn:", Yhat_train.grad_fn)
-            #print("Ynew_train.grad_fn:", Ynew_train.grad_fn)
-            #print("train_loss.grad_fn:", train_loss.grad_fn)
-
-            #grad = torch.autograd.grad(outputs=train_loss.sum(), inputs=solver_net.parameters(), retain_graph=True, #allow_unused=True)
-            #for g in grad:
-            #    print(g)
 
 
             for name, param in solver_net.named_parameters():
@@ -417,18 +432,7 @@ def train_net(data, args, save_dir):
         elif args['dc'] == 5:
             input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
             
-        
-        #if args['dc'] == 3:
-            
-        #    input_data = utils.parser_tt_to_td(input_data_dc3) if args['vector_format'] == 'td-td' else #input_data_dc3
-            
-        #elif args['dc'] == 5:            
-        #    input_data = utils.parser_tt_to_td(input_data_dc5) if args['vector_format'] == 'td-td' else #input_data_dc5
-            
-
         output_data = newModel(input_data)
-        
-        #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
         
         if args['probType'] == 'dc_wss':
             
@@ -443,7 +447,7 @@ def train_net(data, args, save_dir):
         print('Output: ', output_data)    
         print('#####')
         output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
-        print('gT: ', data.gT_Original(output_data, args) )
+        print('gT: ', data.gT_Autograd(output_data[:-1], args) )
         print('#####')
         print('Resultado: ',total_cost )
         print('Avaliation finished')
@@ -549,9 +553,6 @@ def total_loss(data, X, Y, args, i):
     
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
 
-    #if len(data.trainX) == len(Y):
-    #    plot_simple(Y[0].cpu().detach().numpy(), args['dc'], i)
-
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
     else:
@@ -577,18 +578,14 @@ def total_loss(data, X, Y, args, i):
     return result
 
 
+
 def grad_steps(data, X, Y, args):
 
-                    
-    y_step_0_history = []
-    y_step_5_history = []
-    
+        
     take_grad_steps = args['useTrainCorr']
     
     if take_grad_steps:
         lr = args['corrLr']
-        lr_start = args['corrLrStart']
-        lr_duration = args['corrLrDuration']
         num_steps = args['corrTrainSteps']
         momentum = args['corrMomentum']
         partial_var = args['useCompl']
@@ -597,34 +594,22 @@ def grad_steps(data, X, Y, args):
             assert False, "Partial correction not available without completion."
         Y_new = Y
         old_Y_step = 0       
-        if len(data.trainX) == len(Y): 
-            print('Y ', Y[0])
+        #if len(data.trainX) == len(Y): 
+        #    print('Y ', Y[0])
         for i in range(num_steps):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
                 if args['probType'] == 'dc_wss':                                                             
                     ineq_step = data.ineq_grad(X, Y_new, args)   
-                    
-                    
+                                        
                     mid_point = ineq_step.shape[1] // 2
                     
                     new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
                     new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
                     
                     Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
-                    
-                    
-                    #Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                    
-                    
-                    if len(data.trainX) == len(Y):
-                    
-                        print('Step num. : ', i)
-                        
-                        print('Y step: ', Y_step[0])
-                        
-                        print('###')   
+                     
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
                     eq_step = data.eq_grad(X, Y_new)
@@ -632,54 +617,41 @@ def grad_steps(data, X, Y, args):
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
             
-            if i % 10 == 0 and len(data.trainX) == len(Y):
-                
-            
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
+                            
                 histories = [[] for _ in range(len(Y_step))]
                 for j in range(len(Y_step) // 2):
-                    histories[j].append(Y_step[j].detach().numpy())
-                    
-
-                     
-            #y0_history.append(Y_step[0].detach().numpy())       
+                    histories[j].append(-Y_step[j].detach().numpy())                                        
             
-            #new_Y_step_start = lr_start * Y_step[:len(Y.shape)/2] + momentum * old_Y_step
-            #new_Y_step_end = lr_start * Y_step[len(Y)/2:] + momentum * old_Y_step
-            
-                        
-            #mid_point = Y_step.shape[1] // 2
-
-            #new_Y_step_start = lr_start * Y_step[:, :mid_point]
-            #new_Y_step_end = lr_duration * Y_step[:, mid_point:]        
-            
-            #Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
-            
-            new_Y_step = lr * Y_step + momentum * old_Y_step
-
-            
+            new_Y_step = lr * Y_step + momentum * old_Y_step            
 
 
-            #if len(data.trainX) == len(Y):
-            #plot_simple(Y_new[0].cpu().detach().numpy(), i, args)
+            Y_new = Y_new - new_Y_step
 
-            Y_new = Y_new + new_Y_step
-
-            if i % 20 == 0 and len(data.trainX) == len(Y):
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
                 
                 
                 for j in range(len(Y_step)):
                     
                     plot_simple(Y_new[j].cpu().detach().numpy(), i, args, histories[j], n_sample=j)
                 
-                #plot_simple(Y_new[0].cpu().detach().numpy(), i, args, y_step_0_history, n_sample=0)
-                
 
 
             old_Y_step = new_Y_step   
         
         
+
+        # Diretório onde os plots estão salvos
+        #plot_dir = "C:\\Users\\mtcd\\Documents\\Codes\\dc3-wss\\dc3\\plots"
+        plot_dir = os.path.join('plots')
+
+        # Cria o GIF com os arquivos que começam com "plot_simple_nr0_epochNr"
         
-        
+        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
+            for i in range(Y.shape[0]):
+                gif_filename = os.path.join('plots', f"training_progress_nr{i}.gif")
+                utils.create_gif_from_plots(plot_dir, gif_filename, prefix=f"plot_simple_nr{i}_epochNr")
+                    
         return Y_new
        
     else:
@@ -692,10 +664,7 @@ def grad_steps_all(data, X, Y, args):
     take_grad_steps = args['useTestCorr']
     if take_grad_steps:
         lr = args['corrLr']
-        
-        lr_start = args['corrLrStart']
-        lr_duration = args['corrLrDuration']
-                
+       
         eps_converge = args['corrEps']
         max_steps = args['corrTestMaxSteps']
         momentum = args['corrMomentum']
@@ -718,8 +687,6 @@ def grad_steps_all(data, X, Y, args):
                     
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new, args)
-
-
                     
                         mid_point = ineq_step.shape[1] // 2
                         
@@ -727,30 +694,16 @@ def grad_steps_all(data, X, Y, args):
                         new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
                         
                         Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
-                        
-                                                                                                            
-#                        Y_step = (1 - args['softWeightEqFrac']) * ineq_step
-                        
+
                     else:
                         
                         ineq_step = data.ineq_grad(X, Y_new, args)
                         eq_step = data.eq_grad(X, Y_new)
                         Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
-
-
-                #mid_point = Y_step.shape[1] // 2
-
-                #new_Y_step_start = lr_start * Y_step[:, :mid_point]
-                #new_Y_step_end = lr_duration * Y_step[:, mid_point:]        
-                
-                #Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
                 
                 new_Y_step = lr * Y_step + momentum * old_Y_step
 
-
-                                
- #              new_Y_step = lr * Y_step + momentum * old_Y_step
                 Y_new = Y_new - new_Y_step
 
                 old_Y_step = new_Y_step
@@ -788,7 +741,6 @@ class NNSolver(nn.Module):
 
     def forward(self, x):
         
-        x = utils.parser_td_to_tt(x) if self._args['vector_format'] == 'td-td' else x
  
         out = self.net(x)
         #print('OUT ', out.requires_grad, out.grad_fn)  # depois da rede
@@ -801,10 +753,6 @@ class NNSolver(nn.Module):
                 
                 
                 result = self._data.process_output(x, out)            
-                result = utils.parser_tt_to_td(result) if self._args['vector_format'] == 'td-td' else result 
-                #print('RESULT', result.requires_grad, result.grad_fn)  # depois do pós-processamento
-            
-            
             
             
             return result   

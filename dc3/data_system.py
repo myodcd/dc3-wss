@@ -54,6 +54,6 @@ class data_system:
         #Formulação 3 - Duty-Cycles       
         self.epsF_i=0.01 #0.01
         self.epsF_d=0.01 #0.018
-        self.dif_DC=4/(60*60)
+        self.dif_DC=5/(60*60)
         self.n_dc=n_dc  #numeros de DC's por bomba 
         self.dc_pos=np.concatenate(([0],np.cumsum(np.multiply(self.n_dc,2)))) #posições das variaveis por bomba
