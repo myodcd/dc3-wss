@@ -50,7 +50,7 @@ warnings.filterwarnings("ignore")
 import EPANET_API as EPA_API
 
 QTY_EPOCH_SAVE = 20
-CERATE_GRAPH_YSTEP = False
+CREATE_GRAPH_YSTEP = False
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
         
@@ -108,7 +108,7 @@ def main():
         help='number of duty cycles')
     parser.add_argument('--qtySamples', type=int, default=10)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=2,
         help='number of neural network epochs')
     parser.add_argument('--vector_format', type=str, default='tt-dd',
         help='format of the input data: td-td or tt-dd')
@@ -267,7 +267,7 @@ def train_net(data, args, save_dir):
 
             for j in range(len(Ynew_train)):
                 # salva o plot do novo y_new   
-                plot_simple(Ynew_train[j].cpu().detach().numpy(), i, args, 0, n_sample=j)
+                plot_simple(Ynew_train[j].cpu().detach().numpy(), i, args, 0, n_sample=j, title_comment=' - Final Y_new')
 
 
             
@@ -281,7 +281,7 @@ def train_net(data, args, save_dir):
             
 ########################################################################
                                          
-
+            ##### DEMORA MAIOR ESTÁ NESTE TRECHO #####
             print('Begin loss backward')
             time_start_backward = time.time()    
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to
@@ -596,6 +596,13 @@ def grad_steps(data, X, Y, args):
         old_Y_step = 0       
         #if len(data.trainX) == len(Y): 
         #    print('Y ', Y[0])
+        
+        if len(data.trainX) == len(Y):
+            
+            for j in range(len(Y)):
+                
+                plot_simple(Y[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Initial Y')
+        
         for i in range(num_steps):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
@@ -617,7 +624,7 @@ def grad_steps(data, X, Y, args):
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
             
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
                             
                 histories = [[] for _ in range(len(Y_step))]
                 for j in range(len(Y_step) // 2):
@@ -628,7 +635,7 @@ def grad_steps(data, X, Y, args):
 
             Y_new = Y_new - new_Y_step
 
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
                 
                 
                 for j in range(len(Y_step)):
@@ -647,7 +654,7 @@ def grad_steps(data, X, Y, args):
 
         # Cria o GIF com os arquivos que começam com "plot_simple_nr0_epochNr"
         
-        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CERATE_GRAPH_YSTEP:
+        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
             for i in range(Y.shape[0]):
                 gif_filename = os.path.join('plots', f"training_progress_nr{i}.gif")
                 utils.create_gif_from_plots(plot_dir, gif_filename, prefix=f"plot_simple_nr{i}_epochNr")

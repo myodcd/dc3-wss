@@ -8,7 +8,7 @@ import datetime
 import os
 
 
-def plot_simple(results, epoch, args,y_steps=None, n_sample=000):
+def plot_simple(results, epoch, args,y_steps=None, n_sample=000, title_comment=None):
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -29,7 +29,7 @@ def plot_simple(results, epoch, args,y_steps=None, n_sample=000):
     ax.plot((timeInc["StartTime"] / 3600), tanks["tank0_h"][:-1])
     formatted_y_steps = np.array2string(np.array(y_steps), precision=2, separator=', ')
     formatted_y = np.array2string(np.array(results), precision=2, separator=', ')
-    ax.set_title(f"Epoch: {epoch:02d} - Sample nr: {n_sample} - Y: {formatted_y} - Y Steps: {formatted_y_steps}")
+    ax.set_title(f"Epoch: {epoch:02d} - Sample nr: {n_sample} - Y: {formatted_y} - Y Steps: {formatted_y_steps} {title_comment}")
     ax.set_xlabel("Tempo (h)")
     ax.set_ylabel("Nível do tanque")
     ax.plot((timeInc['StartTime']/3600), pumps['pump0_s'], label='pump 0')

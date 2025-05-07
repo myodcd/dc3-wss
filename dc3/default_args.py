@@ -36,9 +36,9 @@ def method_default_args(prob_type):
         defaults['qtySamples'] = 2         
     elif 'dc_wss' in prob_type:
         defaults['epochs'] = 10
-        defaults['batchSize'] = 16
+        defaults['batchSize'] = 8 # 16
         defaults['lr'] = 1e-4
-        defaults['hiddenSize'] = 64
+        defaults['hiddenSize'] = 16 # 64
         defaults['softWeight'] = 10        # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
         

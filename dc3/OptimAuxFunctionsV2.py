@@ -12,7 +12,7 @@ import utils as utils
 ##############################################
 ############## AUXILIAR FUNCTIONS ############
 ##############################################
-#jit(nopython=True)
+jit(nopython=True)
 def eps_definition_F2(x,d): #definição do eps para a 2a formulação (continuous)
     eps=d.epsF_i # % de perturbação
     eps_aux=[0 for i in range(len(x))]
@@ -26,7 +26,7 @@ def eps_definition_F2(x,d): #definição do eps para a 2a formulação (continuo
 
     return eps_aux
 
-
+jit(nopython=True)
 def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VSPs
     # PERTURBAÇÃO DEPENDE DO VALOR DA VARIAVEL
     epsF_i=d.epsF_i # % de perturbação para inicio
@@ -108,7 +108,7 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
     return eps  
 
 
-#jit(nopython=True)
+jit(nopython=True)
 def TempLog(d): #bounds da restrição da logica temporal entre DCs
     g=[]
     for i in range(0,len(d.n_dc)):
@@ -116,7 +116,7 @@ def TempLog(d): #bounds da restrição da logica temporal entre DCs
         g=np.concatenate((g,aux))
     return g
 
-#jit(nopython=True)
+jit(nopython=True)
 def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC + divisão em n_points tempos +  24h
     h=np.transpose(htank)
     n_arranques=int(len(x)/2)
@@ -291,7 +291,7 @@ def h_red3(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F3 + 24h
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
 
-#jit(nopython=True)
+jit(nopython=True)
 def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
     h=np.transpose(htank)
     time_seg=np.zeros(int(len(x)*2)+1)
@@ -343,7 +343,7 @@ def h_red2(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F2 + 24h
                 print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600)))                     
     return h_min
 
-#jit(nopython=True)
+jit(nopython=True)
 def h_red1(x,htank,timeInc,d): #h no fim de cada deltaT - F1 + 24h
     h=np.transpose(htank)
     time_seg=np.zeros(int(len(x)*2)+1)
@@ -427,7 +427,7 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
     return h_
 
-#jit(nopython=True)
+jit(nopython=True)
 def linear_interpolation(x_values, y_values, x_prime):
     for i in range(len(x_values) - 1):
         if x_values[i] <= x_prime <= x_values[i + 1]:
@@ -438,7 +438,7 @@ def linear_interpolation(x_values, y_values, x_prime):
     raise ValueError("x_prime está fora do intervalo dos pontos fornecidos.")
 
 ### GRÁFICOS ###
-#jit(nopython=True)
+jit(nopython=True)
 def pre_graphic(x,y):
     n_days=math.floor(x[-1]/(60*60*24)+0.5)
     ynew=[0 for i in range (0,len(y)*2)]
@@ -458,7 +458,7 @@ def pre_graphic(x,y):
             ind+=1
     return xnew,ynew
 
-#jit(nopython=True)
+jit(nopython=True)
 def plot_cons_pattern():
     file1 = open("PE_Espinheira.pat", "r")
     content1 = file1.read()
@@ -492,7 +492,7 @@ def plot_cons_pattern():
 #####################################
 ########### CONSTRAINTS #############
 #####################################
-
+jit(nopython=True)
 def Cost(x, d, log, flag):
     # Converta x em tensor caso ainda não esteja
 
@@ -502,7 +502,7 @@ def Cost(x, d, log, flag):
 
     flag_sol = 0
     if len(log.solutions) != 0:
-        x_round = round_x_Original(x, d)
+        x_round = round_x(x, d)
         try:
             id = log.solutions.index(x_round)
         except ValueError:
@@ -561,41 +561,12 @@ def Cost(x, d, log, flag):
     return CostT
 
 
-def linear_interpolation_torch(x_vals: torch.Tensor, 
-                               y_vals: torch.Tensor, 
-                               xq: torch.Tensor) -> torch.Tensor:
-    """
-    Piecewise linear interpolation in PyTorch.
-    x_vals: 1D tensor of sorted x-coordinates (length K)
-    y_vals: 1D tensor of corresponding y-coordinates (length K)
-    xq:      1D tensor of query points (length N)
-    Returns yq: 1D tensor of interpolated values at xq.
-    """
-    # clamp xq to domain
-    xq_clamped = xq.clamp(min=x_vals[0], max=x_vals[-1])
-    # find bins: idx in [1..K-1] such that x_vals[idx-1] <= xq < x_vals[idx]
-    idx = torch.bucketize(xq_clamped, x_vals)
-    idx_lower = (idx - 1).clamp(min=0)
-    idx_upper = idx.clamp(max=x_vals.numel()-1)
 
-    x_lower = x_vals[idx_lower]
-    x_upper = x_vals[idx_upper]
-    y_lower = y_vals[idx_lower]
-    y_upper = y_vals[idx_upper]
-
-    # avoid division by zero
-    denom = (x_upper - x_lower)
-    denom[denom == 0] = 1.0
-
-    t = (xq_clamped - x_lower) / denom
-    return y_lower + t * (y_upper - y_lower)
-
-
-#jit(nopython=True)
+jit(nopython=True)
 def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
     flag_sol=0
     if(len(log.x_round)!=0):
-        roundx=round_x_Original(x,d)
+        roundx=round_x(x,d)
         try:
             idx=log.x_round.index(roundx)
         except ValueError:
@@ -623,7 +594,7 @@ def gT_id(x,d,id_t,id_p,log): #Water Level - com id de tanque e das bombas
         g1=np.concatenate((g1,[g_aux[-1]])) #24h
     return g1
     
-    
+jit(nopython=True)    
 def gT(x,d,id,log): #Lower and Higher Water Level 
     # print('g'+id)
     
@@ -697,7 +668,7 @@ def gT(x,d,id,log): #Lower and Higher Water Level
     return g1
 
 
-#jit(nopython=True)
+jit(nopython=True)
 def gT_DC_min(x,d,id,min): #Lower and Higher Water Level -  x em x minutos + inicio e fim de DC
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
     # de x em x minutos + inicio e fim de DC
@@ -716,7 +687,7 @@ def gT_DC_min(x,d,id,min): #Lower and Higher Water Level -  x em x minutos + ini
     # print(g1)
     return g1
 
-#jit(nopython=True)
+jit(nopython=True)
 def gT_min(x,d,id,min,log): #Lower and Higher Water Level -  x em x minutos
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
     if(d.ftype==2):
@@ -758,14 +729,14 @@ def gT_min(x,d,id,min,log): #Lower and Higher Water Level -  x em x minutos
     # print(g1)
     return g1
 
-#jit(nopython=True)
+jit(nopython=True)
 def gDomain(x): # Variables domain
     #print('g3')
     #print('x')
     #print(x)
     return x
 
-#jit(nopython=True)
+jit(nopython=True)
 def g_TempLog_correction(x,d): #correção de x0
     x_new=[]
     for p in range(0,d.n_pumps): #d.n_pumps
@@ -783,6 +754,7 @@ def g_TempLog_correction(x,d): #correção de x0
 
     return x_new
 
+jit(nopython=True)
 def g_TempLog(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
     # print('Temporal Logic Const. --> x(start-stop)')
     g5=[]
@@ -803,7 +775,7 @@ def g_TempLog(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
     # print(g5)
     return g5
 
-#jit(nopython=True)
+jit(nopython=True)
 def gT_cont(x,d,id,log): # restrição de continuidade do nivel dos tanques
     flag_sol=0
     if(len(log.x_round)!=0):
@@ -830,7 +802,7 @@ def gT_cont(x,d,id,log): # restrição de continuidade do nivel dos tanques
     # print(g)
     return g
 
-#jit(nopython=True)           
+jit(nopython=True)           
 def gT_cont_perc(x,d,id,perc,log): # restrição de continuidade do nivel dos tanques -> percentagem a cima do hmin
     flag_sol=0
     if(len(log.x_round)!=0):
@@ -855,7 +827,7 @@ def gT_cont_perc(x,d,id,perc,log): # restrição de continuidade do nivel dos ta
     g=g_lim-g_end
     return g
 
-
+jit(nopython=True)
 def jac_TempLog(x,d):
     # V2 1
     # eps_aux=AF.eps_definition_F3(x,d) 
@@ -898,7 +870,7 @@ def jac_TempLog(x,d):
     return jac
 
 
-
+jit(nopython=True)
 def jac_gT(x,d,id,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)     
@@ -917,7 +889,7 @@ def jac_gT(x,d,id,log):
     return jac
 
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_gT_id(x,d,id_t, id_p,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)     
@@ -928,7 +900,7 @@ def jac_gT_id(x,d,id_t, id_p,log):
     jac=approx_fprime(x, gT_id, eps_aux,*(d,id_t,id_p,log))
     return (jac)
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_gT_min(x,d,id,min,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -940,7 +912,7 @@ def jac_gT_min(x,d,id,min,log):
     
     return (jac)
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_gT_DC_min(x,d,id,min):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -951,7 +923,7 @@ def jac_gT_DC_min(x,d,id,min):
     jac=approx_fprime(x, gT_DC_min, eps_aux,*(d,id,min))
     return (jac)
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_WTL(x,eps_aux,id_tank,d): #NOT FINISHED
     g=gT(x,d,id_tank)
     x_pump=[]
@@ -1055,7 +1027,7 @@ def jac_WTL(x,eps_aux,id_tank,d): #NOT FINISHED
             
     return jac
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_WTL_vinitial(x, eps_aux,id_tank,d): # versão inicial
     d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,1)
     jac=np.zeros((len(x)+1,len(x)))
@@ -1073,7 +1045,7 @@ def jac_WTL_vinitial(x, eps_aux,id_tank,d): # versão inicial
             jac[j][i]=dif_i
     return jac
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_gT_cont(x,d,id,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1085,7 +1057,7 @@ def jac_gT_cont(x,d,id,log):
     # mod=np.linalg.norm(jac)
     return (jac)
 
-#jit(nopython=True)
+jit(nopython=True)
 def jac_gT_cont_perc(x,d,id,perc,log):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1097,7 +1069,7 @@ def jac_gT_cont_perc(x,d,id,perc,log):
     # mod=np.linalg.norm(jac)
     return (jac)
 
-#jit(nopython=True)
+jit(nopython=True)
 def grad_Cost(x,d,log,flag):
     if(d.ftype==3): #duty-cycles formulation
         eps_aux=eps_definition_F3(x,d)   
@@ -1110,7 +1082,7 @@ def grad_Cost(x,d,log,flag):
 ######### OPTIMIZATION LOGS ##########
 ######################################
 
-
+jit(nopython=True)
 def round_x(x,d): #arredondar aos segundos    
     x_round=[]
     for p in range(len(d.pumps_to_opt)):
