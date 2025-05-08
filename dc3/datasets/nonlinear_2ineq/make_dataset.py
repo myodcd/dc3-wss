@@ -9,7 +9,7 @@ from utils import Problem_Non_Linear_2Ineq
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 
 num_var = 2
 

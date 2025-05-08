@@ -6,7 +6,7 @@ from torch import nn
 from torch import optim
 import torch.nn.functional as F
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 
 import pandas as pd
 
@@ -225,6 +225,10 @@ def train_net(data, args, save_dir):
             print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
             print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
+            for j in range(Yhat_train.shape[0]):
+                
+                plot_simple(Yhat_train[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Initial Y')
+                
 ########################################################################
             
             # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
@@ -257,6 +261,7 @@ def train_net(data, args, save_dir):
 
 ########################################################################            
 
+
             print('Begin Y_new')
             y_new_start_time = time.time()            
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
@@ -264,8 +269,7 @@ def train_net(data, args, save_dir):
             print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
 
-
-            for j in range(len(Ynew_train)):
+            for j in range(Ynew_train.shape[0]):
                 # salva o plot do novo y_new   
                 plot_simple(Ynew_train[j].cpu().detach().numpy(), i, args, 0, n_sample=j, title_comment=' - Final Y_new')
 
@@ -307,8 +311,8 @@ def train_net(data, args, save_dir):
             for name, param in solver_net.named_parameters():
                 
                 ######################################
-                print(f"{name}: {param.grad}")
-                #pass
+                #print(f"{name}: {param.grad}")
+                pass
                 
 
         # Get valid loss
@@ -593,15 +597,7 @@ def grad_steps(data, X, Y, args):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
-        old_Y_step = 0       
-        #if len(data.trainX) == len(Y): 
-        #    print('Y ', Y[0])
-        
-        if len(data.trainX) == len(Y):
-            
-            for j in range(len(Y)):
-                
-                plot_simple(Y[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Initial Y')
+        old_Y_step = 0                       
         
         for i in range(num_steps):            
             if partial_corr:
@@ -626,8 +622,8 @@ def grad_steps(data, X, Y, args):
             
             if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
                             
-                histories = [[] for _ in range(len(Y_step))]
-                for j in range(len(Y_step) // 2):
+                histories = [[] for _ in range(Y.shape[0])]
+                for j in range(len(Y) // 2):
                     histories[j].append(-Y_step[j].detach().numpy())                                        
             
             new_Y_step = lr * Y_step + momentum * old_Y_step            
@@ -638,7 +634,7 @@ def grad_steps(data, X, Y, args):
             if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
                 
                 
-                for j in range(len(Y_step)):
+                for j in range(Y.shape[0]):
                     
                     plot_simple(Y_new[j].cpu().detach().numpy(), i, args, histories[j], n_sample=j)
                 
@@ -747,7 +743,7 @@ class NNSolver(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        
+        x = x.float()
  
         out = self.net(x)
         #print('OUT ', out.requires_grad, out.grad_fn)  # depois da rede

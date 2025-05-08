@@ -2,6 +2,16 @@ import torch
 from torch.autograd import Function
 import numpy as np
 import time
+
+# ========= CONTADORES ==========
+CALL_COUNTER = {
+    'CostAutograd': 0,
+    'GTAutograd': 0,
+    'GTempLogAutograd': 0,
+    'JacGTAutograd': 0,
+    'JacTempLogAutograd': 0,
+}
+
 # ========= COST ==========
 
 class CostAutograd(Function):
@@ -22,8 +32,9 @@ class CostAutograd(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        CALL_COUNTER['CostAutograd'] += 1
         time_start_costautgrad = time.time()
-        print('begin ACESSOU COSTAUTGRAD')
+        print(f'begin ACESSOU COSTAUTGRAD ({CALL_COUNTER["CostAutograd"]} acesso(s))')
         y, = ctx.saved_tensors
         d, opt_func = ctx.d, ctx.opt_func
         device, dtype = y.device, y.dtype
@@ -46,9 +57,8 @@ class CostAutograd(Function):
         print('%%%%%%%%%')
         return torch.tensor(grads, device=device, dtype=dtype) * grad_output.unsqueeze(1), None, None
 
+
 # ========= GT ==========
-
-
 
 class GTAutograd(Function):
     @staticmethod
@@ -62,8 +72,9 @@ class GTAutograd(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        CALL_COUNTER['GTAutograd'] += 1
         time_start_gtautgrad = time.time()
-        print('begin ACESSOU GTAUTGRAD')
+        print(f'begin ACESSOU GTAUTGRAD ({CALL_COUNTER["GTAutograd"]} acesso(s))')
         y, = ctx.saved_tensors
         d, opt_func = ctx.d, ctx.opt_func
 
@@ -71,98 +82,26 @@ class GTAutograd(Function):
         grad_out_np = grad_output.detach().cpu().numpy()
 
         B, D = y_np.shape
-        grads = np.zeros_like(y_np, dtype=np.float64)
+        grads = np.zeros_like(y_np, dtype=np.float32)
         eps = 1e-6
 
         for i in range(B):
             yi = y_np[i]
             go_i = grad_out_np[i]
-            f0 = opt_func.gT(yi, d, 0, opt_func.OptimizationLog())  # shape (D,)
+            f0 = opt_func.gT(yi, d, 0, opt_func.OptimizationLog())
 
-            # Perturbações: gera D vetores com perturbação em uma dimensão
-            y_plus = yi[None, :] + np.eye(D) * eps  # shape (D, D)
-            
-            # Avaliações para todas as perturbações
+            y_plus = yi[None, :] + np.eye(D) * eps
             f_plus = np.array([opt_func.gT(y_pert, d, 0, opt_func.OptimizationLog()) for y_pert in y_plus])
-
-            # Derivadas numéricas: shape (D, D)
             jacobian = (f_plus - f0) / eps
-
-            # Produto: (D,) = (D, D) @ (D,)
             grads[i] = jacobian @ go_i
+
         print('GTAUTGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - time_start_gtautgrad)))
         print('%%%%%%%%%')
         return torch.tensor(grads, device=y.device, dtype=y.dtype), None, None
 
 
-
-class GTAutograd_Original(Function):
-    @staticmethod
-    def forward(ctx, y, d, opt_func):
-        ctx.save_for_backward(y)
-        ctx.d, ctx.opt_func = d, opt_func
-        y_np = y.detach().cpu().numpy()
-        outputs = [opt_func.gT(yi, d, 0, opt_func.OptimizationLog()) for yi in y_np]
-        return torch.tensor(outputs, device=y.device, dtype=y.dtype)
-
-    @staticmethod
-    def backward(ctx, grad_output):        
-        y, = ctx.saved_tensors
-        d, opt_func = ctx.d, ctx.opt_func
-        y_np = y.detach().cpu().numpy()
-        grad_out_np = grad_output.detach().cpu().numpy()
-
-        B, D = y_np.shape
-        grads = np.empty_like(y_np)
-
-        for i in range(B):
-            yi = y_np[i]
-            go_i = grad_out_np[i]
-            eps = np.full(D, 1e-6, dtype=np.float64)
-            f0 = opt_func.gT(yi, d, 0, opt_func.OptimizationLog())
-
-            for k in range(D):
-                y_plus = yi.copy(); y_plus[k] += eps[k]
-                f_plus = opt_func.gT(y_plus, d, 0, opt_func.OptimizationLog())
-                grads[i, k] = np.dot(go_i, (f_plus - f0) / eps[k])
-
-        return torch.tensor(grads, device=y.device, dtype=y.dtype), None, None
-
 # ========= GTempLog ==========
 
-class GTempLogAutograd_Original(Function):
-    @staticmethod
-    def forward(ctx, y, d, opt_func):
-        ctx.save_for_backward(y)
-        ctx.d, ctx.opt = d, opt_func
-        y_np = y.detach().cpu().numpy()
-        results = [-opt_func.g_TempLog(yi, d) for yi in y_np]
-        return torch.tensor(results, device=y.device, dtype=y.dtype)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        y, = ctx.saved_tensors
-        d, opt_func = ctx.d, ctx.opt
-        y_np = y.detach().cpu().numpy()
-        grad_out_np = grad_output.detach().cpu().numpy()
-
-        B, D = y_np.shape
-        grads = np.empty_like(y_np)
-
-        for i in range(B):
-            yi = y_np[i]
-            go_i = grad_out_np[i]
-            eps = np.full(D, 1e-6)
-            f0 = -opt_func.g_TempLog(yi, d)
-
-            for k in range(D):
-                y_plus = yi.copy(); y_plus[k] += eps[k]
-                f_plus = -opt_func.g_TempLog(y_plus, d)
-                grads[i, k] = np.dot(go_i, (f_plus - f0) / eps[k])
-
-        return torch.tensor(grads, device=y.device, dtype=y.dtype), None, None
-    
-    
 class GTempLogAutograd(Function):
     @staticmethod
     def forward(ctx, y, d, opt_func):
@@ -170,44 +109,39 @@ class GTempLogAutograd(Function):
         ctx.d, ctx.opt = d, opt_func
 
         y_np = y.detach().cpu().numpy()
-        results = np.array([-opt_func.g_TempLog(yi, d) for yi in y_np])  # (B, D)
+        results = np.array([-opt_func.g_TempLog(yi, d) for yi in y_np])
         return torch.tensor(results, device=y.device, dtype=y.dtype)
 
     @staticmethod
     def backward(ctx, grad_output):
+        CALL_COUNTER['GTempLogAutograd'] += 1
         time_start_gtemp = time.time()
-        print('begin ACESSOU GTEMPLOGAUTGRAD')
+        print(f'begin ACESSOU GTEMPLOGAUTGRAD ({CALL_COUNTER["GTempLogAutograd"]} acesso(s))')
         y, = ctx.saved_tensors
         d, opt_func = ctx.d, ctx.opt
 
         y_np = y.detach().cpu().numpy()
-        grad_out_np = grad_output.detach().cpu().numpy()  # (B, D)
+        grad_out_np = grad_output.detach().cpu().numpy()
 
         B, D = y_np.shape
         eps = 1e-6
         grads = np.zeros_like(y_np)
 
-        f0 = np.array([-opt_func.g_TempLog(yi, d) for yi in y_np])  # (B, D)
+        f0 = np.array([-opt_func.g_TempLog(yi, d) for yi in y_np])
 
         for k in range(D):
             y_plus = y_np.copy()
             y_plus[:, k] += eps
-
-            f_plus = np.array([-opt_func.g_TempLog(yi, d) for yi in y_plus])  # (B, D)
-            df = (f_plus - f0) / eps  # (B, D)
-
-            grads[:, k] = np.sum(grad_out_np * df, axis=1)  # Reduz para (B,)
+            f_plus = np.array([-opt_func.g_TempLog(yi, d) for yi in y_plus])
+            df = (f_plus - f0) / eps
+            grads[:, k] = np.sum(grad_out_np * df, axis=1)
 
         print('GTEMPLOGAUTGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - time_start_gtemp)))
         print('%%%%%%%%%')
         return torch.tensor(grads, device=y.device, dtype=y.dtype), None, None
 
 
-
 # ========= JacGT ==========
-
-
-
 class JacGTAutograd(Function):
     @staticmethod
     def forward(ctx, y, d, opt_func):
@@ -219,8 +153,9 @@ class JacGTAutograd(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        CALL_COUNTER['JacGTAutograd'] += 1		
         time_start_jacgt = time.time()
-        print('begin ACESSOU JACGTAUTGRAD')
+        print(f'begin ACESSOU JACGTAUTGRAD ({CALL_COUNTER["JacGTAutograd"]} acesso(s))')
         y, = ctx.saved_tensors
         d, opt_func = ctx.d, ctx.opt
         y_np = y.detach().cpu().numpy()
@@ -244,6 +179,9 @@ class JacGTAutograd(Function):
         print('%%%%%%%%%')
         return torch.tensor(grads, device=y.device, dtype=y.dtype), None, None
 
+    
+
+
 # ========= JacTempLog ==========
 
 class JacTempLogAutograd(Function):
@@ -257,5 +195,18 @@ class JacTempLogAutograd(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        time_start_jactemplog = time.time()
+        CALL_COUNTER['JacTempLogAutograd'] += 1
+        print(f'begin ACESSOU JACTEMPLOGAUTGRAD ({CALL_COUNTER["JacTempLogAutograd"]} acesso(s))')
         y, = ctx.saved_tensors
+        print('JACTEMPLOGAUTGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - time_start_jactemplog)))
+        print('%%%%%%%%%')
         return torch.zeros_like(y), None, None
+
+
+# ========= FINAL: RESUMO DE ACESSOS ==========
+
+def print_call_summary():
+    print("\n=== RESUMO DE ACESSOS ===")
+    for name, count in CALL_COUNTER.items():
+        print(f"{name}: {count} acesso(s)")

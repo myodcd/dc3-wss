@@ -3,14 +3,14 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 from scipy.optimize import approx_fprime
 import math
 import plot_simple as plot_simple
 import numpy as np
 
 # import osqp
-from qpth.qp import QPFunction
+#from qpth.qp import QPFunction
 
 # import cyipopt
 # from scipy.linalg import svd
@@ -255,16 +255,6 @@ class Problem_DC_WSS:
         return result
 
 
-    def obj_fn_Epanet(self, y, args):  # ,d, pumps, tanks, pipes, valves, timeInc):
-        # COM EFICIÊNCIA
-
-        log_cost=opt_func.OptimizationLog()
-        
-        y = y.detach().cpu().numpy()
-
-        cost_list = [opt_func.Cost(i, self.d, log_cost, 3) for i in y]
-
-        return torch.tensor(cost_list, requires_grad=True)
     
     
     def gT_Autograd(self, y, args):
@@ -273,17 +263,6 @@ class Problem_DC_WSS:
 
         return result
 
-    def gT_Epanet(self, y, args):
-
-        log_tank = opt_func.OptimizationLog()
-        
-        y = y.detach().cpu().numpy()
-
-        gt_list = [opt_func.gT(i, self.d, 0, log_tank) for i in y]
-
-        result = torch.tensor(gt_list)
-        
-        return result
 
     def g_TempLog_Autograd(self, y):
 
@@ -292,16 +271,6 @@ class Problem_DC_WSS:
         return g_templog_list
 
 
-    def g_TempLog_Epanet(self, x):  # tstart(n+1) > tstop(n)  (várias bombas)
-        # print('Temporal Logic Const. --> x(start-stop)')
-
-        g_templog_list = [opt_func.g_TempLog(i, self.d) for i in x]
-
-        return torch.tensor(g_templog_list)
-    
-    def g_x_Epanet(self, y, args, numpy=False):
-
-        return y    
     
     def g_x_Autograd(self, y, args, numpy=False):
 
@@ -352,32 +321,12 @@ class Problem_DC_WSS:
 
         return result  # [batch, 20, 10]
 
-
-    def jac_gT_Epanet(self, y, args):
-
-        log_tank = opt_func.TanksOptimizationLog()
-
-        y = y.detach().cpu().numpy()
-
-        jac = [opt_func.jac_gT(i, self.d, 0, log_tank) for i in y]
-        
-        jac_pos = torch.tensor(jac)
-        jac_inv = -jac_pos.clone()
-        
-        return torch.cat((jac_pos, jac_inv), dim=1)
     
     def jac_TempLog_Autograd(self, y):
 
         result = autograd_pt.JacTempLogAutograd.apply(y, self.d, opt_func)
 
         return result
-
-
-    def jac_TempLog_Epanet(self, x):
-
-        jac_templog_list = opt_func.jac_TempLog(x, self.d)
-
-        return torch.tensor(jac_templog_list)
     
     def jac_x_Autograd(self, y, args):
 
@@ -398,7 +347,7 @@ class Problem_DC_WSS:
 
         J_pos = torch.stack(jac_list, dim=0)
         J_neg = -J_pos
-
+        print('XXXXXX - JAC_X - XXXXXXXX')
         result = torch.cat([J_pos, J_neg], dim=1)
 
         return result

@@ -6,7 +6,7 @@ import pickle
 import torch
 import random
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 sys.path.insert(1, os.path.join(sys.path[0], os.pardir, os.pardir))
 from utils import Problem_DC_WSS
 from data_system import data_system
