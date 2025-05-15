@@ -35,7 +35,8 @@ class data_system:
         self.n_points_tank=n_points_t #nº de pontos a avaliar dentro de cada DC para cada tanque
         self.flag_pat=0
 
-        self.EpanetFile='Bomba-deposito_v1.inp'  
+#        self.EpanetFile='Bomba-deposito_v1.inp'  
+        self.EpanetFile = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\Bomba-deposito_v1.inp"
         self.flag_t_inicio=0
         self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
         self.nomerpt='report.rpt'
@@ -57,3 +58,6 @@ class data_system:
         self.dif_DC=5/(60*60)
         self.n_dc=n_dc  #numeros de DC's por bomba 
         self.dc_pos=np.concatenate(([0],np.cumsum(np.multiply(self.n_dc,2)))) #posições das variaveis por bomba
+        
+        with open(self.EpanetFile, "r") as f:
+            self.inp_cache = f.read()

@@ -9,6 +9,7 @@ from openpyxl import load_workbook, Workbook
 import matplotlib.pyplot as plt
 from numba import jit
 import torch
+import tempfile
 
 jit(nopython=True)
 def WSS_Components(d,n_links,n_nodes): 
@@ -265,9 +266,79 @@ def EpanetAPIData(d,pumps,tanks,pipes,valves,tariffs): #Recolha de dados de simu
 
     return d,pumps,tanks,pipes,valves,timeInc
 
+
+# CRIADO PARA EVITAR ERRO NO ACESSO AO FICHEIRO INP
+jit(nopython=True)
+def EpanetSimulation_MultiplosFicheiros(x, d, sim_step):
+    # ----------- 1. Prepara arquivos temporários com base no cache .inp ------------
+    tmp_inp = tempfile.NamedTemporaryFile(delete=False, suffix=".inp", mode='w')
+    tmp_inp.write(d.inp_cache)
+    tmp_inp.close()
+    d.EpanetFile = tmp_inp.name
+
+    d.nomerpt = tempfile.NamedTemporaryFile(delete=False, suffix=".rpt").name
+    d.nomebin = tempfile.NamedTemporaryFile(delete=False, suffix=".bin").name
+
+    # ----------- 2. Abre o EPANET normalmente -------------
+    em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin)
+
+    if sim_step != 0:
+        em.ENsettimeparam(em.EN_HYDSTEP, sim_step)
+
+    d.timeInc_s = em.ENgettimeparam(em.EN_HYDSTEP)
+    d.T_s = em.ENgettimeparam(0)
+    d.n_tariffs = em.ENgettimeparam(em.EN_PATTERNSTEP) / 60
+
+    units_flow = em.ENgetflowunits()
+    d.units_flow = 0 if units_flow == 8 else 1
+
+    em.ENopenH()
+    em.ENsetstatusreport(2)
+    em.ENinitH(10)
+
+    # ----------- 3. Garante x dentro do domínio ------------
+    x = np.clip(x, 0, 24)
+
+    n_links = em.ENgetcount(em.EN_LINKCOUNT)
+    n_nodes = em.ENgetcount(em.EN_NODECOUNT)
+
+    d, pumps, tanks, pipes, valves, CP, tariffs = WSS_Components(d, n_links, n_nodes)
+
+    if d.flag_pat != 0 or d.flag_def_pattern == 1:
+        patterns = pattern_definition(d, CP)
+        set_patterns(d, patterns, CP)
+
+    n_var_dc = np.sum(np.multiply(d.n_dc, 4))
+
+    if len(x) == n_var_dc:
+        speed = speed_definition_v2(x, d, pumps)
+        controls_epanet = conversor_v2(x, pumps, d, speed)
+    elif len(x) > 2 * np.sum(d.n_dc):
+        speed = speed_definition(x, d, pumps)
+        controls_epanet = conversor(x, pumps, d, speed)
+    else:
+        speed = []
+        controls_epanet = conversor(x, pumps, d, speed)
+
+    d, pumps, tanks, pipes, valves, timeInc = EpanetAPIData(d, pumps, tanks, pipes, valves, tariffs)
+
+    if d.flag_pat == 1 or d.flag_def_pattern == 1:
+        d.EpanetFile = d.EpanetFile_new + d.path_day + '_pred.inp'
+        em.ENsaveinpfile(d.EpanetFile)
+    elif d.flag_pat == 2:
+        d.EpanetFile = d.EpanetFile_new + d.path_day + '_real.inp'
+        em.ENsaveinpfile(d.EpanetFile)
+
+    em.ENcloseH()
+    em.ENclose()
+
+    return d, pumps, tanks, pipes, valves, timeInc, controls_epanet
+
+
 jit(nopython=True)
 def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodule
-    em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin) # abrir epanet
+    #em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin) # abrir epanet
+    em.ENopen(d.EpanetFile, 'teste.rpt', 'teste.bin' ) # abrir epanet
     if(sim_step!=0):
         em.ENsettimeparam(em.EN_HYDSTEP,sim_step) # definir hidraulic step a sim_step seg por causa das dif.finitas
     d.timeInc_s=em.ENgettimeparam(em.EN_HYDSTEP) # duração de cada incremento de simulação

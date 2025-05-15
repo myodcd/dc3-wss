@@ -36,7 +36,7 @@ def method_default_args(prob_type):
         defaults['qtySamples'] = 2         
     elif 'dc_wss' in prob_type:
         defaults['epochs'] = 10
-        defaults['batchSize'] = 8 # 16
+        defaults['batchSize'] = 200 # 16
         defaults['lr'] = 1e-4
         defaults['hiddenSize'] = 16 # 64
         defaults['softWeight'] = 10        # use 100 if useCompl=False
@@ -50,7 +50,7 @@ def method_default_args(prob_type):
         defaults['useTestCorr'] = True
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
         defaults['corrTrainSteps'] = 80 # 80
-        defaults['corrTestMaxSteps'] = 60
+        defaults['corrTestMaxSteps'] = 50 # 60
         defaults['corrEps'] = 1e-4
         defaults['corrLr'] = 0.1         # use 1e-5 if useCompl=False
         

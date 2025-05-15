@@ -54,7 +54,7 @@ def generate_duration(time_list: list[float]) -> list[float]:
 def generate_dataset(nDutyCycles: int):
     
 
-    qty_x = [10, 20, 30, 50, 100, 200, 500, 1000]
+    qty_x = [8, 10, 20, 30, 50, 100, 200, 500, 1000]
     nDutyCycles = nDutyCycles  # agora usaremos isso para tamanho de generate_time
 
     d = data_system([nDutyCycles], [0])

@@ -48,7 +48,7 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
             else: 
                 dif=next-inicio-dur
                 #if(dif >= d.dif_DC - (1/(60*60))): #6e-4): # progressivas com a diferença entre DCs
-                if(dif >= d.dif_DC):
+                if(dif - (1/(60*60))>= d.dif_DC):
                     eps_aux[i]=dif - (1/(60*60)) # Para não juntar
                 else: # regressivas
                     pre = x_p[i-1] + x_p[i-1+n_dc] if i > 0 else 0  # definição da variavel pre = fim do dc anterior
@@ -62,9 +62,9 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
 
             if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
                 dif=(inicio-pre) 
-                if(dif>= d.dif_DC): # regressiva com eps igual a diferente entre dc's
+                if(dif- (1/(60*60))>= d.dif_DC): # regressiva com eps igual a diferente entre dc's
                 #if(dif>= d.dif_DC - (1/(60*60))): # regressiva com eps igual a diferente entre dc's
-                    eps_aux[i]=-dif
+                    eps_aux[i]=-(dif-(1/(60*60)))
                 else:
                     eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
                     print('ERROR: DC overlapping for starting time') 
@@ -78,7 +78,7 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                 eps_aux[j]=max(dur,1)*epsF_d
             else:
                 dif=next - (inicio+dur)
-                if(dif>= d.dif_DC): # progressivas com a diferença entre DCs
+                if(dif- (1/(60*60))>= d.dif_DC): # progressivas com a diferença entre DCs
                 #if(dif>= d.dif_DC - (1/(60*60))): # progressivas com a diferença entre DCs
                     eps_aux[j]=dif - (1/(60*60)) # Para não juntar
                 else: # regressivas
@@ -91,7 +91,7 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
 
             if(flagR_d==1): # dif. regressiva para duração 
                 # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
-                if(dur >= d.dif_DC - (1/(60*60))): # regressivas com eps = -dur
+                if(dur >= d.dif_DC): # regressivas com eps = -dur
                     eps_aux[j]= -dur 
                 else:
                     eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
@@ -425,7 +425,7 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
                     h_tmin[idx_zero[i]]=h[aux[0]+1] 
                 else:
                     print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
-    return h_
+    return h_tmin
 
 jit(nopython=True)
 def linear_interpolation(x_values, y_values, x_prime):
@@ -878,9 +878,9 @@ def jac_gT(x,d,id,log):
     elif(d.ftype==2): #continuous formulation
         eps_aux=eps_definition_F2(x,d)  
 
-    x = x.detach().numpy() if isinstance(x, torch.Tensor) else x
+    #x = x.detach().numpy() if isinstance(x, torch.Tensor) else x
     
-    eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
+    #eps_aux = eps_aux.detach().numpy() if isinstance(eps_aux, torch.Tensor) else eps_aux
     
 
     jac=approx_fprime(x, gT, eps_aux,*(d,id,log))

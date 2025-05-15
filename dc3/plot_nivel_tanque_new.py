@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 import os
 
-now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
 
 def plot_nivel_tanque_new(args,
                           example,
@@ -22,7 +22,7 @@ def plot_nivel_tanque_new(args,
     - total_cost: total cost for annotation
     - save_plot: if True, saves the figure in 'plots/'
     """
-
+    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     # --- prepare data ---
     d = data_system.data_system([args['dc']], [0])
     ex = (example.detach().cpu().numpy().reshape(-1)

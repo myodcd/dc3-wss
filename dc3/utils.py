@@ -34,10 +34,13 @@ from torch.autograd.functional import jacobian
 import utils as utils
 import imageio
 import os
+import shutil
+
+import time
 
 from PIL import Image
 
-
+import tempfile
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -114,6 +117,17 @@ def finite_diff_jac(func, x, eps, *func_args):
     return J
 
 
+
+def prepare_inp_copies(base_inp_path, n_jobs):
+
+    for i in range(n_jobs):
+        job_dir = f"/tmp/epanet_job_{i}"
+        os.makedirs(job_dir, exist_ok=True)
+        shutil.copy(base_inp_path, os.path.join(job_dir, "Bomba-deposito_v1"))
+        
+
+
+
 def create_gif_from_plots(
     plot_dir,
     gif_filename,
@@ -160,6 +174,21 @@ def create_gif_from_plots(
     #print(f"GIF salvo em: {gif_filename} (size={base_size}, frames={len(images)})")
 
 
+
+def prepare_epanet_temp_files(d):
+    # Arquivo .inp temporário com base no cache
+    tmp_inp = tempfile.NamedTemporaryFile(delete=False, suffix=".inp", mode='w')
+    tmp_inp.write(d.inp_cache)
+    tmp_inp.close()
+    d.EpanetFile = tmp_inp.name
+
+    # Arquivos .rpt e .bin temporários
+    d.nomerpt = tempfile.NamedTemporaryFile(delete=False, suffix=".rpt").name
+    d.nomebin = tempfile.NamedTemporaryFile(delete=False, suffix=".bin").name
+
+    return d
+
+
 ###################################################################
 
 # PROBLEM DC_WSS
@@ -186,6 +215,7 @@ class Problem_DC_WSS:
         self.timemax = 23.9999
         self.tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
         self.tariff_time = [2, 4, 1, 2, 3, 12]
+        
 
     @property
     def device(self):
@@ -249,13 +279,40 @@ class Problem_DC_WSS:
 
     # def Cost
     def obj_fn_Autograd(self, y, args):
+        
+        #start_time = time.time()
+                
+        #log_cost = opt_func.OptimizationLog()
+        
+        #y = y.detach().cpu().numpy()
+        
+        #result = torch.tensor([opt_func.Cost(i, self.d, log_cost, 3) for i in y])
 
         result = autograd_pt.CostAutograd.apply(y, self.d, opt_func)
-
+        
+        #print('COST_AUTOGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
+        
+        #print('%%%%%%%%%')
+        
         return result
-
-
     
+
+    def gT_Original(self, y):
+
+        #start_time = time.time()
+
+        log_cost = opt_func.OptimizationLog()
+        
+        y = y.detach().cpu().numpy()
+        
+        gt = torch.tensor([opt_func.gT(i, self.d, 0, log_cost) for i in y])
+        
+        #print('GT_Original', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
+        #print('%%%%%%%%%')
+        
+        result = gt
+        
+        return result    
     
     def gT_Autograd(self, y, args):
 
@@ -263,6 +320,17 @@ class Problem_DC_WSS:
 
         return result
 
+
+    def g_TempLog_Original(self, y):
+        
+        #start_time = time.time()        
+        y = y.detach().cpu().numpy()
+        
+        g_templog_list = torch.tensor([-opt_func.g_TempLog(i, self.d) for i in y])
+        #print('GTempLog_Original', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
+        #print('%%%%%%%%%')
+
+        return g_templog_list
 
     def g_TempLog_Autograd(self, y):
 
@@ -284,14 +352,11 @@ class Problem_DC_WSS:
 
     def get_yvars(self, y, args):
 
-        g_tl = self.gT_Autograd(y, args)
-        g_tlog = self.g_TempLog_Autograd(y)
+        #g_tl = self.gT_Autograd(y, args)
+        g_tl = self.gT_Original(y)
+        g_tlog = self.g_TempLog_Original(y)
+        #g_tlog = self.g_TempLog_Autograd(y)
         g_x = self.g_x_Autograd(y, args)
-
-        #g_tl = self.gT_Epanet(y, args)
-        #g_tlog = self.g_TempLog_Epanet(y)
-        #g_x = self.g_x_Epanet(y, args)
-
 
         return g_tl, g_x, g_tlog
 
@@ -310,8 +375,28 @@ class Problem_DC_WSS:
 
         return resids
 
-    def jac_gT_Autograd(self, y, args):
+    def jac_gT_Original(self, y):
 
+        #start_time = time.time()
+
+        log_cost = opt_func.OptimizationLog()
+        
+        y = y.detach().cpu().numpy()
+        
+        jac = torch.tensor([ opt_func.jac_gT(i, self.d, 0, log_cost)  for i in y])
+
+        jac_pos = jac
+        jac_inv = -jac.clone()
+
+        result = torch.cat([jac_pos, jac_inv], dim=1)  # [batch, 20, 10]
+        
+        #print('JAC_GT_ORIGINAL', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
+
+        return result  # [batch, 20, 10]
+
+
+    def jac_gT_Autograd(self, y, args):
+        
         jac = autograd_pt.JacGTAutograd.apply(y, self.d, opt_func)
 
         jac_pos = jac
@@ -328,65 +413,58 @@ class Problem_DC_WSS:
 
         return result
     
-    def jac_x_Autograd(self, y, args):
+    def jac_TempLog_Original(self, y):
+        
+        #start_time = time.time()
+        
+        y = y.detach().cpu().numpy()
+        
+        result = torch.tensor([opt_func.jac_TempLog(i, self.d) for i in y])
 
-        y = y.clone().requires_grad_(True)  # [B, D]
-        B, D = y.shape
-
-        def g_vec(y_i):
-
-            out = self.g_x_Autograd(y_i.unsqueeze(0), args)
-            return out.squeeze(0)  # [C]
-
-        # 3) loop sobre o batch (pode ser lento, mas preserva grafo)
-        jac_list = []
-        for b in range(B):
-            # jacobian retorna tensor [C, D]
-            Jb = jacobian(g_vec, y[b], create_graph=True, strict=False)
-            jac_list.append(Jb)
-
-        J_pos = torch.stack(jac_list, dim=0)
-        J_neg = -J_pos
-        print('XXXXXX - JAC_X - XXXXXXXX')
-        result = torch.cat([J_pos, J_neg], dim=1)
-
-        return result
-
-    def jac_x_Epanet(self, y, args):
-
-        y = y.clone().requires_grad_(True)  # [B, D]
-        B, D = y.shape
-
-        def g_vec(y_i):
-
-            out = self.g_x_Autograd(y_i.unsqueeze(0), args)
-            return out.squeeze(0)  # [C]
-
-        # 3) loop sobre o batch (pode ser lento, mas preserva grafo)
-        jac_list = []
-        for b in range(B):
-            # jacobian retorna tensor [C, D]
-            Jb = jacobian(g_vec, y[b], create_graph=True, strict=False)
-            jac_list.append(Jb)
-
-        J_pos = torch.stack(jac_list, dim=0)
-        J_neg = -J_pos
-
-        result = torch.cat([J_pos, J_neg], dim=1)
+        #print('JAC_TEMPLOG_ORIGINAL', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
 
         return result
     
+    def jac_x_Autograd(self, y, args):
+
+        #start_time = time.time()
+
+        y = y.clone().requires_grad_(True)  # [B, D]
+        B, D = y.shape
+
+        def g_vec(y_i):
+
+            out = self.g_x_Autograd(y_i.unsqueeze(0), args)
+            return out.squeeze(0)  # [C]
+
+        # 3) loop sobre o batch (pode ser lento, mas preserva grafo)
+        jac_list = []
+        for b in range(B):
+            # jacobian retorna tensor [C, D]
+            Jb = jacobian(g_vec, y[b], create_graph=True, strict=False)
+            jac_list.append(Jb)
+
+        J_pos = torch.stack(jac_list, dim=0)
+        J_neg = -J_pos        
+
+        result = torch.cat([J_pos, J_neg], dim=1)
+
+        #print('JAC_X_AUTOGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
+        #print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+        #print('')
+        
+        return result
+
+    
     def ineq_jac(self, y, args):
 
-        #jac_gT = self.jac_gT_Epanet(y, args)
+        #jac_gT = self.jac_gT_Autograd(y, args)
         
-        #jac_TempLog = self.jac_TempLog_Epanet(y) 
-
-        #jac_x = self.jac_x_Epanet(y, args) 
-
-        jac_gT = self.jac_gT_Autograd(y, args)
+        jac_gT = self.jac_gT_Original(y)
         
-        jac_TempLog = self.jac_TempLog_Autograd(y) 
+        #jac_TempLog = self.jac_TempLog_Autograd(y) 
+
+        jac_TempLog = self.jac_TempLog_Original(y)
 
         jac_x = self.jac_x_Autograd(y, args) 
 

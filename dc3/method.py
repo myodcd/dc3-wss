@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 torch.set_default_dtype(torch.float32)
 
-import pandas as pd
+import pandas as pd 
 
 from torch.utils.data import TensorDataset, DataLoader
 
@@ -106,9 +106,9 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=10)
+    parser.add_argument('--qtySamples', type=int, default=100)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int, default=5,
         help='number of neural network epochs')
     parser.add_argument('--vector_format', type=str, default='tt-dd',
         help='format of the input data: td-td or tt-dd')
@@ -218,12 +218,12 @@ def train_net(data, args, save_dir):
 
 ########################################################################
             
-            print('Begin Y hat')
-            y_hat_start_time = time.time()
+            #print('Begin Y hat')
+            #y_hat_start_time = time.time()
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
             
-            print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
-            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            #print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
+            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
             for j in range(Yhat_train.shape[0]):
                 
@@ -262,47 +262,48 @@ def train_net(data, args, save_dir):
 ########################################################################            
 
 
-            print('Begin Y_new')
-            y_new_start_time = time.time()            
+            #print('Begin Y_new')
+            #y_new_start_time = time.time()            
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
-            print('Time Y new_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_new_start_time)))
-            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            #print('Time Y new_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_new_start_time)))
+            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
 
             for j in range(Ynew_train.shape[0]):
                 # salva o plot do novo y_new   
-                plot_simple(Ynew_train[j].cpu().detach().numpy(), i, args, 0, n_sample=j, title_comment=' - Final Y_new')
+                plot_simple(Ynew_train[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Final Y_new')
 
 
             
 ########################################################################            
 
-            print('Begin train_loss')
-            train_loss_time = time.time()           
+            #print('Begin train_loss')
+            #train_loss_time = time.time()           
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
-            print('Time train loss ', time.strftime("%H:%M:%S", time.gmtime(time.time() - train_loss_time)))
-            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            #print('Time train loss ', time.strftime("%H:%M:%S", time.gmtime(time.time() - train_loss_time)))
+            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
             
 ########################################################################
                                          
             ##### DEMORA MAIOR ESTÁ NESTE TRECHO #####
-            print('Begin loss backward')
-            time_start_backward = time.time()    
+            #print('Begin loss backward')
+            #time_start_backward = time.time()    
             train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to
-            print('Time backward ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_backward)))
-            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            #print('Time backward ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_backward)))
+            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
 
 
 ########################################################################
 
-            time_start_solveropt = time.time()
-            print('Begin solver_opt')
+            #time_start_solveropt = time.time()
+            #print('Begin solver_opt')
             solver_opt.step() # 4. Performe gradiente descent            
-            print('Time solver_opt ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_solveropt)))
-            print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            #print('Time solver_opt ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_solveropt)))
+            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
-########################################################################             
+########################################################################          
+   
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
@@ -346,7 +347,7 @@ def train_net(data, args, save_dir):
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
             )
         )
-        print('Y new [0]: ', Ynew_train[0].cpu().detach().numpy())
+        #print('Y new [0]: ', Ynew_train[0].cpu().detach().numpy())
         print('----')
         print('')
         print('')
@@ -438,8 +439,7 @@ def train_net(data, args, save_dir):
             
         output_data = newModel(input_data)
         
-        if args['probType'] == 'dc_wss':
-            
+        if args['probType'] == 'dc_wss':            
             total_cost = data.obj_fn_Autograd(output_data, args)[0]
         else:
             total_cost = data.obj_fn_Original(output_data, args)[0]
@@ -450,8 +450,8 @@ def train_net(data, args, save_dir):
         print('#####')
         print('Output: ', output_data)    
         print('#####')
-        output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
-        print('gT: ', data.gT_Autograd(output_data[:-1], args) )
+        #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
+        print('gT: ', data.gT_Original(output_data[:-1]) )
         print('#####')
         print('Resultado: ',total_cost )
         print('Avaliation finished')
@@ -572,7 +572,7 @@ def total_loss(data, X, Y, args, i):
     if args['probType'] == 'dc_wss':
         
         # Somente com restricao de desigualdade
-        result = obj_cost + args['softWeight'] * ineq_cost
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
     else:
         # Com equações de igualdade e desigualdade
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
