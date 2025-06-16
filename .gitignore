@@ -1,7 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/windows,macos,python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,macos,python,visualstudiocode
 
-/dc3/plots/
+.dc3/plots/
 
 ### macOS ###
 # General

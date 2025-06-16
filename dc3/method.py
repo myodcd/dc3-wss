@@ -8,8 +8,6 @@ import torch.nn.functional as F
 
 torch.set_default_dtype(torch.float32)
 
-import pandas as pd 
-
 from torch.utils.data import TensorDataset, DataLoader
 
 import numpy as np
@@ -19,7 +17,7 @@ from setproctitle import setproctitle
 import os
 import argparse
 
-
+from tqdm import tqdm
 from utils import str_to_bool
 
 import utils as utils
@@ -30,27 +28,25 @@ import matplotlib.pyplot as plt
 
 from plot_nonlinear_evolution import plot_nonlinear_evolution
 from plot_nonlinear_2ineq_evolution import plot_nonlinear_2ineq_evolution
-from plot_dc_wss import plot_dc_wss
-from plot_nivel_tanque import plot_nivel_tanque
 from plot_nivel_tanque_new import plot_nivel_tanque_new
 from plot_simple import plot_simple
 
 import warnings
 import datetime
 
-import ClassAutogradPyTorch as autograd
-
-import OptimAuxFunctionsV2 as op
-import data_system
 
 torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
-import EPANET_API as EPA_API
 
-QTY_EPOCH_SAVE = 20
-CREATE_GRAPH_YSTEP = False
+SAVE_PLOT_Y_NEW = False
+SAVE_PLOT_GIF = False
+SAVE_PLOT_COST = True
+QTY_EPOCH_SAVE = 10
+FIXED_Y_VALUE = False
+
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
         
@@ -106,12 +102,10 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=100)
+    parser.add_argument('--qtySamples', type=int, default=50)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=2,
         help='number of neural network epochs')
-    parser.add_argument('--vector_format', type=str, default='tt-dd',
-        help='format of the input data: td-td or tt-dd')
     parser.add_argument('--softWeightEqFracStart', type=float,
         help='starting value of softWeightEqFrac')
     parser.add_argument('--softWeightEqFracDuration', type=float, 
@@ -121,7 +115,7 @@ def main():
     args = vars(args) # change to dictionary
         
     if args['fileName'] is None:
-            args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}_{args['vector_format']}"
+            args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}"
     
     defaults = default_args.method_default_args(args['probType'])
     
@@ -141,7 +135,7 @@ def main():
     elif prob_type == 'nonlinear_2ineq':
         filepath = os.path.join('datasets', 'nonlinear_2ineq', "random_nonlinear_2ineq_dataset_ex{}".format(args['simpleEx']))
     elif prob_type == 'dc_wss':
-        filepath = os.path.join('datasets', 'dc_wss',  f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}_{args['vector_format']}")
+        filepath = os.path.join('datasets', 'dc_wss',  f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}")
     else:
         raise NotImplementedError
     with open(filepath, 'rb') as f:
@@ -178,13 +172,9 @@ def train_net(data, args, save_dir):
         
     time_trainning_start = time.time()
         
-    # UTILIZADO PARA USAR UM Y FIXO
-    y_fixed_values = False
-    
     solver_step = args['lr']
     nepochs = args['epochs']
     batch_size = args['batchSize']
-
 
     train_dataset = TensorDataset(data.trainX)
     valid_dataset = TensorDataset(data.validX)
@@ -198,23 +188,38 @@ def train_net(data, args, save_dir):
     solver_net.to(DEVICE)
     solver_opt = optim.Adam(solver_net.parameters(), lr=solver_step)
     
-
     stats = {}
     train_losses = []
+    valid_losses = []
+    test_losses = []
+
+    valid_eval_values = []
+    test_eval_values = []
     
     y1_new_history = []
     y2_new_history = [] 
 
     
-    for i in range(nepochs):
+    for i in tqdm(range(nepochs)):
         epoch_stats = {}
 
+        # Get valid loss
+        solver_net.eval()
+        for Xvalid in valid_loader:
+            Xvalid = Xvalid[0].to(DEVICE)
+            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
+                                    
+        solver_net.eval()
+        for Xtest in test_loader:
+            Xtest = Xtest[0].to(DEVICE)
+            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
             
         solver_net.train()
-        for Xtrain in train_loader:                   
+        for Xtrain in train_loader:    
+                           
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
-            solver_opt.zero_grad() # 0. Optimizer zero grad
+            
 
 ########################################################################
             
@@ -224,21 +229,21 @@ def train_net(data, args, save_dir):
             
             #print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
             #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            if SAVE_PLOT_Y_NEW:
 
-            for j in range(Yhat_train.shape[0]):
-                
-                plot_simple(Yhat_train[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Initial Y')
+                for j in range(Yhat_train.shape[0]):
+                    
+                    plot_simple(Yhat_train[j].cpu().detach().numpy(), 000, args, 0, n_sample=j, title_comment='Initial Y New')
                 
 ########################################################################
             
             # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
-            if y_fixed_values:
+            if FIXED_Y_VALUE:
                 
-
                 Yhat_train = torch.tensor(
                     [
                                                 
-                     [10.9925, 15.8876, 17.6809, 20.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+                     [1.37, 4.27, 12.63, 17.19, 20.17,  2.85, 4.13,  4.51, 2.92,  3.63],
 
                      [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
 
@@ -250,45 +255,65 @@ def train_net(data, args, save_dir):
 
                      [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
 
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+                     #[13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
 
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404]
+#                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404]
 
                     ]
                 ).requires_grad_(True)  
                 
-                y_fixed_values = False          
+            #Y_FIXED_VALUES = False          
 
 ########################################################################            
 
+            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args, epoch=i) # 1. Forward pass                             
+            # Generate GIF
+            if SAVE_PLOT_GIF:
+                        
+                time_generate_gif = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                base_folder = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\plots"
+                output_folder = os.path.join(base_folder, f"gifs_epoca_{time_generate_gif}")
+                os.makedirs(output_folder, exist_ok=True)            
+                
 
-            #print('Begin Y_new')
-            #y_new_start_time = time.time()            
-            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args) # 1. Forward pass                             
-            #print('Time Y new_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_new_start_time)))
-            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+                # Gera GIFs individuais
+                for nr_sample in range(Ynew_train.shape[0]):
+                    utils.create_gif_from_plots(nr=nr_sample, base_folder=base_folder, output_folder=output_folder)
 
-
-            for j in range(Ynew_train.shape[0]):
-                # salva o plot do novo y_new   
-                plot_simple(Ynew_train[j].cpu().detach().numpy(), j, args, 0, n_sample=j, title_comment=' - Final Y_new')
-
-
+                # Gera GIF combinado
+                utils.create_combined_gif(Y_shape_0=Ynew_train.shape[0], base_folder=base_folder, output_folder=output_folder)
             
 ########################################################################            
 
-            #print('Begin train_loss')
-            #train_loss_time = time.time()           
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
-            #print('Time train loss ', time.strftime("%H:%M:%S", time.gmtime(time.time() - train_loss_time)))
-            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+            
+            if SAVE_PLOT_COST:                          
+                for j in range(len(train_loss)):
+                    y_val = Ynew_train[j].cpu().detach().numpy()
+                    levels = data.gT_Original(Ynew_train[j].unsqueeze(0))[0][:-1].cpu().detach().numpy()
+                    cost = float(data.obj_fn_Autograd(Ynew_train[j].unsqueeze(0), args)[0])
+                    penalty = float(train_loss[j])
+                    respected = ''
+                    if round(cost, 3) == round(penalty, 3):
+                        respected = " - Respected all hard constraints"
+                    title = (
+                        f"Sample: {j}\n"
+                        f"Epoch: {i+1} \n"                        
+                        f"Y new: {np.array2string(y_val, precision=2, separator=', ')}\n"
+                        f"Levels: {np.array2string(levels, precision=2, separator=', ')}\n"
+                        f"Cost: € {cost:.2f} | Cost penalty: € {penalty:.2f}{respected}"
+                    )
+                    plot_nivel_tanque_new(args, Ynew_train[j], train_loss[j], save_plot=True, title=title, sample=j)
+                            
             
 ########################################################################
-                                         
+            # OBTENHO A FUNCAO DE PERDA
             ##### DEMORA MAIOR ESTÁ NESTE TRECHO #####
             #print('Begin loss backward')
             #time_start_backward = time.time()    
-            train_loss.sum().backward() # 3. Performe backpropagation on the loss with respect to
+            solver_opt.zero_grad() # 0. Optimizer zero grad
+             # 3. Performe backpropagation on the loss with respect to
+            train_loss.sum().backward() 
             #print('Time backward ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_backward)))
             #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 
@@ -296,6 +321,7 @@ def train_net(data, args, save_dir):
 
 ########################################################################
 
+            # USO O GRADIENTE PARA OTIMIZAR
             #time_start_solveropt = time.time()
             #print('Begin solver_opt')
             solver_opt.step() # 4. Performe gradiente descent            
@@ -312,33 +338,35 @@ def train_net(data, args, save_dir):
             for name, param in solver_net.named_parameters():
                 
                 ######################################
-                #print(f"{name}: {param.grad}")
-                pass
-                
-
-        # Get valid loss
-        solver_net.eval()
-        for Xvalid in valid_loader:
-            Xvalid = Xvalid[0].to(DEVICE)
-            eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
-            
-            
-            
-        solver_net.eval()
-        for Xtest in test_loader:
-            Xtest = Xtest[0].to(DEVICE)
-            eval_net(data, Xtest, solver_net, args, 'test', epoch_stats)
-                    
+                print(f"{name}: {param.grad}")
+                #pass                                    
                     
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
-        train_losses.append(avg_train_loss)
+        avg_valid_loss = np.mean(epoch_stats['valid_loss'])
+        avg_test_loss = np.mean(epoch_stats['test_loss'])
+
+
+        avg_valid_eval = np.mean(epoch_stats['valid_eval'])
+        avg_test_eval = np.mean(epoch_stats['test_eval'])
         
+        train_losses.append(avg_train_loss)
+        valid_losses.append(avg_valid_loss)
+        test_losses.append(avg_test_loss)        
+
+        valid_eval_values.append(avg_valid_eval)
+        test_eval_values.append(avg_test_eval)
+
+
+        print(f"[Epoch {i+1}] Train Loss: {avg_train_loss:.4f} | Valid Loss: {avg_valid_loss:.4f} | Test Loss: {avg_test_loss:.4f} | Time Elapsed: {np.mean(epoch_stats['valid_time'])}")
+
         
         if args['probType'] == 'dc_wss':
         
-            plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True, show=False)
-      
+            #plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True, show=False)
+
+            pass
+            
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
                 i, np.mean(epoch_stats['train_loss']), np.mean(epoch_stats['valid_eval']),
@@ -371,17 +399,33 @@ def train_net(data, args, save_dir):
                 torch.save(solver_net.state_dict(), f)
 
     now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')    
-        
-    plt.figure(figsize=(10, 6))
-    plt.plot(train_losses, label='Train Loss')
-    plt.xlabel('Epochs')
+
+    # Gráfico das perdas
+    plt.figure()
+    plt.plot(train_losses, label='Train')
+    plt.plot(valid_losses, label='Valid')
+    plt.plot(test_losses, label='Test')
+    plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('Train Loss Over Epochs')
+    plt.title('Loss curve')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join('plots',f'train_loss_ex_{args['simpleEx']}_epochs_{args['epochs']}_{args['vector_format']}_{now}.png'))
-    #plt.show() 
+    plt.tight_layout()
+    plt.savefig(os.path.join('plots',f'loss_curve_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
+    plt.show()
 
+    # Gráfico da função objetivo (eval)
+    plt.figure()
+    plt.plot(valid_eval_values, label='Eval - Valid')
+    plt.plot(test_eval_values, label='Eval - Test')
+    plt.xlabel('Epoch')
+    plt.ylabel('Obj fn')
+    plt.title('Evolution obj fn (eval)')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join('plots',f'eval_curve_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
+    plt.show()
 
 
     if args['probType'] == 'nonlinear':
@@ -404,7 +448,7 @@ def train_net(data, args, save_dir):
     
     save_model = os.path.join('models')
     
-    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}_softWeight{args['softWeight']}_{args['vector_format']}.pt'), 'wb') as f:
+    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}_softWeight{args['softWeight']}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
 
 
@@ -419,23 +463,25 @@ def train_net(data, args, save_dir):
     if args['probType'] == 'dc_wss':
 
         # Testar resultado do modelo
-        path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}_{args['vector_format']}.pt')
+        path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
         
         hiddenSize_ = args['hiddenSize']
-        args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full', 'vector_format': args['vector_format']}
+        args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full'}
 
         newModel = NNSolver(data, args_)
         newModel.load_state_dict(torch.load(path_model, map_location=torch.device('cpu')))
         newModel.eval()    
 
-        if args['dc'] == 2:
-            input_data = torch.tensor([[1,8,12,3,3.0]])
-        elif args['dc'] == 3:
+        if args['dc'] == 3:
             input_data = torch.tensor([[1,8,12,3,3,3.0]])
+            #input_data = np.array(input_data, dtype=np.float32)
+            #input_data = [1,8,12,3,3,3.0]
         elif args['dc'] == 4:
             input_data = torch.tensor([[1,8,12,18,3,3,3.0,2.5]])
+            #input_data = np.array(input_data, dtype=np.float32)
         elif args['dc'] == 5:
-            input_data = torch.tensor([[1, 8, 12, 18, 21, 3, 3, 3, 2.5, 2.5]])
+            input_data = torch.tensor([[0, 4.8, 9.6, 14.4, 19.2, 1, 1, 1, 1, 1]])
+            #input_data = np.array(input_data, dtype=np.float32)
             
         output_data = newModel(input_data)
         
@@ -450,8 +496,7 @@ def train_net(data, args, save_dir):
         print('#####')
         print('Output: ', output_data)    
         print('#####')
-        #output_data = utils.parser_td_to_tt(output_data) if args['vector_format'] == 'td-td' else output_data
-        print('gT: ', data.gT_Original(output_data[:-1]) )
+        print('gT: ', data.gT_Original(output_data[0].unsqueeze(0)) )
         print('#####')
         print('Resultado: ',total_cost )
         print('Avaliation finished')
@@ -573,17 +618,24 @@ def total_loss(data, X, Y, args, i):
         
         # Somente com restricao de desigualdade
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+        #result = obj_cost + args['softWeight'] * ineq_cost
+
+        
     else:
         # Com equações de igualdade e desigualdade
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
     
     
+    
+    
+    #plot_simple(Y[2].cpu().detach().numpy(), 0, args, 2, n_sample=2)
+    
     return result
 
 
 
-def grad_steps(data, X, Y, args):
+def grad_steps(data, X, Y, args, epoch=None):
 
         
     take_grad_steps = args['useTrainCorr']
@@ -597,9 +649,10 @@ def grad_steps(data, X, Y, args):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
-        old_Y_step = 0                       
-        
-        for i in range(num_steps):            
+        old_Y_step = 0       
+        print('')                
+        print(f'-- GradSteps -- | Qty {str(Y.shape[0])}')
+        for i in tqdm(range(num_steps+1)):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
@@ -620,10 +673,11 @@ def grad_steps(data, X, Y, args):
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
             
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
                             
                 histories = [[] for _ in range(Y.shape[0])]
-                for j in range(len(Y) // 2):
+                #for j in range(len(Y) // 2):
+                for j in range(len(Y)):
                     histories[j].append(-Y_step[j].detach().numpy())                                        
             
             new_Y_step = lr * Y_step + momentum * old_Y_step            
@@ -631,12 +685,19 @@ def grad_steps(data, X, Y, args):
 
             Y_new = Y_new - new_Y_step
 
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
                 
                 
                 for j in range(Y.shape[0]):
                     
-                    plot_simple(Y_new[j].cpu().detach().numpy(), i, args, histories[j], n_sample=j)
+                    if i == args['corrTrainSteps']:
+                    
+                        plot_simple(results=Y_new[j].cpu().detach().numpy(), iteration=i, args=args, y_steps=histories[j], n_sample=j, title_comment='Final Y New',total_iteration=args['corrTrainSteps'], epoch=epoch)
+                    
+                    else: 
+                        
+                        plot_simple(results=Y_new[j].cpu().detach().numpy(), iteration=i, args=args, y_steps=histories[j], n_sample=j, total_iteration=args['corrTrainSteps'], epoch=epoch)
+                        
                 
 
 
@@ -650,10 +711,11 @@ def grad_steps(data, X, Y, args):
 
         # Cria o GIF com os arquivos que começam com "plot_simple_nr0_epochNr"
         
-        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and CREATE_GRAPH_YSTEP:
+        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
             for i in range(Y.shape[0]):
-                gif_filename = os.path.join('plots', f"training_progress_nr{i}.gif")
-                utils.create_gif_from_plots(plot_dir, gif_filename, prefix=f"plot_simple_nr{i}_epochNr")
+                pass
+                #gif_filename = os.path.join('plots', f"training_progress_nr{i}.gif")
+                #utils.create_gif_from_plots(plot_dir, gif_filename, prefix=f"plot_simple_nr{i}_epochNr")
                     
         return Y_new
        

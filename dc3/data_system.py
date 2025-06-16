@@ -13,7 +13,7 @@ class data_system:
         self.tariffpatern=["T_Tariff"] #nome do pattern no inp com o tarifário
         self.tariff_idx=[] 
         self.hmin=[2] 
-        self.hmax=[8]
+        self.hmax=[8]   
         self.h0=[4]   
         self.units_flow=0 # 0 -> CMH AND 1 -> LPS
         self.num_dc=3
@@ -39,8 +39,8 @@ class data_system:
         self.EpanetFile = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\Bomba-deposito_v1.inp"
         self.flag_t_inicio=0
         self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
-        self.nomerpt='report.rpt'
-        self.nomebin='output.bin'
+        self.nomerpt=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\report.rpt"
+        self.nomebin=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\output.bin"
 
         ### Dados otimização ###    
         self.ftype=3

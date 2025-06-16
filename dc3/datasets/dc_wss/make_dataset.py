@@ -67,7 +67,7 @@ def generate_dataset(nDutyCycles: int):
             X.append(times + durations)
 
         problem = Problem_DC_WSS(d, X)
-        fname = f"dc_wss_dataset_dc{nDutyCycles}_ex{len(X)}_tt-dd"
+        fname = f"dc_wss_dataset_dc{nDutyCycles}_ex{len(X)}"
         path = (".\\" if os.name == "nt" else "./") + fname
         with open(path, "wb") as f:
             pickle.dump(problem, f)

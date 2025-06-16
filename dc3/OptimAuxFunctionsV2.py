@@ -9,6 +9,10 @@ import torch
 from torch.autograd import grad
 import utils as utils
 
+
+SHOW_PRINT = False
+    
+    
 ##############################################
 ############## AUXILIAR FUNCTIONS ############
 ##############################################
@@ -57,8 +61,9 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                         eps_aux[i]=-max(inicio,1)*epsF_i # regressiva standard com eps=-max(inicio,1)*epsF_i 
                     else:
                         flagR_i=1 # Não se pode aplicar a regressiva standard sem sobrepor DCs
-                        print('starting time: standard progressive and regressive not applied')
-                        print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
+                        if SHOW_PRINT:
+                            print('starting time: standard progressive and regressive not applied')
+                            print('prev: '+str(pre)+'; inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next '+str(next))
 
             if(flagR_i==1): # Não se pode aplicar a regressiva standard sem sobrepor DCs    
                 dif=(inicio-pre) 
@@ -67,7 +72,8 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                     eps_aux[i]=-(dif-(1/(60*60)))
                 else:
                     eps_aux[i]=max(inicio,1)*epsF_i # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping for starting time') 
+                    if SHOW_PRINT:
+                        print('ERROR: DC overlapping for starting time') 
 
         ### definição de perturbação para duração de DC ###
         for j in range(n_dc,len(x_p)): 
@@ -86,8 +92,9 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                         eps_aux[j]=-max(dur,1)*epsF_d # regressiva standard com eps=-max(dur,1)*epsF_d
                     else:
                         flagR_d=1 # Não se pode aplicar a regressiva standard 
-                        print('duration: standard progressive and regressive not applied')                        
-                        print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
+                        if SHOW_PRINT:
+                            print('duration: standard progressive and regressive not applied')                        
+                            print('inicio: '+str(inicio)+'; fim: '+str(inicio+dur)+'; next: '+str(next))
 
             if(flagR_d==1): # dif. regressiva para duração 
                 # eps_aux[j] = -dur if dur >= (d.dif_DC - 1/(60*60)) else max(inicio, 1) * epsF_d
@@ -95,7 +102,8 @@ def eps_definition_F3(x,d): #definição do eps para a 3a formulação (DC) + VS
                     eps_aux[j]= -dur 
                 else:
                     eps_aux[j]=max(inicio,1)*epsF_d # sobrepor para a frente -> supostamente isto não acontece     
-                    print('ERROR: DC overlapping -> duration is to low to regressive')
+                    if SHOW_PRINT:
+                        print('ERROR: DC overlapping -> duration is to low to regressive')
         
         eps[d.dc_pos[p]:d.dc_pos[p+1]] = eps_aux
     
@@ -207,11 +215,13 @@ def h_red3_acordeao(x,htank,timeInc,d,n_points): #h no inicio + fim de cada DC +
             else:
                 if(time_seg[idx_zero[i]] >= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor + 1*60*60): #supostamente nunca acontece
                     h_min[idx_zero[i]]=h[len(h)-1]
-                    print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
+                    if SHOW_PRINT:
+                        print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
                 # elif(time_seg[idx_zero[i]] <= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor +)
                      
                 else:                    
-                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
+                    if SHOW_PRINT:
+                        print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
 
 
@@ -286,9 +296,11 @@ def h_red3(x,htank,timeInc,d): #h no inicio e fim de cada arranque - F3 + 24h
             else:                    
                 if(time_seg[idx_zero[i]] >= total_time_hor and time_seg[idx_zero[i]] <= total_time_hor + 1*60*60): #supostamente nunca acontece
                     h_min[idx_zero[i]]=h[len(h)-1]
-                    print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
+                    if SHOW_PRINT:
+                        print('ERROR: WATER LEVEL EXTRAPOLATED ->'+str((time_seg[idx_zero[i]]/3600))) 
                 else:
-                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
+                   if SHOW_PRINT: 
+                        print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_seg[idx_zero[i]]/3600))) 
     return h_min
 
 jit(nopython=True)
@@ -424,7 +436,8 @@ def h_tmin(d,htank,timeInc,min): # Reduzir os niveis do deposito de tmin em tmin
                 if(len(aux)!=0):
                     h_tmin[idx_zero[i]]=h[aux[0]+1] 
                 else:
-                    print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
+                    if SHOW_PRINT:
+                        print('ERROR: WATER LEVEL NOT FOUND ->'+str((time_tmin_seg[idx_zero[i]]/3600)))                     
     return h_tmin
 
 jit(nopython=True)
@@ -771,8 +784,6 @@ def g_TempLog(x,d): #tstart(n+1) > tstop(n)  (várias bombas)
                   
         g5=np.concatenate((g5,g5_F33))
 
-    # print(x)
-    # print(g5)
     return g5
 
 jit(nopython=True)

@@ -337,8 +337,8 @@ def EpanetSimulation_MultiplosFicheiros(x, d, sim_step):
 
 jit(nopython=True)
 def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodule
-    #em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin) # abrir epanet
-    em.ENopen(d.EpanetFile, 'teste.rpt', 'teste.bin' ) # abrir epanet
+    em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin) # abrir epanet
+    #em.ENopen(d.EpanetFile, 'teste.rpt', 'teste.bin' ) # abrir epanet
     if(sim_step!=0):
         em.ENsettimeparam(em.EN_HYDSTEP,sim_step) # definir hidraulic step a sim_step seg por causa das dif.finitas
     d.timeInc_s=em.ENgettimeparam(em.EN_HYDSTEP) # duração de cada incremento de simulação

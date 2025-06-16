@@ -9,13 +9,6 @@ import math
 import plot_simple as plot_simple
 import numpy as np
 
-# import osqp
-#from qpth.qp import QPFunction
-
-# import cyipopt
-# from scipy.linalg import svd
-# from scipy.sparse import csc_matrix
-
 import datetime
 
 import hashlib
@@ -37,7 +30,7 @@ import os
 import shutil
 
 import time
-
+import re
 from PIL import Image
 
 import tempfile
@@ -60,133 +53,83 @@ def str_to_bool(value):
 def my_hash(string):
     return hashlib.sha1(bytes(string, "utf-8")).hexdigest()
 
-
-def parser_tt_to_td(y):
-
-    if y.shape[1] % 2:
-        y_last_column = y[:, -1:]
-        y = y[:, :-1]
-
-    n, cols = y.shape
-    qty = cols // 2  # Quantidade de pares (hora, duração)
-
-    # Divide as colunas em horas e durações
-    horarios = y[:, :qty]  # Primeira metade (horas)
-    duracoes = y[:, qty:]  # Segunda metade (durações)
-
-    # Intercala horas e durações
-    y_intercalado = torch.empty_like(y)
-    y_intercalado[:, ::2] = horarios
-    y_intercalado[:, 1::2] = duracoes
-
-    y_intercalado = (
-        torch.cat([y_intercalado, y_last_column], dim=1)
-        if y.shape[1] % 2
-        else y_intercalado
-    )
-
-    return y_intercalado
-
-
-def parser_td_to_tt(y):
-
-    n, cols = y.shape
-    qty = cols // 2  # Quantidade de pares (hora, duração)
-
-    # Seleciona as colunas de horas e durações
-    horarios = y[:, ::2]  # Colunas pares (horas)
-    duracoes = y[:, 1::2]  # Colunas ímpares (durações)
-
-    # Concatena horas e durações
-    y_separado = torch.cat([horarios, duracoes], dim=1)
-
-    return y_separado
-
-
-def finite_diff_jac(func, x, eps, *func_args):
-
-    f0 = func(x, *func_args)  # [m]
-    m = f0.numel()
-    n = x.numel()
-    J = torch.zeros(m, n, device=x.device, dtype=x.dtype)
-    for k in range(n):
-        delta = torch.zeros_like(x)
-        delta[k] = eps[k]
-        f_plus = func(x + delta, *func_args)
-        J[:, k] = (f_plus - f0) / eps[k]
-    return J
-
-
-
 def prepare_inp_copies(base_inp_path, n_jobs):
 
     for i in range(n_jobs):
         job_dir = f"/tmp/epanet_job_{i}"
         os.makedirs(job_dir, exist_ok=True)
         shutil.copy(base_inp_path, os.path.join(job_dir, "Bomba-deposito_v1"))
-        
 
-
-
-def create_gif_from_plots(
-    plot_dir,
-    gif_filename,
-    prefix,
-    frame_duration=500,  # segundos por quadro
-    loop=0,  # 0 = repetir para sempre
-    target_size=None,
-):
-    # Lista e filtra arquivos
-    files = sorted(
-        f
-        for f in os.listdir(plot_dir)
-        if f.startswith(prefix) and f.lower().endswith(".png")
-    )
-    if not files:
-        print(f"Nenhum arquivo encontrado com o prefixo '{prefix}' em {plot_dir}")
+def create_gif_from_plots(nr: int, base_folder: str, output_folder: str, duracao: int = 1000):
+    padrao = re.compile(rf"plot_Y_sample_nr{nr}_iteration_.*\.png")
+    arquivos = [f for f in os.listdir(base_folder) if padrao.fullmatch(f)]
+    if not arquivos:
+        print(f"Nenhuma imagem encontrada para nr{nr}")
         return
 
-    images = []
-    # Determina tamanho de referência
-    first_path = os.path.join(plot_dir, files[0])
-    with Image.open(first_path) as ref_img:
-        base_size = target_size or ref_img.size  # (width, height)
+    def extrai_indice(nome):
+        match = re.search(r"iteration_nr(\d+)", nome)
+        return int(match.group(1)) if match else 0
 
-    # Define filtro de redimensionamento
-    resample_filter = getattr(
-        getattr(Image, "Resampling", Image), "LANCZOS", Image.BICUBIC
+    arquivos.sort(key=extrai_indice)
+    caminhos = [os.path.join(base_folder, nome) for nome in arquivos]
+    imagens = [Image.open(nome) for nome in caminhos]
+
+    output = os.path.join(output_folder, f"gif_tanks_nr{nr}.gif")
+    imagens[0].save(
+        output,
+        save_all=True,
+        append_images=imagens[1:],
+        duration=duracao,
+        loop=0
     )
 
-    # Processa cada imagem
-    for fname in files:
-        path = os.path.join(plot_dir, fname)
-        with Image.open(path) as img:
-            if img.size != base_size:
-                img = img.resize(base_size, resample_filter)
-            images.append(np.array(img))
-
-    # Adiciona data e hora ao nome do arquivo
-    now = datetime.datetime.now().strftime("_%Y-%m-%d_%H-%M-%S")
-    gif_filename = gif_filename.replace(".gif", f"{now}.gif")
-
-    # Salva o GIF com 3s por quadro e loop infinito
-    imageio.mimsave(gif_filename, images, duration=frame_duration, loop=loop)
-    #print(f"GIF salvo em: {gif_filename} (size={base_size}, frames={len(images)})")
 
 
+def create_combined_gif(Y_shape_0, pasta: str, pasta_saida: str, duracao: int = 1000):
+    imagens_por_nr = []
 
-def prepare_epanet_temp_files(d):
-    # Arquivo .inp temporário com base no cache
-    tmp_inp = tempfile.NamedTemporaryFile(delete=False, suffix=".inp", mode='w')
-    tmp_inp.write(d.inp_cache)
-    tmp_inp.close()
-    d.EpanetFile = tmp_inp.name
+    for nr in range(Y_shape_0):
+        padrao = re.compile(rf"plot_Y_sample_nr{nr}_iteration_.*\.png")
+        arquivos = [f for f in os.listdir(pasta) if padrao.fullmatch(f)]
 
-    # Arquivos .rpt e .bin temporários
-    d.nomerpt = tempfile.NamedTemporaryFile(delete=False, suffix=".rpt").name
-    d.nomebin = tempfile.NamedTemporaryFile(delete=False, suffix=".bin").name
+        def extrai_indice(nome):
+            match = re.search(r"iteration_nr(\d+)", nome)
+            return int(match.group(1)) if match else 0
 
-    return d
+        arquivos.sort(key=extrai_indice)
+        caminhos = [os.path.join(pasta, nome) for nome in arquivos]
+        imagens = [Image.open(caminho) for caminho in caminhos]
+        imagens_por_nr.append(imagens)
+
+    num_quadros = min(len(imgs) for imgs in imagens_por_nr)
+    quadros_comb = []
+
+    for i in range(num_quadros):
+        imagens_lado_a_lado = [imagens_por_nr[nr][i] for nr in range(Y_shape_0)]
+        altura_comum = min(img.height for img in imagens_lado_a_lado)
+        imagens_redim = [img.resize((int(img.width * altura_comum / img.height), altura_comum)) for img in imagens_lado_a_lado]
+
+        largura_total = sum(img.width for img in imagens_redim)
+        combinado = Image.new('RGB', (largura_total, altura_comum))
+        x_offset = 0
+        for img in imagens_redim:
+            combinado.paste(img, (x_offset, 0))
+            x_offset += img.width
+
+        quadros_comb.append(combinado)
+
+    if quadros_comb:
+        output = os.path.join(pasta_saida, f"gif_combined_all_nr.gif")
+        quadros_comb[0].save(
+            output,
+            save_all=True,
+            append_images=quadros_comb[1:],
+            duration=duracao,
+            loop=0
+        )
+
+
 
 
 ###################################################################
@@ -464,7 +407,7 @@ class Problem_DC_WSS:
         
         #jac_TempLog = self.jac_TempLog_Autograd(y) 
 
-        jac_TempLog = self.jac_TempLog_Original(y)
+        jac_TempLog = -self.jac_TempLog_Original(y)
 
         jac_x = self.jac_x_Autograd(y, args) 
 
@@ -501,8 +444,8 @@ class Problem_DC_WSS:
         for i in range(1, qty):
             prev_end = adjusted_start_times[i - 1] + durations_sorted[:, i - 1 : i]
             current_start = torch.max(
-                start_times_sorted[:, i : i + 1], prev_end + 0.005
-            )  # Adiciona intervalo mínimo de 0.01
+                start_times_sorted[:, i : i + 1], prev_end + 0.05
+            )  # Adiciona intervalo mínimo de 0.05
             adjusted_start_times.append(current_start)
 
         adjusted_start_times = torch.cat(adjusted_start_times, dim=1)
@@ -691,7 +634,7 @@ class Problem_Non_Linear:
         # Resíduo ajustado (clamp para respeitar desigualdades)
         x1 = X[:, 0]
         x2 = X[:, 1]
-        grad = self.ineq_dist(X, Y).squeeze(1)
+        grad = self.ineq_dist(X, Y, args).squeeze(1)
         # grad = self.ineq_dist(x1, x2)
 
         # Inicialização do tensor para gradientes
