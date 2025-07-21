@@ -12,31 +12,33 @@ import torch
 import tempfile
 
 jit(nopython=True)
-def WSS_Components(d,n_links,n_nodes): 
+
+
+def WSS_Components(d, n_links, n_nodes):
     """
     Define the WSS structure to future collect the hydraulic simulation data.
 
     Parameters:
-        d (class): WSS infos  
+        d (class): WSS infos
         n_links (int): No of WSS links
         n_nodes (int): No of WSS nodes
 
     Returns:
-        d (class): WSS infos (updated)  
+        d (class): WSS infos (updated)
 
         pumps (dict): struture to save the pumps infos (i E {0,...,d.n_pumps-1})
                     - 'pumps_idx' (int): each pump idx on EPANET
                     - 'pumps_id' (str): each pump id (name) on EPANET
-                    - 'pump'+str(I)+'_s' (int): to save the pump i status in each hydraulic time step (timeInc_s) 
+                    - 'pump'+str(I)+'_s' (int): to save the pump i status in each hydraulic time step (timeInc_s)
                     - 'pump'+str(i)+'_q' (float): to save the pump i water flow in each timeInc_s
                     - 'pump'+str(i)+'_p' (float): to save the pump i hydraulic power (if sp==1: (Wp/eff) else Wp) in each timeInc_s
                     - 'pump'+str(i)+'_sp' (float): to save the pump i speed in each timeInc_s
                     - 'pump'+str(i)+'_h' (float): to save the pump i head in each timeInc_s
 
-        tanks (dict): struture to save the tanks infos (i E {0,...,d.n_tanks-1}) 
+        tanks (dict): struture to save the tanks infos (i E {0,...,d.n_tanks-1})
                     - 'tanks_idx' (int): each tank idx on EPANET
                     - 'tanks_id' (str): each tank id (name) on EPANET
-                    - 'pump'+str(i)+'_h' (float): to save the tank i water level in each timeInc_s            	    - 
+                    - 'pump'+str(i)+'_h' (float): to save the tank i water level in each timeInc_s            	    -
 
         pipes (dict): struture to save the pipes infos (i E {0,...,d.n_pipes-1})
                     - 'pipes_idx' (int): each pipe idx on EPANET
@@ -47,25 +49,25 @@ def WSS_Components(d,n_links,n_nodes):
                     - 'valve'+str(i)+'_s' (int): to save the valve i status in each timeInc_s
                     - 'valve'+str(i)+'_q' (float): to save the valve i water flow in each timeInc_s
 
-        CP (dict):  struture to save infos about the consumption points and respective patterns 
+        CP (dict):  struture to save infos about the consumption points and respective patterns
                     - 'CPs_idx' (int): each consumption point idx on EPANET
-                    - 'CPs_id' (int): each consumption point id (name) on EPANETs 
+                    - 'CPs_id' (int): each consumption point id (name) on EPANETs
                     - 'patterns_idx' (int): each pattern idx on EPANET
                     - 'pattens_id' (int): each pattern id (name) on EPANET
     """
 
     pumps_idx = []
-    pumps_id= []
+    pumps_id = []
     tanks_idx = []
     tanks_id = []
     valves_idx = []
     pipes_idx = []
-    CPs_id=[]
-    CPs_idx=[]
-    patterns_id=[]
-    patterns_idx=[]
-    tariffs_idx=[]
-    tariffs_id=[]
+    CPs_id = []
+    CPs_idx = []
+    patterns_id = []
+    patterns_idx = []
+    tariffs_idx = []
+    tariffs_id = []
 
     for i in range(1, n_links + 1):
         type = em.ENgetlinktype(i)
@@ -79,90 +81,106 @@ def WSS_Components(d,n_links,n_nodes):
 
     for i in range(1, n_nodes + 1):
         type = em.ENgetnodetype(i)
-        if type == em.EN_TANK: #tanques
+        if type == em.EN_TANK:  # tanques
             tanks_idx.append(i)
             tanks_id.append(em.ENgetnodeid(i))
-        if type == em.EN_JUNCTION: # pontos de consumo
-            node_name=em.ENgetnodeid(i)
-            if(str(node_name[0:1])=="b'P'"):
+        if type == em.EN_JUNCTION:  # pontos de consumo
+            node_name = em.ENgetnodeid(i)
+            if str(node_name[0:1]) == "b'P'":
                 CPs_idx.append(i)
                 CPs_id.append(node_name)
-    
-    # Tariffs, Patterns and Consumption Point Characterization 
 
-    n_pattern=em.ENgetcount(em.EN_PATCOUNT)
-    for i in range(1,n_pattern+1):
-        pat_id=em.ENgetpatternid(i)
-        if(str(pat_id[0:2])=="b'T_'"): #Tariffs
+    # Tariffs, Patterns and Consumption Point Characterization
+
+    n_pattern = em.ENgetcount(em.EN_PATCOUNT)
+    for i in range(1, n_pattern + 1):
+        pat_id = em.ENgetpatternid(i)
+        if str(pat_id[0:2]) == "b'T_'":  # Tariffs
             tariffs_idx.append(i)
             tariffs_id.append(pat_id)
-        if(str(pat_id[0:1])=="b'P'"): #Consumption Patterns
+        if str(pat_id[0:1]) == "b'P'":  # Consumption Patterns
             patterns_id.append(pat_id)
             patterns_idx.append(i)
 
-    if(len(d.tariffpatern)==1):
-        d.tariff_idx=em.ENgetpatternindex(d.tariffpatern[0]) 
+    if len(d.tariffpatern) == 1:
+        d.tariff_idx = em.ENgetpatternindex(d.tariffpatern[0])
 
-    CP={'CPs_idx':CPs_idx, 'CPs_id':[x.decode('utf-8') for x in CPs_id], 'patterns_idx':patterns_idx, 'patterns_id':[x.decode('utf-8') for x in patterns_id]}
-    tariffs={'tariff_idx':tariffs_idx, 'tariff_id':tariffs_id}
+    CP = {
+        "CPs_idx": CPs_idx,
+        "CPs_id": [x.decode("utf-8") for x in CPs_id],
+        "patterns_idx": patterns_idx,
+        "patterns_id": [x.decode("utf-8") for x in patterns_id],
+    }
+    tariffs = {"tariff_idx": tariffs_idx, "tariff_id": tariffs_id}
 
-    #Pumps Characterization
-    d.n_pumps=len(pumps_idx)
-    d.n_max_inc=int((d.T_s/d.timeInc_s)*2*d.n_pumps) #numero maximo de incrementos
-    pumps={'pumps_idx':pumps_idx, 'pumps_id':[x.decode('utf-8') for x in pumps_id], 'pumps_tar_idx':[], 'pumps_tar_id':[]}
-    for i in range(0,d.n_pumps):
-        pumps['pump'+str(i)+'_s']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_q']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_p']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_sp']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_h']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_eff']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_pot']=[0 for j in range(d.n_max_inc)]
-        pumps['pump'+str(i)+'_tar']=[]
-        if(len(d.tariffpatern)!=1):
-            pumps['pumps_tar_idx'].append(em.ENgetpatternindex(d.tariffpatern[i]))
-            pumps['pumps_tar_id'].append(d.tariffpatern[i])
+    # Pumps Characterization
+    d.n_pumps = len(pumps_idx)
+    d.n_max_inc = int(
+        (d.T_s / d.timeInc_s) * 2 * d.n_pumps
+    )  # numero maximo de incrementos
+    pumps = {
+        "pumps_idx": pumps_idx,
+        "pumps_id": [x.decode("utf-8") for x in pumps_id],
+        "pumps_tar_idx": [],
+        "pumps_tar_id": [],
+    }
+    for i in range(0, d.n_pumps):
+        pumps["pump" + str(i) + "_s"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_q"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_p"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_sp"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_h"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_eff"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_pot"] = [0 for j in range(d.n_max_inc)]
+        pumps["pump" + str(i) + "_tar"] = []
+        if len(d.tariffpatern) != 1:
+            pumps["pumps_tar_idx"].append(em.ENgetpatternindex(d.tariffpatern[i]))
+            pumps["pumps_tar_id"].append(d.tariffpatern[i])
         else:
-            pumps['pumps_tar_idx'].append(em.ENgetpatternindex(d.tariffpatern[0]))
-            pumps['pumps_tar_id'].append(d.tariffpatern[0])
+            pumps["pumps_tar_idx"].append(em.ENgetpatternindex(d.tariffpatern[0]))
+            pumps["pumps_tar_id"].append(d.tariffpatern[0])
 
+    # Valves Characterization
+    d.n_valves = len(valves_idx)
+    valves = {"valves_idx": valves_idx}
+    for i in range(0, d.n_valves):
+        valves["valve" + str(i) + "_q"] = [0 for j in range(d.n_max_inc)]
+        valves["valve" + str(i) + "_s"] = [0 for j in range(d.n_max_inc)]
 
-    #Valves Characterization
-    d.n_valves=len(valves_idx)
-    valves={'valves_idx':valves_idx}
-    for i in range(0,d.n_valves):
-        valves['valve'+str(i)+'_q']=[0 for j in range(d.n_max_inc)]        
-        valves['valve'+str(i)+'_s']=[0 for j in range(d.n_max_inc)]
+    # Pipes Characterization
+    d.n_pipes = len(pipes_idx)
+    pipes = {"pipes_idx": pipes_idx}
+    for i in range(0, d.n_pipes):
+        pipes["pipes_idx"][i] = pipes_idx[i]
+        pipes["pipe" + str(i) + "_q"] = [0 for j in range(d.n_max_inc)]
 
-    #Pipes Characterization
-    d.n_pipes=len(pipes_idx)
-    pipes={'pipes_idx':pipes_idx}
-    for i in range(0,d.n_pipes):
-        pipes['pipes_idx'][i]=pipes_idx[i]
-        pipes['pipe'+str(i)+'_q']=[0 for j in range(d.n_max_inc)]
-
-    #Tanks Characterization
-    d.n_tanks=len(tanks_idx)
-    tanks={'tanks_idx': tanks_idx, 'tanks_id':[x.decode('utf-8') for x in tanks_id]}
-    for i in range(0,d.n_tanks):
-        tanks['tank'+str(i)+'_h']=[0 for j in range(d.n_max_inc)]
+    # Tanks Characterization
+    d.n_tanks = len(tanks_idx)
+    tanks = {"tanks_idx": tanks_idx, "tanks_id": [x.decode("utf-8") for x in tanks_id]}
+    for i in range(0, d.n_tanks):
+        tanks["tank" + str(i) + "_h"] = [0 for j in range(d.n_max_inc)]
 
     return d, pumps, tanks, pipes, valves, CP, tariffs
 
+
 jit(nopython=True)
-def EpanetAPIData(d,pumps,tanks,pipes,valves,tariffs): #Recolha de dados de simulação 
+
+
+def EpanetAPIData(
+    d, pumps, tanks, pipes, valves, tariffs
+):  # Recolha de dados de simulação
     """
     Colect the hydraulic simulation data.
 
     Parameters:
-        d (class): WSS infos  
-        pumps (dict): struture used to save the pumps infos 
-        tanks (dict): struture used to save the tanks infos 
-        pipes (dict): struture used to save the pipes infos 
-        valves (dict): struture used to save the valves infos 
+        d (class): WSS infos
+        pumps (dict): struture used to save the pumps infos
+        tanks (dict): struture used to save the tanks infos
+        pipes (dict): struture used to save the pipes infos
+        valves (dict): struture used to save the valves infos
 
     Returns: d,pumps,tanks,pipes,valves,timeInc
-        d (class): WSS infos (updated)  
+        d (class): WSS infos (updated)
         pumps (dict): updated pumps structure
         tanks (dict): updated tanks structure
         pipes (dict): updated pipes structure
@@ -174,104 +192,144 @@ def EpanetAPIData(d,pumps,tanks,pipes,valves,tariffs): #Recolha de dados de simu
                     - 'EndTime' (int): ending time of each simulation time step (seconds)
                     - 'Tariff' (int): energy cost applied in each simulation time step (€/kWh)
     """
-    i_dur=[]
-    t_next=1
-    n_inc=0
-    t_i=em.ENgettimeparam(em.EN_PATTERNSTART) 
-    t_inicio=[]  
+    i_dur = []
+    t_next = 1
+    n_inc = 0
+    t_i = em.ENgettimeparam(em.EN_PATTERNSTART)
+    t_inicio = []
 
-    if(d.flag_pat!=0):
-        h0_definition(d,tanks)
-        d=tariff_definition(d)
-    elif(d.flag_def_h0!=0):
-        h0_definition(d,tanks)
-    
-    while t_next>0:
-        em.ENrunH()        
-        
-        for i in range(d.n_pumps):  
-            idx=pumps['pumps_idx'][i] 
-            pumps['pump'+str(i)+'_sp'][n_inc]=em.ENgetlinkvalue(idx,em.EN_SETTING)      
-            pumps['pump'+str(i)+'_q'][n_inc]=em.ENgetlinkvalue(idx,em.EN_FLOW)
-            pumps['pump'+str(i)+'_p'][n_inc]=em.ENgetlinkvalue(idx,em.EN_ENERGY)        
-            pumps['pump'+str(i)+'_s'][n_inc]=em.ENgetlinkvalue(idx,em.EN_STATUS)                 
-            pumps['pump'+str(i)+'_h'][n_inc]=em.ENgetlinkvalue(idx,em.EN_HEADLOSS)     
+    if d.flag_pat != 0:
+        h0_definition(d, tanks)
+        d = tariff_definition(d)
+    elif d.flag_def_h0 != 0:
+        h0_definition(d, tanks)
+
+    while t_next > 0:
+        em.ENrunH()
+
+        for i in range(d.n_pumps):
+            idx = pumps["pumps_idx"][i]
+            pumps["pump" + str(i) + "_sp"][n_inc] = em.ENgetlinkvalue(
+                idx, em.EN_SETTING
+            )
+            pumps["pump" + str(i) + "_q"][n_inc] = em.ENgetlinkvalue(idx, em.EN_FLOW)
+            pumps["pump" + str(i) + "_p"][n_inc] = em.ENgetlinkvalue(idx, em.EN_ENERGY)
+            pumps["pump" + str(i) + "_s"][n_inc] = em.ENgetlinkvalue(idx, em.EN_STATUS)
+            pumps["pump" + str(i) + "_h"][n_inc] = em.ENgetlinkvalue(
+                idx, em.EN_HEADLOSS
+            )
 
         for i in range(d.n_valves):
-            idx=valves['valves_idx'][i]
-            valves['valve'+str(i)+'_q'][n_inc]=em.ENgetlinkvalue(idx,em.EN_FLOW)
-            valves['valve'+str(i)+'_s'][n_inc]=em.ENgetlinkvalue(idx, em.EN_STATUS)
-      
+            idx = valves["valves_idx"][i]
+            valves["valve" + str(i) + "_q"][n_inc] = em.ENgetlinkvalue(idx, em.EN_FLOW)
+            valves["valve" + str(i) + "_s"][n_inc] = em.ENgetlinkvalue(
+                idx, em.EN_STATUS
+            )
+
         for i in range(d.n_pipes):
-            idx=pipes['pipes_idx'][i]
-            pipes["pipe"+str(i)+"_q"][n_inc]=em.ENgetlinkvalue(idx,em.EN_FLOW)
+            idx = pipes["pipes_idx"][i]
+            pipes["pipe" + str(i) + "_q"][n_inc] = em.ENgetlinkvalue(idx, em.EN_FLOW)
 
-        for i in range(d.n_tanks): 
-            idx=tanks["tanks_idx"][i]            
-            #tanks["tank"+str(i)+"_elev"]=em.ENgetnodevalue(idx,em.EN_ELEVATION)
-            tanks["tank"+str(i)+"_h"][n_inc]=(em.ENgetnodevalue(idx,em.EN_HEAD)-em.ENgetnodevalue(idx,em.EN_ELEVATION))
+        for i in range(d.n_tanks):
+            idx = tanks["tanks_idx"][i]
+            # tanks["tank"+str(i)+"_elev"]=em.ENgetnodevalue(idx,em.EN_ELEVATION)
+            tanks["tank" + str(i) + "_h"][n_inc] = em.ENgetnodevalue(
+                idx, em.EN_HEAD
+            ) - em.ENgetnodevalue(idx, em.EN_ELEVATION)
 
-        n_inc+=1
-        t_next=em.ENnextH()
-        i_dur.append(t_next) 
-        
-        if(t_i==24*60*60 and d.flag_t_inicio!=0): # used for Van Zyl network-->simulation started at 7am)
-            t_i=0
+        n_inc += 1
+        t_next = em.ENnextH()
+        i_dur.append(t_next)
+
+        if (
+            t_i == 24 * 60 * 60 and d.flag_t_inicio != 0
+        ):  # used for Van Zyl network-->simulation started at 7am)
+            t_i = 0
             t_inicio.append(t_i)
-            t_i+=t_next
+            t_i += t_next
         else:
             t_inicio.append(t_i)
-            t_i+=t_next
+            t_i += t_next
 
-    #Limpeza de valores extra das estruturas
-    i_dur=np.delete(i_dur,len(i_dur)-1) 
-    data_dump_p=[i for i in range(len(i_dur),d.n_max_inc)]
-    data_dump_t=[i for i in range(len(i_dur)+1,d.n_max_inc)]
-    t_inicio=np.delete(t_inicio,len(t_inicio)-1) 
-    
+    # Limpeza de valores extra das estruturas
+    i_dur = np.delete(i_dur, len(i_dur) - 1)
+    data_dump_p = [i for i in range(len(i_dur), d.n_max_inc)]
+    data_dump_t = [i for i in range(len(i_dur) + 1, d.n_max_inc)]
+    t_inicio = np.delete(t_inicio, len(t_inicio) - 1)
+
     for i in range(d.n_pumps):
-        pumps['pump'+str(i)+'_s']=np.delete(pumps['pump'+str(i)+'_s'],data_dump_p)
-        pumps['pump'+str(i)+'_q']=np.delete(pumps['pump'+str(i)+'_q'],data_dump_p)
-        pumps['pump'+str(i)+'_p']=np.delete(pumps['pump'+str(i)+'_p'],data_dump_p)
-        pumps['pump'+str(i)+'_sp']=np.delete(pumps['pump'+str(i)+'_sp'],data_dump_p)
-        pumps['pump'+str(i)+'_h']=np.delete(pumps['pump'+str(i)+'_h'],data_dump_p)
-        pumps['pump'+str(i)+'_eff']=np.delete(pumps['pump'+str(i)+'_eff'],data_dump_p)
-        pumps['pump'+str(i)+'_pot']=np.delete(pumps['pump'+str(i)+'_pot'],data_dump_p)
-        
+        pumps["pump" + str(i) + "_s"] = np.delete(
+            pumps["pump" + str(i) + "_s"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_q"] = np.delete(
+            pumps["pump" + str(i) + "_q"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_p"] = np.delete(
+            pumps["pump" + str(i) + "_p"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_sp"] = np.delete(
+            pumps["pump" + str(i) + "_sp"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_h"] = np.delete(
+            pumps["pump" + str(i) + "_h"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_eff"] = np.delete(
+            pumps["pump" + str(i) + "_eff"], data_dump_p
+        )
+        pumps["pump" + str(i) + "_pot"] = np.delete(
+            pumps["pump" + str(i) + "_pot"], data_dump_p
+        )
 
     for i in range(d.n_valves):
-        valves['valve'+str(i)+'_s']=np.delete(valves['valve'+str(i)+'_s'],data_dump_p)
-        valves['valve'+str(i)+'_q']=np.delete(valves['valve'+str(i)+'_q'],data_dump_p)
+        valves["valve" + str(i) + "_s"] = np.delete(
+            valves["valve" + str(i) + "_s"], data_dump_p
+        )
+        valves["valve" + str(i) + "_q"] = np.delete(
+            valves["valve" + str(i) + "_q"], data_dump_p
+        )
 
     for i in range(d.n_pipes):
-        pipes['pipe'+str(i)+'_q']=np.delete(pipes['pipe'+str(i)+'_q'],data_dump_p)
+        pipes["pipe" + str(i) + "_q"] = np.delete(
+            pipes["pipe" + str(i) + "_q"], data_dump_p
+        )
 
     for i in range(d.n_tanks):
-        tanks['tank'+str(i)+'_h']=np.delete(tanks['tank'+str(i)+'_h'],data_dump_t)
+        tanks["tank" + str(i) + "_h"] = np.delete(
+            tanks["tank" + str(i) + "_h"], data_dump_t
+        )
 
-    #Caracterização timeInc
-    timeInc={'n_inc':len(i_dur) ,'StartTime':t_inicio, 'duration':i_dur, 'EndTime':t_inicio+i_dur}
+    # Caracterização timeInc
+    timeInc = {
+        "n_inc": len(i_dur),
+        "StartTime": t_inicio,
+        "duration": i_dur,
+        "EndTime": t_inicio + i_dur,
+    }
 
-    #Acrescentar tarifario de cada bomba
-    for inc in range(0,len(timeInc['StartTime'])):
-        if(d.flag_tariff_inicio!=0):
-            t=(timeInc['EndTime'][inc]/60)+(d.flag_tariff_inicio*60)
-            if(t>(24*60)): 
-                t=t-(24*60)
-            period=math.ceil(t/d.n_tariffs)
+    # Acrescentar tarifario de cada bomba
+    for inc in range(0, len(timeInc["StartTime"])):
+        if d.flag_tariff_inicio != 0:
+            t = (timeInc["EndTime"][inc] / 60) + (d.flag_tariff_inicio * 60)
+            if t > (24 * 60):
+                t = t - (24 * 60)
+            period = math.ceil(t / d.n_tariffs)
         else:
-            period=math.ceil((timeInc['EndTime'][inc]/60)/d.n_tariffs)
+            period = math.ceil((timeInc["EndTime"][inc] / 60) / d.n_tariffs)
         for i in range(d.n_pumps):
-            pumps['pump'+str(i)+'_tar'].append(em.ENgetpatternvalue(pumps['pumps_tar_idx'][i],period))
+            pumps["pump" + str(i) + "_tar"].append(
+                em.ENgetpatternvalue(pumps["pumps_tar_idx"][i], period)
+            )
 
-    return d,pumps,tanks,pipes,valves,timeInc
+    return d, pumps, tanks, pipes, valves, timeInc
 
 
 # CRIADO PARA EVITAR ERRO NO ACESSO AO FICHEIRO INP
 jit(nopython=True)
+
+
 def EpanetSimulation_MultiplosFicheiros(x, d, sim_step):
     # ----------- 1. Prepara arquivos temporários com base no cache .inp ------------
-    tmp_inp = tempfile.NamedTemporaryFile(delete=False, suffix=".inp", mode='w')
+    tmp_inp = tempfile.NamedTemporaryFile(delete=False, suffix=".inp", mode="w")
     tmp_inp.write(d.inp_cache)
     tmp_inp.close()
     d.EpanetFile = tmp_inp.name
@@ -320,13 +378,15 @@ def EpanetSimulation_MultiplosFicheiros(x, d, sim_step):
         speed = []
         controls_epanet = conversor(x, pumps, d, speed)
 
-    d, pumps, tanks, pipes, valves, timeInc = EpanetAPIData(d, pumps, tanks, pipes, valves, tariffs)
+    d, pumps, tanks, pipes, valves, timeInc = EpanetAPIData(
+        d, pumps, tanks, pipes, valves, tariffs
+    )
 
     if d.flag_pat == 1 or d.flag_def_pattern == 1:
-        d.EpanetFile = d.EpanetFile_new + d.path_day + '_pred.inp'
+        d.EpanetFile = d.EpanetFile_new + d.path_day + "_pred.inp"
         em.ENsaveinpfile(d.EpanetFile)
     elif d.flag_pat == 2:
-        d.EpanetFile = d.EpanetFile_new + d.path_day + '_real.inp'
+        d.EpanetFile = d.EpanetFile_new + d.path_day + "_real.inp"
         em.ENsaveinpfile(d.EpanetFile)
 
     em.ENcloseH()
@@ -336,873 +396,1186 @@ def EpanetSimulation_MultiplosFicheiros(x, d, sim_step):
 
 
 jit(nopython=True)
-def EpanetSimulation(x,d,sim_step): #Simulação hidraulica utilizando o epamodule
-    em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin) # abrir epanet
-    #em.ENopen(d.EpanetFile, 'teste.rpt', 'teste.bin' ) # abrir epanet
-    if(sim_step!=0):
-        em.ENsettimeparam(em.EN_HYDSTEP,sim_step) # definir hidraulic step a sim_step seg por causa das dif.finitas
-    d.timeInc_s=em.ENgettimeparam(em.EN_HYDSTEP) # duração de cada incremento de simulação
-    d.T_s=em.ENgettimeparam(0) # duração do total time horizon    
-    d.n_tariffs=(em.ENgettimeparam(em.EN_PATTERNSTEP)/60) # duração das tarifas em minutos
-    units_flow=em.ENgetflowunits()
-    if(units_flow)==8:  
-        d.units_flow=0 #CMD -> FLOW UNIT
+
+
+def EpanetSimulation(x, d, sim_step):  # Simulação hidraulica utilizando o epamodule
+    em.ENopen(d.EpanetFile, nomerpt=d.nomerpt, nomebin=d.nomebin)  # abrir epanet
+    # em.ENopen(d.EpanetFile, 'teste.rpt', 'teste.bin' ) # abrir epanet
+    if sim_step != 0:
+        em.ENsettimeparam(
+            em.EN_HYDSTEP, sim_step
+        )  # definir hidraulic step a sim_step seg por causa das dif.finitas
+    d.timeInc_s = em.ENgettimeparam(
+        em.EN_HYDSTEP
+    )  # duração de cada incremento de simulação
+    d.T_s = em.ENgettimeparam(0)  # duração do total time horizon
+    d.n_tariffs = (
+        em.ENgettimeparam(em.EN_PATTERNSTEP) / 60
+    )  # duração das tarifas em minutos
+    units_flow = em.ENgetflowunits()
+    if (units_flow) == 8:
+        d.units_flow = 0  # CMD -> FLOW UNIT
     else:
-        d.units_flow=1 # LPS -> FLOW UNIT
-    em.ENopenH() # abrir a simulação
+        d.units_flow = 1  # LPS -> FLOW UNIT
+    em.ENopenH()  # abrir a simulação
     em.ENsetstatusreport(2)
-    em.ENinitH(10) 
+    em.ENinitH(10)
 
-    idx=np.where(x<0)
-    
-    if(len(idx[0])!=0): 
-        x[idx[0]]=0.0
-        
-    idx=np.where(x>24)
-    
-    if(len(idx[0])!=0):
-        x[idx[0]]=24.0
+    idx = np.where(x < 0)
 
-    #Get pump, pipes e tanks indexes
-    n_links=em.ENgetcount(em.EN_LINKCOUNT)
-    n_nodes=em.ENgetcount(em.EN_NODECOUNT)
-    
-    d,pumps,tanks,pipes,valves,CP,tariffs=WSS_Components(d,n_links,n_nodes) #Definição das estruturas WSS<
+    if len(idx[0]) != 0:
+        x[idx[0]] = 0.0
 
-    if(d.flag_pat!=0 or d.flag_def_pattern==1): #alteração dos patterns por otimização ou criação de novo .inp
-        #ler patterns
-        patterns=pattern_definition(d,CP)        
-        #definir patterns
-        set_patterns(d,patterns,CP)
-        
-    n_var_dc=np.sum(np.multiply(d.n_dc,4)) # nº variáveis com M_ini e M_start
+    idx = np.where(x > 24)
 
-    if(len(x)==n_var_dc):
-        speed=speed_definition_v2(x,d,pumps) # dicionário para speed_v2
+    if len(idx[0]) != 0:
+        x[idx[0]] = 24.0
+
+    # Get pump, pipes e tanks indexes
+    n_links = em.ENgetcount(em.EN_LINKCOUNT)
+    n_nodes = em.ENgetcount(em.EN_NODECOUNT)
+
+    d, pumps, tanks, pipes, valves, CP, tariffs = WSS_Components(
+        d, n_links, n_nodes
+    )  # Definição das estruturas WSS<
+
+    if (
+        d.flag_pat != 0 or d.flag_def_pattern == 1
+    ):  # alteração dos patterns por otimização ou criação de novo .inp
+        # ler patterns
+        patterns = pattern_definition(d, CP)
+        # definir patterns
+        set_patterns(d, patterns, CP)
+
+    n_var_dc = np.sum(np.multiply(d.n_dc, 4))  # nº variáveis com M_ini e M_start
+
+    if len(x) == n_var_dc:
+        speed = speed_definition_v2(x, d, pumps)  # dicionário para speed_v2
     else:
-        if(len(x)>2*np.sum(d.n_dc)):
-            speed=speed_definition(x,d,pumps)   
+        if len(x) > 2 * np.sum(d.n_dc):
+            speed = speed_definition(x, d, pumps)
         else:
-            speed=[]
-    
-    if(len(x)==n_var_dc):
-        controls_epanet=conversor_v2(x,pumps,d,speed) #_v2
-    else:
-        controls_epanet=conversor(x,pumps,d,speed) #_v2
+            speed = []
 
-    #Obtenção de dados do EPANET
-    d,pumps,tanks,pipes,valves,timeInc=EpanetAPIData(d,pumps,tanks,pipes,valves,tariffs)
-    
-    if(d.flag_pat==1 or d.flag_def_pattern==1): # criação de novo .inp
-        d.EpanetFile=d.EpanetFile_new + d.path_day + '_pred.inp'
+    if len(x) == n_var_dc:
+        controls_epanet = conversor_v2(x, pumps, d, speed)  # _v2
+    else:
+        controls_epanet = conversor(x, pumps, d, speed)  # _v2
+
+    # Obtenção de dados do EPANET
+    d, pumps, tanks, pipes, valves, timeInc = EpanetAPIData(
+        d, pumps, tanks, pipes, valves, tariffs
+    )
+
+    if d.flag_pat == 1 or d.flag_def_pattern == 1:  # criação de novo .inp
+        d.EpanetFile = d.EpanetFile_new + d.path_day + "_pred.inp"
         em.ENsaveinpfile(d.EpanetFile)
-    elif(d.flag_pat==2):     
-        d.EpanetFile=d.EpanetFile_new + d.path_day + '_real.inp'
-        em.ENsaveinpfile(d.EpanetFile)      
-          
+    elif d.flag_pat == 2:
+        d.EpanetFile = d.EpanetFile_new + d.path_day + "_real.inp"
+        em.ENsaveinpfile(d.EpanetFile)
+
     em.ENcloseH()
-    em.ENclose()      
-    return d,pumps,tanks,pipes,valves,timeInc,controls_epanet
+    em.ENclose()
+    return d, pumps, tanks, pipes, valves, timeInc, controls_epanet
+
 
 jit(nopython=True)
-def speed_definition_v2(x,d,pumps): # VPS -> speed_ini e speed_end
-    st=[]
-    dc_end=[]
-    pumpidx_st=[]
-    pumpidx_end=[]
-    s=x[d.dc_pos[len(d.pumps_to_opt)]:len(x)]
 
-    speed=[round(s[i],6) for i in range(len(s))] #arredondar a 6 casas decimais
-    speed_pos=np.concatenate(([0],np.cumsum(d.n_dc))) 
-    sp=[]
-    for p in range(len(d.pumps_to_opt)):#.n_pumps):
-        pump_idx=pumps['pumps_idx'][d.pumps_to_opt[p]]
-        dur_aux=x[d.dc_pos[p]:d.dc_pos[p+1]][d.n_dc[p]:2*d.n_dc[p]]
-        st_aux=x[d.dc_pos[p]:d.dc_pos[p+1]][0:d.n_dc[p]]
-        if(d.flag_t_inicio!=0):
-            init_time=np.ones(len(dur_aux))*d.flag_t_inicio
-            
-            inicio = [x + z for x,z in zip(np.multiply(st_aux,(60*60)), np.multiply(init_time,(60*60)))] # inicio_sec, init_time
-            aux2=np.where(np.array(inicio)>24*60*60)
-            if(len(aux2[0])!=0): 
-                for i in range(0,len(aux2[0])):
-                    inicio[aux2[0][i]]=inicio[aux2[0][i]]-24*60*60
-            inicio_sec=[math.floor(inicio[i] + 0.5) for i in range(len(inicio))]
 
-            final_sec = [x + y  for x,y in zip(inicio_sec, np.multiply(dur_aux,(60*60)))] # inicio_sec(com o init_time e arredondado!), dur_sec
-            aux2=np.where(np.array(final_sec)>24*60*60)
-            if(len(aux2[0])!=0): 
-                for i in range(0,len(aux2[0])):
-                    final_sec[aux2[0][i]]=final_sec[aux2[0][i]]-24*60*60
+def speed_definition_v2(x, d, pumps):  # VPS -> speed_ini e speed_end
+    st = []
+    dc_end = []
+    pumpidx_st = []
+    pumpidx_end = []
+    s = x[d.dc_pos[len(d.pumps_to_opt)] : len(x)]
 
-            dc_end.append(final_sec) 
-            st.append(inicio_sec) 
+    speed = [round(s[i], 6) for i in range(len(s))]  # arredondar a 6 casas decimais
+    speed_pos = np.concatenate(([0], np.cumsum(d.n_dc)))
+    sp = []
+    for p in range(len(d.pumps_to_opt)):  # .n_pumps):
+        pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+        dur_aux = x[d.dc_pos[p] : d.dc_pos[p + 1]][d.n_dc[p] : 2 * d.n_dc[p]]
+        st_aux = x[d.dc_pos[p] : d.dc_pos[p + 1]][0 : d.n_dc[p]]
+        if d.flag_t_inicio != 0:
+            init_time = np.ones(len(dur_aux)) * d.flag_t_inicio
+
+            inicio = [
+                x + z
+                for x, z in zip(
+                    np.multiply(st_aux, (60 * 60)), np.multiply(init_time, (60 * 60))
+                )
+            ]  # inicio_sec, init_time
+            aux2 = np.where(np.array(inicio) > 24 * 60 * 60)
+            if len(aux2[0]) != 0:
+                for i in range(0, len(aux2[0])):
+                    inicio[aux2[0][i]] = inicio[aux2[0][i]] - 24 * 60 * 60
+            inicio_sec = [math.floor(inicio[i] + 0.5) for i in range(len(inicio))]
+
+            final_sec = [
+                x + y for x, y in zip(inicio_sec, np.multiply(dur_aux, (60 * 60)))
+            ]  # inicio_sec(com o init_time e arredondado!), dur_sec
+            aux2 = np.where(np.array(final_sec) > 24 * 60 * 60)
+            if len(aux2[0]) != 0:
+                for i in range(0, len(aux2[0])):
+                    final_sec[aux2[0][i]] = final_sec[aux2[0][i]] - 24 * 60 * 60
+
+            dc_end.append(final_sec)
+            st.append(inicio_sec)
         else:
-            st_sec=[math.floor((st_aux[i]*60*60) + 0.5) for i in range(len(st_aux))]
-            final_sec = [math.floor(x + y + 0.5) for x, y in zip(np.multiply(dur_aux,(60*60)),st_sec)]   
-            speed_pos=np.concatenate(([0],np.cumsum(np.multiply(d.n_dc,2))))
-            speed_p=speed[speed_pos[p]:speed_pos[p+1]] 
+            st_sec = [
+                math.floor((st_aux[i] * 60 * 60) + 0.5) for i in range(len(st_aux))
+            ]
+            final_sec = [
+                math.floor(x + y + 0.5)
+                for x, y in zip(np.multiply(dur_aux, (60 * 60)), st_sec)
+            ]
+            speed_pos = np.concatenate(([0], np.cumsum(np.multiply(d.n_dc, 2))))
+            speed_p = speed[speed_pos[p] : speed_pos[p + 1]]
             for dc in range(len(st_sec)):
-                m_ini=speed_p[dc]
-                m_fim=speed_p[dc+d.n_dc[p]]
-                dur=final_sec[dc]-st_sec[dc]
+                m_ini = speed_p[dc]
+                m_fim = speed_p[dc + d.n_dc[p]]
+                dur = final_sec[dc] - st_sec[dc]
                 # st_int=np.arange(st_sec[dc], final_sec[dc], 5*60)
-                st_int=np.linspace(st_sec[dc], final_sec[dc]-1,20)
+                st_int = np.linspace(st_sec[dc], final_sec[dc] - 1, 20)
                 st.append(st_int)
-                sp_int=np.linspace(m_ini, m_fim, len(st_int)-1)
-                sp_int=np.concatenate((sp_int,[m_fim]))
+                sp_int = np.linspace(m_ini, m_fim, len(st_int) - 1)
+                sp_int = np.concatenate((sp_int, [m_fim]))
                 sp.append(sp_int)
-                pumpidx_st.append(np.ones(len(st_int))*pump_idx) 
-            dc_end.append(final_sec) 
-            #st.append(st_sec) 
+                pumpidx_st.append(np.ones(len(st_int)) * pump_idx)
+            dc_end.append(final_sec)
+            # st.append(st_sec)
 
-        pumpidx_end.append(np.ones(d.n_dc[p])*pump_idx) 
-        #f_aux=np.copy(speed[speed_pos[p]:speed_pos[p+1]])
-        #f_arredondado=[int(vel * 100) / 100 for vel in f_aux]
-        #sp.append(speed[speed_pos[p]:speed_pos[p+1]]) 
-    
-    #ordenar
-    st=np.concatenate(st)
-    sp=np.concatenate(sp)
-    dc_end=np.concatenate(dc_end)
-    pumpidx_end=(np.concatenate(pumpidx_end)).astype(int)  
-    pumpidx_st=(np.concatenate(pumpidx_st)).astype(int)  
+        pumpidx_end.append(np.ones(d.n_dc[p]) * pump_idx)
+        # f_aux=np.copy(speed[speed_pos[p]:speed_pos[p+1]])
+        # f_arredondado=[int(vel * 100) / 100 for vel in f_aux]
+        # sp.append(speed[speed_pos[p]:speed_pos[p+1]])
+
+    # ordenar
+    st = np.concatenate(st)
+    sp = np.concatenate(sp)
+    dc_end = np.concatenate(dc_end)
+    pumpidx_end = (np.concatenate(pumpidx_end)).astype(int)
+    pumpidx_st = (np.concatenate(pumpidx_st)).astype(int)
     # sortst = np.argsort(st) #ordenação de tempos de inicio
     # sortend = np.argsort(dc_end)
 
-    #criar dicionario
+    # criar dicionario
     # speed={'st_sec':st[sortst],  'endt_sec':dc_end[sortend], 'speed':sp[sortst], 'pumps_idx_st':pumpidx[sortst],'pumps_idx_end':pumpidx[sortend]}
-    speed_output={'st_sec':st, 'endt_sec':dc_end, 'speed':sp, 'pumps_idx_st':pumpidx_st, 'pumps_idx_end':pumpidx_end}
-    
+    speed_output = {
+        "st_sec": st,
+        "endt_sec": dc_end,
+        "speed": sp,
+        "pumps_idx_st": pumpidx_st,
+        "pumps_idx_end": pumpidx_end,
+    }
+
     return speed_output
 
+
 jit(nopython=True)
-def speed_definition(x,d,pumps): #definição de dicionário para lidar com VSPs
-    st=[]
-    dc_end=[]
-    pumpidx=[]
-    s=x[d.dc_pos[len(d.pumps_to_opt)]:len(x)]
-    speed=[round(s[i],6) for i in range(len(s))] #arredondar a 6 casas decimais
-    speed_pos=np.concatenate(([0],np.cumsum(d.n_dc))) 
-    sp=[]
-    for p in range(len(d.pumps_to_opt)):#.n_pumps):
-        pump_idx=pumps['pumps_idx'][d.pumps_to_opt[p]]
-        dur_aux=x[d.dc_pos[p]:d.dc_pos[p+1]][d.n_dc[p]:2*d.n_dc[p]]
-        st_aux=x[d.dc_pos[p]:d.dc_pos[p+1]][0:d.n_dc[p]]
-        if(d.flag_t_inicio!=0):
-            init_time=np.ones(len(dur_aux))*d.flag_t_inicio
-            
-            inicio = [x + z for x,z in zip(np.multiply(st_aux,(60*60)), np.multiply(init_time,(60*60)))] # inicio_sec, init_time
-            aux2=np.where(np.array(inicio)>24*60*60)
-            if(len(aux2[0])!=0): 
-                for i in range(0,len(aux2[0])):
-                    inicio[aux2[0][i]]=inicio[aux2[0][i]]-24*60*60
-            inicio_sec=[math.floor(inicio[i] + 0.5) for i in range(len(inicio))]
 
-            final_sec = [x + y  for x,y in zip(inicio_sec, np.multiply(dur_aux,(60*60)))] # inicio_sec(com o init_time e arredondado!), dur_sec
-            aux2=np.where(np.array(final_sec)>24*60*60)
-            if(len(aux2[0])!=0): 
-                for i in range(0,len(aux2[0])):
-                    final_sec[aux2[0][i]]=final_sec[aux2[0][i]]-24*60*60
 
-            dc_end.append(final_sec) 
-            st.append(inicio_sec) 
+def speed_definition(x, d, pumps):  # definição de dicionário para lidar com VSPs
+    st = []
+    dc_end = []
+    pumpidx = []
+    s = x[d.dc_pos[len(d.pumps_to_opt)] : len(x)]
+    speed = [round(s[i], 6) for i in range(len(s))]  # arredondar a 6 casas decimais
+    speed_pos = np.concatenate(([0], np.cumsum(d.n_dc)))
+    sp = []
+    for p in range(len(d.pumps_to_opt)):  # .n_pumps):
+        pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+        dur_aux = x[d.dc_pos[p] : d.dc_pos[p + 1]][d.n_dc[p] : 2 * d.n_dc[p]]
+        st_aux = x[d.dc_pos[p] : d.dc_pos[p + 1]][0 : d.n_dc[p]]
+        if d.flag_t_inicio != 0:
+            init_time = np.ones(len(dur_aux)) * d.flag_t_inicio
+
+            inicio = [
+                x + z
+                for x, z in zip(
+                    np.multiply(st_aux, (60 * 60)), np.multiply(init_time, (60 * 60))
+                )
+            ]  # inicio_sec, init_time
+            aux2 = np.where(np.array(inicio) > 24 * 60 * 60)
+            if len(aux2[0]) != 0:
+                for i in range(0, len(aux2[0])):
+                    inicio[aux2[0][i]] = inicio[aux2[0][i]] - 24 * 60 * 60
+            inicio_sec = [math.floor(inicio[i] + 0.5) for i in range(len(inicio))]
+
+            final_sec = [
+                x + y for x, y in zip(inicio_sec, np.multiply(dur_aux, (60 * 60)))
+            ]  # inicio_sec(com o init_time e arredondado!), dur_sec
+            aux2 = np.where(np.array(final_sec) > 24 * 60 * 60)
+            if len(aux2[0]) != 0:
+                for i in range(0, len(aux2[0])):
+                    final_sec[aux2[0][i]] = final_sec[aux2[0][i]] - 24 * 60 * 60
+
+            dc_end.append(final_sec)
+            st.append(inicio_sec)
         else:
-            st_sec=[math.floor((st_aux[i]*60*60) + 0.5) for i in range(len(st_aux))]
-            final_sec = [math.floor(x + y + 0.5) for x, y in zip(np.multiply(dur_aux,(60*60)),st_sec)]           
-            dc_end.append(final_sec) 
-            st.append(st_sec) 
+            st_sec = [
+                math.floor((st_aux[i] * 60 * 60) + 0.5) for i in range(len(st_aux))
+            ]
+            final_sec = [
+                math.floor(x + y + 0.5)
+                for x, y in zip(np.multiply(dur_aux, (60 * 60)), st_sec)
+            ]
+            dc_end.append(final_sec)
+            st.append(st_sec)
 
-        pumpidx.append(np.ones(d.n_dc[p])*pump_idx) 
-        #f_aux=np.copy(speed[speed_pos[p]:speed_pos[p+1]])
-        #f_arredondado=[int(vel * 100) / 100 for vel in f_aux]
-        sp.append(speed[speed_pos[p]:speed_pos[p+1]]) 
-    
-    #ordenar
-    st=np.concatenate(st)
-    sp=np.concatenate(sp)
-    dc_end=np.concatenate(dc_end)
-    pumpidx=(np.concatenate(pumpidx)).astype(int)    
+        pumpidx.append(np.ones(d.n_dc[p]) * pump_idx)
+        # f_aux=np.copy(speed[speed_pos[p]:speed_pos[p+1]])
+        # f_arredondado=[int(vel * 100) / 100 for vel in f_aux]
+        sp.append(speed[speed_pos[p] : speed_pos[p + 1]])
+
+    # ordenar
+    st = np.concatenate(st)
+    sp = np.concatenate(sp)
+    dc_end = np.concatenate(dc_end)
+    pumpidx = (np.concatenate(pumpidx)).astype(int)
     # sortst = np.argsort(st) #ordenação de tempos de inicio
     # sortend = np.argsort(dc_end)
 
-    #criar dicionario
+    # criar dicionario
     # speed={'st_sec':st[sortst],  'endt_sec':dc_end[sortend], 'speed':sp[sortst], 'pumps_idx_st':pumpidx[sortst],'pumps_idx_end':pumpidx[sortend]}
-    speed_output={'st_sec':st, 'endt_sec':dc_end, 'speed':sp, 'pumps_idx':pumpidx}
-    
+    speed_output = {"st_sec": st, "endt_sec": dc_end, "speed": sp, "pumps_idx": pumpidx}
+
     return speed_output
 
-jit(nopython=True)
-def conversor_v1_OLD(x,pumps,d,speed): #conversor variaveis de decisão --> pump status
-    rule_id=d.ncontrols_idx+1 #caso existem controlos a não mexer (valvulas)
-    n_controls=em.ENgetcount(em.EN_CONTROLCOUNT)
-    controls={'t':[], 'controls':[], 'pump_idx':[]}
 
-    if(d.ftype==1): #Formulação binária  (SEM VPSs)     
-        End_time=np.cumsum(d.t_hor_s_1F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(d.t_hor_s_1F))
-        
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): # 0, 48, 96
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],float(x[k]),0,Start_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(float(x[k]))
-                rule_id+=1
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,End_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(0.0)
-                rule_id+=1  
-                idx+=1    
-            idx_pump+=1    
-         
-    elif(d.ftype==2): #Formulação Real-Continua (SEM VPSs)     
-        End_time=np.cumsum(d.t_hor_s_2F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(x))
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): # 0, 9, 18
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):                
-                if(x[k]!=0):
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],1.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(1.0)
-                    rule_id+=1
-                    t_off[k]=(x[k]*d.t_hor_s_2F[idx])+Start_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
+jit(nopython=True)
+
+
+def conversor_v1_OLD(
+    x, pumps, d, speed
+):  # conversor variaveis de decisão --> pump status
+    rule_id = d.ncontrols_idx + 1  # caso existem controlos a não mexer (valvulas)
+    n_controls = em.ENgetcount(em.EN_CONTROLCOUNT)
+    controls = {"t": [], "controls": [], "pump_idx": []}
+
+    if d.ftype == 1:  # Formulação binária  (SEM VPSs)
+        End_time = np.cumsum(d.t_hor_s_1F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(d.t_hor_s_1F))
+
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):  # 0, 48, 96
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    float(x[k]),
+                    0,
+                    Start_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(float(x[k]))
+                rule_id += 1
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    0.0,
+                    0,
+                    End_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(0.0)
+                rule_id += 1
+                idx += 1
+            idx_pump += 1
+
+    elif d.ftype == 2:  # Formulação Real-Continua (SEM VPSs)
+        End_time = np.cumsum(d.t_hor_s_2F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(x))
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):  # 0, 9, 18
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                if x[k] != 0:
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        1.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(1.0)
+                    rule_id += 1
+                    t_off[k] = (x[k] * d.t_hor_s_2F[idx]) + Start_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
                 else:
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                    t_off[k]=End_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                idx+=1
-            idx_pump+=1
-  
-    elif(d.ftype==3): #Formulação Duty-Cycles
-        if(len(x)>np.sum(d.n_dc)*2):
-            for i in range(d.n_pumps):
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][i],0.0,0,0)   
-                rule_id+=1
-                
-            time=np.concatenate((speed['st_sec'],speed['endt_sec']))
-            sp=np.concatenate((speed['speed'],np.zeros(len(speed['speed']))))
-            idx=np.concatenate((speed['pumps_idx_st'],speed['pumps_idx_end']))
-            sort = np.argsort(time)
-            time=time[sort]
-            sp=sp[sort]
-            idx=idx[sort]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                    t_off[k] = End_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                idx += 1
+            idx_pump += 1
 
-            #Definição de regras para vel
-            for i in range(len(time)):  
-                em.ENsetcontrol(rule_id,em.EN_TIMER,idx[i],sp[i],0,time[i])  
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(sp[i]) 
-                controls['pump_idx'].append(idx[i]) 
-                rule_id+=1            
+    elif d.ftype == 3:  # Formulação Duty-Cycles
+        if len(x) > np.sum(d.n_dc) * 2:
+            for i in range(d.n_pumps):
+                em.ENsetcontrol(rule_id, em.EN_TIMER, pumps["pumps_idx"][i], 0.0, 0, 0)
+                rule_id += 1
+
+            time = np.concatenate((speed["st_sec"], speed["endt_sec"]))
+            sp = np.concatenate((speed["speed"], np.zeros(len(speed["speed"]))))
+            idx = np.concatenate((speed["pumps_idx_st"], speed["pumps_idx_end"]))
+            sort = np.argsort(time)
+            time = time[sort]
+            sp = sp[sort]
+            idx = idx[sort]
+
+            # Definição de regras para vel
+            for i in range(len(time)):
+                em.ENsetcontrol(rule_id, em.EN_TIMER, idx[i], sp[i], 0, time[i])
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(sp[i])
+                controls["pump_idx"].append(idx[i])
+                rule_id += 1
         else:
-            for p in range(0,d.n_pumps):
-                time_epanet=[] #np.zeros(n_var_pump[p]+1)
-                s_epanet=[] #np.zeros(n_var_pump[p]+1)
-                x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
-                
-                time_epanet.append(0) #para caso o default da bomba seja ON 
+            for p in range(0, d.n_pumps):
+                time_epanet = []  # np.zeros(n_var_pump[p]+1)
+                s_epanet = []  # np.zeros(n_var_pump[p]+1)
+                x_p = x[d.dc_pos[p] : d.dc_pos[p + 1]]
+
+                time_epanet.append(0)  # para caso o default da bomba seja ON
                 s_epanet.append(0)
-                
-                for i in range(0,d.n_dc[p]):
-                    #inicio DC
-                    start=x_p[i]*(3600)
+
+                for i in range(0, d.n_dc[p]):
+                    # inicio DC
+                    start = x_p[i] * (3600)
                     time_epanet.append(math.floor(start + 0.5))
                     s_epanet.append(1)
 
-                    #fim DC
+                    # fim DC
                     # end=(x_p[i]+x_p[i+d.n_dc[p]])*3600
-                    end=time_epanet[-1]+(x_p[i+d.n_dc[p]])*3600
+                    end = time_epanet[-1] + (x_p[i + d.n_dc[p]]) * 3600
                     time_epanet.append(math.floor(end + 0.5))
                     s_epanet.append(0)
 
-                time_epanet=np.array(time_epanet)
-                s_epanet=np.array(s_epanet)
-                sort = np.argsort(time_epanet) 
-                
-                todel=[]
-                out=np.where(sort[1:] < sort[:-1])[0]
-                if (len(out)!=0):
-                    for k in range(0,len(out)):
-                        if(s_epanet[out[k]]==0 and s_epanet[out[k]+1]==1): #sobreposição
-                            todel.append(out[k])
-                            todel.append(out[k]+1)
-                    s_epanet=np.delete(s_epanet,todel)
-                    time_epanet=np.delete(time_epanet,todel)
+                time_epanet = np.array(time_epanet)
+                s_epanet = np.array(s_epanet)
+                sort = np.argsort(time_epanet)
 
-                for i in range(0,len(s_epanet)-1): #correção de sobreposições
-                    if(s_epanet[i]==s_epanet[i+1]):
-                        if(s_epanet[i]==0):
-                            time_epanet[i]=time_epanet[i+1]     
-            
-                for i in range(0,len(time_epanet)): #definição das regras
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][p],float(s_epanet[i]),0,time_epanet[i])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(int(s_epanet[i]))
-                    controls['pump_idx'].append(pumps['pumps_idx'][p]) 
-                    rule_id+=1  
-            
-    #Eliminar os restantes controlos
-    if(rule_id<n_controls):
-        for id in range(rule_id,n_controls+1):
-            em.ENsetcontrol(id,em.EN_TIMER,pumps['pumps_idx'][0],float(0),0,(24*60*60))
+                todel = []
+                out = np.where(sort[1:] < sort[:-1])[0]
+                if len(out) != 0:
+                    for k in range(0, len(out)):
+                        if (
+                            s_epanet[out[k]] == 0 and s_epanet[out[k] + 1] == 1
+                        ):  # sobreposição
+                            todel.append(out[k])
+                            todel.append(out[k] + 1)
+                    s_epanet = np.delete(s_epanet, todel)
+                    time_epanet = np.delete(time_epanet, todel)
+
+                for i in range(0, len(s_epanet) - 1):  # correção de sobreposições
+                    if s_epanet[i] == s_epanet[i + 1]:
+                        if s_epanet[i] == 0:
+                            time_epanet[i] = time_epanet[i + 1]
+
+                for i in range(0, len(time_epanet)):  # definição das regras
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][p],
+                        float(s_epanet[i]),
+                        0,
+                        time_epanet[i],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(int(s_epanet[i]))
+                    controls["pump_idx"].append(pumps["pumps_idx"][p])
+                    rule_id += 1
+
+    # Eliminar os restantes controlos
+    if rule_id < n_controls:
+        for id in range(rule_id, n_controls + 1):
+            em.ENsetcontrol(
+                id, em.EN_TIMER, pumps["pumps_idx"][0], float(0), 0, (24 * 60 * 60)
+            )
 
     return controls
 
+
 jit(nopython=True)
+
+
 def find_equal_pairs_indices(numbers):
     numbers = np.array(numbers)
     if len(numbers) % 2 != 0:
         return []
     return np.where(numbers[::2] == numbers[1::2])[0] * 2
 
-jit(nopython=True)
-def conversor_v2(x,pumps,d,speed): # VPS -> speed_ini e speed_end
-    rule_id=d.ncontrols_idx+1 #caso existem controlos a não mexer (valvulas)
-    n_controls=em.ENgetcount(em.EN_CONTROLCOUNT)
-    controls={'t':[], 'controls':[], 'pump_idx':[]}
-    if(d.ftype==1): #Formulação binária      
-        End_time=np.cumsum(d.t_hor_s_1F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(d.t_hor_s_1F))
-        
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): 
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],float(x[k]),0,Start_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(float(x[k]))
-                rule_id+=1
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,End_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(0.0)
-                rule_id+=1  
-                idx+=1    
-            idx_pump+=1    
-         
-    elif(d.ftype==2): #Formulação Real-Continua
-        End_time=np.cumsum(d.t_hor_s_2F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(x))
-        
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): # 0, 9, 18
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):                
-                if(x[k]!=0):
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],1.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(1.0)
-                    rule_id+=1
-                    t_off[k]=(x[k]*d.t_hor_s_2F[idx])+Start_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                else:
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                    t_off[k]=End_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                idx+=1
-            idx_pump+=1
-  
-    elif(d.ftype==3): #Formulação Duty-Cycles
-        if(len(x)>np.sum(d.n_dc)*2): # com VSPs
-            for i in range(len(d.pumps_to_opt)): # i in range(d.n_pumps):
-                pump_idx=pumps['pumps_idx'][d.pumps_to_opt[i]]             
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pump_idx,0.0,0,0)  #em.EN_TIME
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(0) 
-                controls['pump_idx'].append(pump_idx) 
-                rule_id+=1
 
-            # #Eliminar DCs com duração=0 e definir regras para eles por cauda dos niveis 
+jit(nopython=True)
+
+
+def conversor_v2(x, pumps, d, speed):  # VPS -> speed_ini e speed_end
+    rule_id = d.ncontrols_idx + 1  # caso existem controlos a não mexer (valvulas)
+    n_controls = em.ENgetcount(em.EN_CONTROLCOUNT)
+    controls = {"t": [], "controls": [], "pump_idx": []}
+    if d.ftype == 1:  # Formulação binária
+        End_time = np.cumsum(d.t_hor_s_1F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(d.t_hor_s_1F))
+
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    float(x[k]),
+                    0,
+                    Start_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(float(x[k]))
+                rule_id += 1
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    0.0,
+                    0,
+                    End_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(0.0)
+                rule_id += 1
+                idx += 1
+            idx_pump += 1
+
+    elif d.ftype == 2:  # Formulação Real-Continua
+        End_time = np.cumsum(d.t_hor_s_2F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(x))
+
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):  # 0, 9, 18
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                if x[k] != 0:
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        1.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(1.0)
+                    rule_id += 1
+                    t_off[k] = (x[k] * d.t_hor_s_2F[idx]) + Start_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                else:
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                    t_off[k] = End_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                idx += 1
+            idx_pump += 1
+
+    elif d.ftype == 3:  # Formulação Duty-Cycles
+        if len(x) > np.sum(d.n_dc) * 2:  # com VSPs
+            for i in range(len(d.pumps_to_opt)):  # i in range(d.n_pumps):
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[i]]
+                em.ENsetcontrol(rule_id, em.EN_TIMER, pump_idx, 0.0, 0, 0)  # em.EN_TIME
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(0)
+                controls["pump_idx"].append(pump_idx)
+                rule_id += 1
+
+            # #Eliminar DCs com duração=0 e definir regras para eles por cauda dos niveis
             # idx_dur0=np.concatenate(np.where(speed['st_sec']==speed['endt_sec']))
             # if(len(idx_dur0)!=0):
             #     for todel in range(len(idx_dur0)):
-            #         #on  
-            #         em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],speed['speed'][idx_dur0[todel]],0,speed['st_sec'][idx_dur0[todel]])  
+            #         #on
+            #         em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],speed['speed'][idx_dur0[todel]],0,speed['st_sec'][idx_dur0[todel]])
             #         controls['t'].append(em.ENgetcontrol(rule_id)[4])
-            #         controls['controls'].append(speed['speed'][idx_dur0[todel]]) 
+            #         controls['controls'].append(speed['speed'][idx_dur0[todel]])
             #         controls['pump_idx'].append(speed['pumps_idx'][idx_dur0[todel]])
-            #         rule_id+=1 
+            #         rule_id+=1
 
             #         #off
-            #         em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],0.0,0,speed['st_sec'][idx_dur0[todel]])  
+            #         em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],0.0,0,speed['st_sec'][idx_dur0[todel]])
             #         controls['t'].append(em.ENgetcontrol(rule_id)[4])
-            #         controls['controls'].append(0) 
-            #         controls['pump_idx'].append(speed['pumps_idx'][idx_dur0[todel]]) 
-            #         rule_id+=1 
-                    
+            #         controls['controls'].append(0)
+            #         controls['pump_idx'].append(speed['pumps_idx'][idx_dur0[todel]])
+            #         rule_id+=1
 
             #     speed['st_sec']=np.delete(speed['st_sec'],idx_dur0)
             #     speed['endt_sec']=np.delete(speed['endt_sec'],idx_dur0)
             #     speed['pumps_idx']=np.delete(speed['pumps_idx'],idx_dur0)
             #     speed['speed']=np.delete(speed['speed'],idx_dur0)
 
-            time=np.concatenate((speed['st_sec'],speed['endt_sec']))
-            sp=np.concatenate((speed['speed'],np.zeros(len(speed['speed']))))
-            idx=np.concatenate((speed['pumps_idx_st'],speed['pumps_idx_end']))
+            time = np.concatenate((speed["st_sec"], speed["endt_sec"]))
+            sp = np.concatenate((speed["speed"], np.zeros(len(speed["speed"]))))
+            idx = np.concatenate((speed["pumps_idx_st"], speed["pumps_idx_end"]))
             sort = np.argsort(time)
-            time=time[sort]
-            sp=sp[sort]
-            idx=idx[sort]
-            
-            gtemp=AF.g_TempLog(x,d)
-            over=len(np.where((gtemp<d.dif_DC)==True)[0])
-            if over !=0:
-                print('No of DCs overflow/junction:'+str(over) + '; value max:'+str(min(gtemp)))
+            time = time[sort]
+            sp = sp[sort]
+            idx = idx[sort]
 
-            #Divisão por pump_idx para facilitar a definição de regras
-            time_aux=[]
-            sp_aux=[]
-            idx_aux=[]
+            gtemp = AF.g_TempLog(x, d)
+            over = len(np.where((gtemp < d.dif_DC) == True)[0])
+            if over != 0:
+                print(
+                    "No of DCs overflow/junction:"
+                    + str(over)
+                    + "; value max:"
+                    + str(min(gtemp))
+                )
+
+            # Divisão por pump_idx para facilitar a definição de regras
+            time_aux = []
+            sp_aux = []
+            idx_aux = []
             for p in range(len(d.pumps_to_opt)):
-                pump_idx= pumps['pumps_idx'][d.pumps_to_opt[p]]
-                time_aux.append(time[idx==pump_idx])
-                sp_aux.append(sp[idx==pump_idx])
-                idx_aux.append(idx[idx==pump_idx])
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+                time_aux.append(time[idx == pump_idx])
+                sp_aux.append(sp[idx == pump_idx])
+                idx_aux.append(idx[idx == pump_idx])
 
             for p in range(len(time_aux)):
                 for i in range(len(time_aux[p])):
-                    if((i>=1 and i<len(time_aux[p])-1)  and (time_aux[p][i]!=time_aux[p][i-1]) and (sp_aux[p][i]==0 and sp_aux[p][i+1]==0)):
-                        print('WARNING: duty-cycle overflow')
-                    elif((i>=1 and i<len(time_aux[p])-1) and (time_aux[p][i]==time_aux[p][i-1]) and (sp_aux[p][i]==0 and sp_aux[p][i-1]>0)):
+                    if (
+                        (i >= 1 and i < len(time_aux[p]) - 1)
+                        and (time_aux[p][i] != time_aux[p][i - 1])
+                        and (sp_aux[p][i] == 0 and sp_aux[p][i + 1] == 0)
+                    ):
+                        print("WARNING: duty-cycle overflow")
+                    elif (
+                        (i >= 1 and i < len(time_aux[p]) - 1)
+                        and (time_aux[p][i] == time_aux[p][i - 1])
+                        and (sp_aux[p][i] == 0 and sp_aux[p][i - 1] > 0)
+                    ):
                         # print(p)
-                        print('WARNING: duty-cycle junction')
+                        print("WARNING: duty-cycle junction")
                     else:
-                        em.ENsetcontrol(rule_id,em.EN_TIMER,idx_aux[p][i],sp_aux[p][i],0,time_aux[p][i])  
-                        controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                        controls['controls'].append(sp_aux[p][i]) 
-                        controls['pump_idx'].append(idx_aux[p][i]) 
-                        rule_id+=1         
-        else: #Sem VSPs
-            n_var_pump=np.multiply(2,d.n_dc) #numero de variaveis por bomba
+                        em.ENsetcontrol(
+                            rule_id,
+                            em.EN_TIMER,
+                            idx_aux[p][i],
+                            sp_aux[p][i],
+                            0,
+                            time_aux[p][i],
+                        )
+                        controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                        controls["controls"].append(sp_aux[p][i])
+                        controls["pump_idx"].append(idx_aux[p][i])
+                        rule_id += 1
+        else:  # Sem VSPs
+            n_var_pump = np.multiply(2, d.n_dc)  # numero de variaveis por bomba
             for p in range(len(d.pumps_to_opt)):
-                pump_idx=pumps['pumps_idx'][d.pumps_to_opt[p]] 
-                idx=0
-                time_epanet=np.zeros(n_var_pump[p]+1)
-                s_epanet=np.zeros(n_var_pump[p]+1)
-                x_p=torch.tensor(x[d.dc_pos[p]:d.dc_pos[p+1]])
-                #x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+                idx = 0
+                time_epanet = np.zeros(n_var_pump[p] + 1)
+                s_epanet = np.zeros(n_var_pump[p] + 1)
+                x_p = torch.tensor(x[d.dc_pos[p] : d.dc_pos[p + 1]])
+                # x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
                 # x_p=x[int(p*n_var_pump):int(n_var_pump*(p+1))]
-                for i in range(0,int(len(time_epanet)/2)):
-                    if(x_p[i] < 0): x_p[i]=0 
-                    if(x_p[i] > 24): x_p[i]=24
-                    
-                    if(i==0): # para o caso: bombas tenham definido status initial a 1
-                        time_epanet[idx]=0  
-                        s_epanet[idx]=0
-                        idx+=1
-                    start=x_p[i]*(3600)
-                    if(start%1>=0.5):
-                        time_epanet[idx]=math.ceil(start)
-                    else:
-                        time_epanet[idx]=torch.round(start)
-                    s_epanet[idx]=1
-                    idx+=1
-                    
-                    #end=(x_p[i]+x_p[i+int(len(x_p)/2)])*3600
-                    end=((time_epanet[idx-1]/3600)+x_p[i+int(len(x_p)/2)])*3600
-                    if(end%1>=0.5):
-                        time_epanet[idx]=math.ceil(end)
-                    else:
-                        time_epanet[idx]=torch.round(end)
-                    s_epanet[idx]=0
-                    idx+=1
+                for i in range(0, int(len(time_epanet) / 2)):
+                    if x_p[i] < 0:
+                        x_p[i] = 0
+                    if x_p[i] > 24:
+                        x_p[i] = 24
 
-            # t=g5_F3(x)
-            # if(any(elemento > 0 for elemento in t)):
-            #     print('aqui') 
-            
-                sort = np.argsort(time_epanet) #ordenação de tempos de inicio/paragem
+                    if i == 0:  # para o caso: bombas tenham definido status initial a 1
+                        time_epanet[idx] = 0
+                        s_epanet[idx] = 0
+                        idx += 1
+                    start = x_p[i] * (3600)
+                    if start % 1 >= 0.5:
+                        time_epanet[idx] = math.ceil(start)
+                    else:
+                        time_epanet[idx] = torch.round(start)
+                    s_epanet[idx] = 1
+                    idx += 1
+
+                    # end=(x_p[i]+x_p[i+int(len(x_p)/2)])*3600
+                    end = (
+                        (time_epanet[idx - 1] / 3600) + x_p[i + int(len(x_p) / 2)]
+                    ) * 3600
+                    if end % 1 >= 0.5:
+                        time_epanet[idx] = math.ceil(end)
+                    else:
+                        time_epanet[idx] = torch.round(end)
+                    s_epanet[idx] = 0
+                    idx += 1
+
+                # t=g5_F3(x)
+                # if(any(elemento > 0 for elemento in t)):
+                #     print('aqui')
+
+                sort = np.argsort(time_epanet)  # ordenação de tempos de inicio/paragem
                 # # time_epanet=time_epanet[sort]
                 # # s_epanet=s_epanet[sort]
-                
-                todel=[]
-                out=np.where(sort[1:] < sort[:-1])[0]
-                if (len(out)!=0):
-                    for k in range(0,len(out)):
-                        if(s_epanet[out[k]]==0 and s_epanet[out[k]+1]==1): #sobreposição
-                            todel.append(out[k])
-                            todel.append(out[k]+1)
-                    s_epanet=np.delete(s_epanet,todel)
-                    time_epanet=np.delete(time_epanet,todel)
 
-                for i in range(0,len(s_epanet)-1): #correção de sobreposições
-                    if(s_epanet[i]==s_epanet[i+1]):
-                        if(s_epanet[i]==0):
-                            time_epanet[i]=time_epanet[i+1]     
-            
-                for i in range(0,len(time_epanet)):
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pump_idx,float(s_epanet[i]),0,time_epanet[i])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(int(s_epanet[i]))
-                    rule_id+=1  
-                
+                todel = []
+                out = np.where(sort[1:] < sort[:-1])[0]
+                if len(out) != 0:
+                    for k in range(0, len(out)):
+                        if (
+                            s_epanet[out[k]] == 0 and s_epanet[out[k] + 1] == 1
+                        ):  # sobreposição
+                            todel.append(out[k])
+                            todel.append(out[k] + 1)
+                    s_epanet = np.delete(s_epanet, todel)
+                    time_epanet = np.delete(time_epanet, todel)
+
+                for i in range(0, len(s_epanet) - 1):  # correção de sobreposições
+                    if s_epanet[i] == s_epanet[i + 1]:
+                        if s_epanet[i] == 0:
+                            time_epanet[i] = time_epanet[i + 1]
+
+                for i in range(0, len(time_epanet)):
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pump_idx,
+                        float(s_epanet[i]),
+                        0,
+                        time_epanet[i],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(int(s_epanet[i]))
+                    rule_id += 1
+
             # print('it')
-            
-        #Eliminar os restantes controlos
-        if(rule_id<n_controls):
-            for id in range(rule_id,n_controls+1):
-                em.ENsetcontrol(id,em.EN_TIMER,pumps['pumps_idx'][0],float(0),0,(24*60*60))
+
+        # Eliminar os restantes controlos
+        if rule_id < n_controls:
+            for id in range(rule_id, n_controls + 1):
+                em.ENsetcontrol(
+                    id, em.EN_TIMER, pumps["pumps_idx"][0], float(0), 0, (24 * 60 * 60)
+                )
 
     return controls
 
+
 jit(nopython=True)
-def conversor(x,pumps,d,speed): #conversor variaveis de decisão --> pump status
-    rule_id=d.ncontrols_idx+1 #caso existem controlos a não mexer (valvulas)
-    n_controls=em.ENgetcount(em.EN_CONTROLCOUNT)
-    controls={'t':[], 'controls':[], 'pump_idx':[]}
-    if(d.ftype==1): #Formulação binária      
-        End_time=np.cumsum(d.t_hor_s_1F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(d.t_hor_s_1F))
-        
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): 
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],float(x[k]),0,Start_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(float(x[k]))
-                rule_id+=1
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,End_time[idx])
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(0.0)
-                rule_id+=1  
-                idx+=1    
-            idx_pump+=1    
-         
-    elif(d.ftype==2): #Formulação Real-Continua
-        End_time=np.cumsum(d.t_hor_s_2F)
-        Start_time=np.concatenate(([0],End_time[0:len(End_time)-1]),axis=0)
-        t_off=np.zeros(len(x))
-        
-        idx_pump=0
-        for i in range(0,len(x),int(len(x)/d.n_pumps)): # 0, 9, 18
-            idx=0
-            for k in range(i,i+int(len(x)/d.n_pumps)):                
-                if(x[k]!=0):
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],1.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(1.0)
-                    rule_id+=1
-                    t_off[k]=(x[k]*d.t_hor_s_2F[idx])+Start_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
+
+
+def conversor(x, pumps, d, speed):  # conversor variaveis de decisão --> pump status
+    rule_id = d.ncontrols_idx + 1  # caso existem controlos a não mexer (valvulas)
+    n_controls = em.ENgetcount(em.EN_CONTROLCOUNT)
+    controls = {"t": [], "controls": [], "pump_idx": []}
+    if d.ftype == 1:  # Formulação binária
+        End_time = np.cumsum(d.t_hor_s_1F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(d.t_hor_s_1F))
+
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    float(x[k]),
+                    0,
+                    Start_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(float(x[k]))
+                rule_id += 1
+                em.ENsetcontrol(
+                    rule_id,
+                    em.EN_TIMER,
+                    pumps["pumps_idx"][idx_pump],
+                    0.0,
+                    0,
+                    End_time[idx],
+                )
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(0.0)
+                rule_id += 1
+                idx += 1
+            idx_pump += 1
+
+    elif d.ftype == 2:  # Formulação Real-Continua
+        End_time = np.cumsum(d.t_hor_s_2F)
+        Start_time = np.concatenate(([0], End_time[0 : len(End_time) - 1]), axis=0)
+        t_off = np.zeros(len(x))
+
+        idx_pump = 0
+        for i in range(0, len(x), int(len(x) / d.n_pumps)):  # 0, 9, 18
+            idx = 0
+            for k in range(i, i + int(len(x) / d.n_pumps)):
+                if x[k] != 0:
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        1.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(1.0)
+                    rule_id += 1
+                    t_off[k] = (x[k] * d.t_hor_s_2F[idx]) + Start_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
                 else:
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,Start_time[idx])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                    t_off[k]=End_time[idx]
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pumps['pumps_idx'][idx_pump],0.0,0,t_off[k])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0.0)
-                    rule_id+=1
-                idx+=1
-            idx_pump+=1
-  
-    elif(d.ftype==3): #Formulação Duty-Cycles
-        if(len(x)>np.sum(d.n_dc)*2): # com VSPs
-            for i in range(len(d.pumps_to_opt)): # i in range(d.n_pumps):
-                pump_idx=pumps['pumps_idx'][d.pumps_to_opt[i]]             
-                em.ENsetcontrol(rule_id,em.EN_TIMER,pump_idx,0.0,0,0)  #em.EN_TIME
-                controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                controls['controls'].append(0) 
-                controls['pump_idx'].append(pump_idx) 
-                rule_id+=1
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        Start_time[idx],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                    t_off[k] = End_time[idx]
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pumps["pumps_idx"][idx_pump],
+                        0.0,
+                        0,
+                        t_off[k],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0.0)
+                    rule_id += 1
+                idx += 1
+            idx_pump += 1
 
-            #Eliminar DCs com duração=0 e definir regras para eles por cauda dos niveis 
-            idx_dur0=np.concatenate(np.where(speed['st_sec']==speed['endt_sec']))
-            if(len(idx_dur0)!=0):
+    elif d.ftype == 3:  # Formulação Duty-Cycles
+        if len(x) > np.sum(d.n_dc) * 2:  # com VSPs
+            for i in range(len(d.pumps_to_opt)):  # i in range(d.n_pumps):
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[i]]
+                em.ENsetcontrol(rule_id, em.EN_TIMER, pump_idx, 0.0, 0, 0)  # em.EN_TIME
+                controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                controls["controls"].append(0)
+                controls["pump_idx"].append(pump_idx)
+                rule_id += 1
+
+            # Eliminar DCs com duração=0 e definir regras para eles por cauda dos niveis
+            idx_dur0 = np.concatenate(np.where(speed["st_sec"] == speed["endt_sec"]))
+            if len(idx_dur0) != 0:
                 for todel in range(len(idx_dur0)):
-                    #on  
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],speed['speed'][idx_dur0[todel]],0,speed['st_sec'][idx_dur0[todel]])  
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(speed['speed'][idx_dur0[todel]]) 
-                    controls['pump_idx'].append(speed['pumps_idx'][idx_dur0[todel]])
-                    rule_id+=1 
+                    # on
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        speed["pumps_idx"][idx_dur0[todel]],
+                        speed["speed"][idx_dur0[todel]],
+                        0,
+                        speed["st_sec"][idx_dur0[todel]],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(speed["speed"][idx_dur0[todel]])
+                    controls["pump_idx"].append(speed["pumps_idx"][idx_dur0[todel]])
+                    rule_id += 1
 
-                    #off
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,speed['pumps_idx'][idx_dur0[todel]],0.0,0,speed['st_sec'][idx_dur0[todel]])  
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(0) 
-                    controls['pump_idx'].append(speed['pumps_idx'][idx_dur0[todel]]) 
-                    rule_id+=1 
-                    
+                    # off
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        speed["pumps_idx"][idx_dur0[todel]],
+                        0.0,
+                        0,
+                        speed["st_sec"][idx_dur0[todel]],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(0)
+                    controls["pump_idx"].append(speed["pumps_idx"][idx_dur0[todel]])
+                    rule_id += 1
 
-                speed['st_sec']=np.delete(speed['st_sec'],idx_dur0)
-                speed['endt_sec']=np.delete(speed['endt_sec'],idx_dur0)
-                speed['pumps_idx']=np.delete(speed['pumps_idx'],idx_dur0)
-                speed['speed']=np.delete(speed['speed'],idx_dur0)
+                speed["st_sec"] = np.delete(speed["st_sec"], idx_dur0)
+                speed["endt_sec"] = np.delete(speed["endt_sec"], idx_dur0)
+                speed["pumps_idx"] = np.delete(speed["pumps_idx"], idx_dur0)
+                speed["speed"] = np.delete(speed["speed"], idx_dur0)
 
-            time=np.concatenate((speed['st_sec'],speed['endt_sec']))
-            sp=np.concatenate((speed['speed'],np.zeros(len(speed['speed']))))
-            idx=np.concatenate((speed['pumps_idx'],speed['pumps_idx']))
+            time = np.concatenate((speed["st_sec"], speed["endt_sec"]))
+            sp = np.concatenate((speed["speed"], np.zeros(len(speed["speed"]))))
+            idx = np.concatenate((speed["pumps_idx"], speed["pumps_idx"]))
             sort = np.argsort(time)
-            time=time[sort]
-            sp=sp[sort]
-            idx=idx[sort]
-            
-            gtemp=AF.g_TempLog(x,d)
-            over=len(np.where((gtemp<d.dif_DC)==True)[0])
-            if over !=0:
-                print('No of DCs overflow/junction:'+str(over) + '; value max:'+str(min(gtemp)))
+            time = time[sort]
+            sp = sp[sort]
+            idx = idx[sort]
 
-            #Divisão por pump_idx para facilitar a definição de regras
-            time_aux=[]
-            sp_aux=[]
-            idx_aux=[]
+            gtemp = AF.g_TempLog(x, d)
+            over = len(np.where((gtemp < d.dif_DC) == True)[0])
+            if over != 0:
+                print(
+                    "No of DCs overflow/junction:"
+                    + str(over)
+                    + "; value max:"
+                    + str(min(gtemp))
+                )
+
+            # Divisão por pump_idx para facilitar a definição de regras
+            time_aux = []
+            sp_aux = []
+            idx_aux = []
             for p in range(len(d.pumps_to_opt)):
-                pump_idx= pumps['pumps_idx'][d.pumps_to_opt[p]]
-                time_aux.append(time[idx==pump_idx])
-                sp_aux.append(sp[idx==pump_idx])
-                idx_aux.append(idx[idx==pump_idx])
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+                time_aux.append(time[idx == pump_idx])
+                sp_aux.append(sp[idx == pump_idx])
+                idx_aux.append(idx[idx == pump_idx])
 
             for p in range(len(time_aux)):
                 for i in range(len(time_aux[p])):
-                    if((i>=1 and i<len(time_aux[p])-1)  and (time_aux[p][i]!=time_aux[p][i-1]) and (sp_aux[p][i]==0 and sp_aux[p][i+1]==0)):
-                        print('WARNING: duty-cycle overflow')
-                    elif((i>=1 and i<len(time_aux[p])-1) and (time_aux[p][i]==time_aux[p][i-1]) and (sp_aux[p][i]==0 and sp_aux[p][i-1]>0)):
+                    if (
+                        (i >= 1 and i < len(time_aux[p]) - 1)
+                        and (time_aux[p][i] != time_aux[p][i - 1])
+                        and (sp_aux[p][i] == 0 and sp_aux[p][i + 1] == 0)
+                    ):
+                        print("WARNING: duty-cycle overflow")
+                    elif (
+                        (i >= 1 and i < len(time_aux[p]) - 1)
+                        and (time_aux[p][i] == time_aux[p][i - 1])
+                        and (sp_aux[p][i] == 0 and sp_aux[p][i - 1] > 0)
+                    ):
                         # print(p)
-                        print('WARNING: duty-cycle junction')
+                        print("WARNING: duty-cycle junction")
                     else:
-                        em.ENsetcontrol(rule_id,em.EN_TIMER,idx_aux[p][i],sp_aux[p][i],0,time_aux[p][i])  
-                        controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                        controls['controls'].append(sp_aux[p][i]) 
-                        controls['pump_idx'].append(idx_aux[p][i]) 
-                        rule_id+=1         
-        else: #Sem VSPs
-            n_var_pump=np.multiply(2,d.n_dc) #numero de variaveis por bomba
+                        em.ENsetcontrol(
+                            rule_id,
+                            em.EN_TIMER,
+                            idx_aux[p][i],
+                            sp_aux[p][i],
+                            0,
+                            time_aux[p][i],
+                        )
+                        controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                        controls["controls"].append(sp_aux[p][i])
+                        controls["pump_idx"].append(idx_aux[p][i])
+                        rule_id += 1
+        else:  # Sem VSPs
+            n_var_pump = np.multiply(2, d.n_dc)  # numero de variaveis por bomba
             for p in range(len(d.pumps_to_opt)):
-                pump_idx=pumps['pumps_idx'][d.pumps_to_opt[p]] 
-                idx=0
-                time_epanet=np.zeros(n_var_pump[p]+1)
-                s_epanet=np.zeros(n_var_pump[p]+1)
-                x_p=torch.tensor(x[d.dc_pos[p]:d.dc_pos[p+1]])
-                #x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
+                pump_idx = pumps["pumps_idx"][d.pumps_to_opt[p]]
+                idx = 0
+                time_epanet = np.zeros(n_var_pump[p] + 1)
+                s_epanet = np.zeros(n_var_pump[p] + 1)
+                x_p = torch.tensor(x[d.dc_pos[p] : d.dc_pos[p + 1]])
+                # x_p=x[d.dc_pos[p]:d.dc_pos[p+1]]
                 # x_p=x[int(p*n_var_pump):int(n_var_pump*(p+1))]
-                for i in range(0,int(len(time_epanet)/2)):
-                    if(x_p[i] < 0): x_p[i]=0 
-                    if(x_p[i] > 24): x_p[i]=24
-                    
-                    if(i==0): # para o caso: bombas tenham definido status initial a 1
-                        time_epanet[idx]=0  
-                        s_epanet[idx]=0
-                        idx+=1
-                    start=x_p[i]*(3600)
-                    if(start%1>=0.5):
-                        time_epanet[idx]=math.ceil(start)
-                    else:
-                        time_epanet[idx]=torch.round(start)
-                    s_epanet[idx]=1
-                    idx+=1
-                    
-                    #end=(x_p[i]+x_p[i+int(len(x_p)/2)])*3600
-                    end=((time_epanet[idx-1]/3600)+x_p[i+int(len(x_p)/2)])*3600
-                    if(end%1>=0.5):
-                        time_epanet[idx]=math.ceil(end)
-                    else:
-                        time_epanet[idx]=torch.round(end)
-                    s_epanet[idx]=0
-                    idx+=1
+                for i in range(0, int(len(time_epanet) / 2)):
+                    if x_p[i] < 0:
+                        x_p[i] = 0
+                    if x_p[i] > 24:
+                        x_p[i] = 24
 
-            # t=g5_F3(x)
-            # if(any(elemento > 0 for elemento in t)):
-            #     print('aqui') 
-            
-                sort = np.argsort(time_epanet) #ordenação de tempos de inicio/paragem
+                    if i == 0:  # para o caso: bombas tenham definido status initial a 1
+                        time_epanet[idx] = 0
+                        s_epanet[idx] = 0
+                        idx += 1
+                    start = x_p[i] * (3600)
+                    if start % 1 >= 0.5:
+                        time_epanet[idx] = math.ceil(start)
+                    else:
+                        time_epanet[idx] = torch.round(start)
+                    s_epanet[idx] = 1
+                    idx += 1
+
+                    # end=(x_p[i]+x_p[i+int(len(x_p)/2)])*3600
+                    end = (
+                        (time_epanet[idx - 1] / 3600) + x_p[i + int(len(x_p) / 2)]
+                    ) * 3600
+                    if end % 1 >= 0.5:
+                        time_epanet[idx] = math.ceil(end)
+                    else:
+                        time_epanet[idx] = torch.round(end)
+                    s_epanet[idx] = 0
+                    idx += 1
+
+                # t=g5_F3(x)
+                # if(any(elemento > 0 for elemento in t)):
+                #     print('aqui')
+
+                sort = np.argsort(time_epanet)  # ordenação de tempos de inicio/paragem
                 # # time_epanet=time_epanet[sort]
                 # # s_epanet=s_epanet[sort]
-                
-                todel=[]
-                out=np.where(sort[1:] < sort[:-1])[0]
-                if (len(out)!=0):
-                    for k in range(0,len(out)):
-                        if(s_epanet[out[k]]==0 and s_epanet[out[k]+1]==1): #sobreposição
-                            todel.append(out[k])
-                            todel.append(out[k]+1)
-                    s_epanet=np.delete(s_epanet,todel)
-                    time_epanet=np.delete(time_epanet,todel)
 
-                for i in range(0,len(s_epanet)-1): #correção de sobreposições
-                    if(s_epanet[i]==s_epanet[i+1]):
-                        if(s_epanet[i]==0):
-                            time_epanet[i]=time_epanet[i+1]     
-            
-                for i in range(0,len(time_epanet)):
-                    em.ENsetcontrol(rule_id,em.EN_TIMER,pump_idx,float(s_epanet[i]),0,time_epanet[i])
-                    controls['t'].append(em.ENgetcontrol(rule_id)[4])
-                    controls['controls'].append(int(s_epanet[i]))
-                    rule_id+=1  
-                
+                todel = []
+                out = np.where(sort[1:] < sort[:-1])[0]
+                if len(out) != 0:
+                    for k in range(0, len(out)):
+                        if (
+                            s_epanet[out[k]] == 0 and s_epanet[out[k] + 1] == 1
+                        ):  # sobreposição
+                            todel.append(out[k])
+                            todel.append(out[k] + 1)
+                    s_epanet = np.delete(s_epanet, todel)
+                    time_epanet = np.delete(time_epanet, todel)
+
+                for i in range(0, len(s_epanet) - 1):  # correção de sobreposições
+                    if s_epanet[i] == s_epanet[i + 1]:
+                        if s_epanet[i] == 0:
+                            time_epanet[i] = time_epanet[i + 1]
+
+                for i in range(0, len(time_epanet)):
+                    em.ENsetcontrol(
+                        rule_id,
+                        em.EN_TIMER,
+                        pump_idx,
+                        float(s_epanet[i]),
+                        0,
+                        time_epanet[i],
+                    )
+                    controls["t"].append(em.ENgetcontrol(rule_id)[4])
+                    controls["controls"].append(int(s_epanet[i]))
+                    rule_id += 1
+
             # print('it')
-            
-        #Eliminar os restantes controlos
-        if(rule_id<n_controls):
-            for id in range(rule_id,n_controls+1):
-                em.ENsetcontrol(id,em.EN_TIMER,pumps['pumps_idx'][0],float(0),0,(24*60*60))
+
+        # Eliminar os restantes controlos
+        if rule_id < n_controls:
+            for id in range(rule_id, n_controls + 1):
+                em.ENsetcontrol(
+                    id, em.EN_TIMER, pumps["pumps_idx"][0], float(0), 0, (24 * 60 * 60)
+                )
 
     return controls
 
+
 jit(nopython=True)
-def pattern_definition(d,pat):
-    #output: dicionario com o idx dos patterns; valor dos patterns
-    patterns={}
-    for i in range(0,len(d.sheet_name)):
+
+
+def pattern_definition(d, pat):
+    # output: dicionario com o idx dos patterns; valor dos patterns
+    patterns = {}
+    for i in range(0, len(d.sheet_name)):
         df_origem = pd.read_excel(d.path_pat, sheet_name=d.sheet_name[i])
-        time=df_origem.iloc[:, 0].values
-        real=df_origem.iloc[:, 1].values
-        pred=df_origem.iloc[:, 2].values
-        patterns['time_pred_'+d.sheet_name[i]]=time[~np.isnan(pred)]  
-        patterns['pred_'+d.sheet_name[i]]=pred[~np.isnan(pred)]
+        time = df_origem.iloc[:, 0].values
+        real = df_origem.iloc[:, 1].values
+        pred = df_origem.iloc[:, 2].values
+        patterns["time_pred_" + d.sheet_name[i]] = time[~np.isnan(pred)]
+        patterns["pred_" + d.sheet_name[i]] = pred[~np.isnan(pred)]
 
-        patterns['time_real_'+d.sheet_name[i]]=time    
+        patterns["time_real_" + d.sheet_name[i]] = time
 
-        patterns['real_'+d.sheet_name[i]]=real
-        patterns['real_'+d.sheet_name[i]][np.isnan(real)]=0
+        patterns["real_" + d.sheet_name[i]] = real
+        patterns["real_" + d.sheet_name[i]][np.isnan(real)] = 0
 
-    # data -> pd.to_datetime(time)      
+    # data -> pd.to_datetime(time)
     return patterns
 
+
 jit(nopython=True)
-def set_patterns(d,patterns,CP):
+
+
+def set_patterns(d, patterns, CP):
     target_date = pd.to_datetime(d.path_day).date()
-    for i in range(0,len(d.sheet_name)):
-        if(d.flag_pat==1 or d.flag_def_pattern==1): #pred ou definição de novos 
-            tt=pd.to_datetime(patterns['time_pred_'+d.sheet_name[i]])
-            time=tt[tt.date == target_date]
-            pat=patterns['pred_'+d.sheet_name[i]][tt.date == target_date]
-        else: # real
-            tt=pd.to_datetime(patterns['time_real_'+d.sheet_name[i]])
-            time=tt[tt.date == target_date]
-            pat=patterns['real_'+d.sheet_name[i]][tt.date == target_date]
-        
-        pat_name=d.sheet_name[i]
+    for i in range(0, len(d.sheet_name)):
+        if d.flag_pat == 1 or d.flag_def_pattern == 1:  # pred ou definição de novos
+            tt = pd.to_datetime(patterns["time_pred_" + d.sheet_name[i]])
+            time = tt[tt.date == target_date]
+            pat = patterns["pred_" + d.sheet_name[i]][tt.date == target_date]
+        else:  # real
+            tt = pd.to_datetime(patterns["time_real_" + d.sheet_name[i]])
+            time = tt[tt.date == target_date]
+            pat = patterns["real_" + d.sheet_name[i]][tt.date == target_date]
+
+        pat_name = d.sheet_name[i]
         # node_name='PE_'+d.sheet_name[i]
 
-        if(d.flag_pat==2):
-            pat,time=RealDataPre_Processing(pat, time, d.sheet_name[i])
+        if d.flag_pat == 2:
+            pat, time = RealDataPre_Processing(pat, time, d.sheet_name[i])
 
         # if(len(pat)!=12*24):
         #      print('\n ERROR:DATA IS MISSING')
 
         # definir pattern
-        idx_pat=CP['patterns_id'].index(pat_name)
-        em.ENsetpattern(CP['patterns_idx'][idx_pat], pat)
-        # associar pattern a nó 
-        #idx_node=CP['CPs_id'].index(node_name)
-        #em.ENsetnodevalue(CP['CPs_idx'][idx_node], em.EN_SOURCEPAT, idx_pat)
+        idx_pat = CP["patterns_id"].index(pat_name)
+        em.ENsetpattern(CP["patterns_idx"][idx_pat], pat)
+        # associar pattern a nó
+        # idx_node=CP['CPs_id'].index(node_name)
+        # em.ENsetnodevalue(CP['CPs_idx'][idx_node], em.EN_SOURCEPAT, idx_pat)
+
 
 jit(nopython=True)
-def h0_definition(d,tanks):  
-    for i in range(0,d.n_tanks):
-        tank_name=d.tanks_id[i]
-        idx_tank=tanks['tanks_id'].index(tank_name)
-        em.ENsetnodevalue(tanks['tanks_idx'][idx_tank], em.EN_TANKLEVEL, d.h0[i])
+
+
+def h0_definition(d, tanks):
+    for i in range(0, d.n_tanks):
+        tank_name = d.tanks_id[i]
+        idx_tank = tanks["tanks_id"].index(tank_name)
+        em.ENsetnodevalue(tanks["tanks_idx"][idx_tank], em.EN_TANKLEVEL, d.h0[i])
+
 
 jit(nopython=True)
+
+
 def tariff_definition(d):
     date_obj = datetime.strptime(d.path_day, "%Y-%m-%d")
     weekday = date_obj.strftime("%A")
-    pat_tar=[]
+    pat_tar = []
 
-    if(d.flag_naive==1 and weekday=='Friday'): # é tarifas de sábado
-        for i in range(0,len(d.tariff_sat_time)):
-                aux=np.multiply(np.ones(int(d.tariff_sat_time[i]/(5/60))),d.tariff_sat[i])
-                pat_tar=np.concatenate((pat_tar,aux))
-        d.tariff_value=d.tariff_sat
-        d.tar_beg=np.cumsum([0]+d.tariff_sat_time)[:len(d.tariff_sat_time)]
-        d.tar_end=np.cumsum([0]+d.tariff_sat_time)[1:]
-    elif(d.flag_naive==1 and weekday=='Saturday'): # tarifas de domingo
-            for i in range(0,len(d.tariff_sun_time)):
-                aux=np.multiply(np.ones(int(d.tariff_sun_time[i]/(5/60))),d.tariff_sun[i])
-                pat_tar=np.concatenate((pat_tar,aux)) 
-            d.tariff_value=d.tariff_sun
-            d.tar_beg=np.cumsum([0]+d.tariff_sun_time)[:len(d.tariff_sun_time)]
-            d.tar_end=np.cumsum([0]+d.tariff_sun_time)[1:]  
-    elif(d.flag_naive==1 and weekday=='Sunday'): # é tarifas de segunda-feira
-        for i in range(0,len(d.tariff_week_time)):
-            aux=np.multiply(np.ones(int(d.tariff_week_time[i]/(5/60))),d.tariff_week[i])
-            pat_tar=np.concatenate((pat_tar,aux))  
-        d.tariff_value=d.tariff_week
-        d.tar_beg=np.cumsum([0]+d.tariff_week_time)[:len(d.tariff_week_time)]
-        d.tar_end=np.cumsum([0]+d.tariff_week_time)[1:]                
+    if d.flag_naive == 1 and weekday == "Friday":  # é tarifas de sábado
+        for i in range(0, len(d.tariff_sat_time)):
+            aux = np.multiply(
+                np.ones(int(d.tariff_sat_time[i] / (5 / 60))), d.tariff_sat[i]
+            )
+            pat_tar = np.concatenate((pat_tar, aux))
+        d.tariff_value = d.tariff_sat
+        d.tar_beg = np.cumsum([0] + d.tariff_sat_time)[: len(d.tariff_sat_time)]
+        d.tar_end = np.cumsum([0] + d.tariff_sat_time)[1:]
+    elif d.flag_naive == 1 and weekday == "Saturday":  # tarifas de domingo
+        for i in range(0, len(d.tariff_sun_time)):
+            aux = np.multiply(
+                np.ones(int(d.tariff_sun_time[i] / (5 / 60))), d.tariff_sun[i]
+            )
+            pat_tar = np.concatenate((pat_tar, aux))
+        d.tariff_value = d.tariff_sun
+        d.tar_beg = np.cumsum([0] + d.tariff_sun_time)[: len(d.tariff_sun_time)]
+        d.tar_end = np.cumsum([0] + d.tariff_sun_time)[1:]
+    elif d.flag_naive == 1 and weekday == "Sunday":  # é tarifas de segunda-feira
+        for i in range(0, len(d.tariff_week_time)):
+            aux = np.multiply(
+                np.ones(int(d.tariff_week_time[i] / (5 / 60))), d.tariff_week[i]
+            )
+            pat_tar = np.concatenate((pat_tar, aux))
+        d.tariff_value = d.tariff_week
+        d.tar_beg = np.cumsum([0] + d.tariff_week_time)[: len(d.tariff_week_time)]
+        d.tar_end = np.cumsum([0] + d.tariff_week_time)[1:]
     else:
-        if(weekday=='Saturday'):
-            for i in range(0,len(d.tariff_sat_time)):
-                aux=np.multiply(np.ones(int(d.tariff_sat_time[i]/(5/60))),d.tariff_sat[i])
-                pat_tar=np.concatenate((pat_tar,aux))
-            d.tariff_value=d.tariff_sat
-            d.tar_beg=np.cumsum([0]+d.tariff_sat_time)[:len(d.tariff_sat_time)]
-            d.tar_end=np.cumsum([0]+d.tariff_sat_time)[1:]
-        elif(weekday=='Sunday'):
-            for i in range(0,len(d.tariff_sun_time)):
-                aux=np.multiply(np.ones(int(d.tariff_sun_time[i]/(5/60))),d.tariff_sun[i])
-                pat_tar=np.concatenate((pat_tar,aux))
-            d.tariff_value=d.tariff_sun
-            d.tar_beg=np.cumsum([0]+d.tariff_sun_time)[:len(d.tariff_sun_time)]
-            d.tar_end=np.cumsum([0]+d.tariff_sun_time)[1:]
-        else: # week days
-            for i in range(0,len(d.tariff_week_time)):
-                aux=np.multiply(np.ones(int(d.tariff_week_time[i]/(5/60))),d.tariff_week[i])
-                pat_tar=np.concatenate((pat_tar,aux))
+        if weekday == "Saturday":
+            for i in range(0, len(d.tariff_sat_time)):
+                aux = np.multiply(
+                    np.ones(int(d.tariff_sat_time[i] / (5 / 60))), d.tariff_sat[i]
+                )
+                pat_tar = np.concatenate((pat_tar, aux))
+            d.tariff_value = d.tariff_sat
+            d.tar_beg = np.cumsum([0] + d.tariff_sat_time)[: len(d.tariff_sat_time)]
+            d.tar_end = np.cumsum([0] + d.tariff_sat_time)[1:]
+        elif weekday == "Sunday":
+            for i in range(0, len(d.tariff_sun_time)):
+                aux = np.multiply(
+                    np.ones(int(d.tariff_sun_time[i] / (5 / 60))), d.tariff_sun[i]
+                )
+                pat_tar = np.concatenate((pat_tar, aux))
+            d.tariff_value = d.tariff_sun
+            d.tar_beg = np.cumsum([0] + d.tariff_sun_time)[: len(d.tariff_sun_time)]
+            d.tar_end = np.cumsum([0] + d.tariff_sun_time)[1:]
+        else:  # week days
+            for i in range(0, len(d.tariff_week_time)):
+                aux = np.multiply(
+                    np.ones(int(d.tariff_week_time[i] / (5 / 60))), d.tariff_week[i]
+                )
+                pat_tar = np.concatenate((pat_tar, aux))
             # VERIFICAR -> atualizar valor destas tres estruturas quando se altera os patterns ! -> importante para o Smart-DLS
-            d.tariff_value=d.tariff_week
-            d.tar_beg=np.cumsum([0]+d.tariff_week_time)[:len(d.tariff_week_time)]
-            d.tar_end=np.cumsum([0]+d.tariff_week_time)[1:]
+            d.tariff_value = d.tariff_week
+            d.tar_beg = np.cumsum([0] + d.tariff_week_time)[: len(d.tariff_week_time)]
+            d.tar_end = np.cumsum([0] + d.tariff_week_time)[1:]
     em.ENsetpattern(d.tariff_idx, pat_tar)
     return d
 
+
 jit(nopython=True)
+
+
 def RealDataPre_Processing(pat, time, pat_name):
     start_of_day = time[0].normalize()
-    time_series = pd.DataFrame({
-                'Time': (time - start_of_day).total_seconds(),  
-                'Pattern': pat}) 
+    time_series = pd.DataFrame(
+        {"Time": (time - start_of_day).total_seconds(), "Pattern": pat}
+    )
 
-    idx=np.where(pat<0.5)
-    if(len(idx[0])!=0):
-        time_series['Pattern'][idx[0]]=0
+    idx = np.where(pat < 0.5)
+    if len(idx[0]) != 0:
+        time_series["Pattern"][idx[0]] = 0
 
-    pattern_time=[i for i in range(0, (60*60*24), 5*60)]
+    pattern_time = [i for i in range(0, (60 * 60 * 24), 5 * 60)]
 
-    interpolator = interp1d(time_series['Time'], time_series['Pattern'], kind='linear', fill_value="extrapolate")
+    interpolator = interp1d(
+        time_series["Time"],
+        time_series["Pattern"],
+        kind="linear",
+        fill_value="extrapolate",
+    )
     interpolated_pattern = interpolator(pattern_time)
 
-    # fig1, ax = plt.subplots(1)     
-    # ax.plot(np.array(pattern_time)/3600,interpolated_pattern,label='processed data ('+pat_name+')')            
+    # fig1, ax = plt.subplots(1)
+    # ax.plot(np.array(pattern_time)/3600,interpolated_pattern,label='processed data ('+pat_name+')')
     # ax.plot(np.array(time_series['Time'])/3600,time_series['Pattern'],label='raw data ('+pat_name+')')
     # ax.legend(loc=1,fontsize=9)
     # fig1.savefig(pat_name+'_'+str(time[0].day)+'.pdf',format='pdf')
     # plt.show()
 
     return interpolated_pattern, pattern_time
-
-

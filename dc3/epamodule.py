@@ -23,7 +23,7 @@ elif _plat == 'Windows':
     try:
         # if epanet2.dll compiled with __cdecl (as in OpenWaterAnalytics)
        
-        _lib = ctypes.CDLL("epamodule\epanet2.dll")
+        _lib = ctypes.CDLL("epamodule/epanet2.dll")
         _lib.ENgetversion(ctypes.byref(ctypes.c_int()))
     except ValueError:
         # if epanet2.dll compiled with __stdcall (as in EPA original DLL)

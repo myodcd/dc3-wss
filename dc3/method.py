@@ -39,7 +39,7 @@ torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
-COMPUTER_RUN = 'personal'  # 'personal' or 'server'
+COMPUTER_RUN = 'server'  # 'personal' or 'server'
 
 SAVE_PLOT_Y_NEW = False
 SAVE_PLOT_GIF = False
@@ -279,7 +279,7 @@ def train_net(data, args, save_dir):
                 if COMPUTER_RUN == 'personal':
                     base_folder = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\plots"
                 else:
-                    base_folder = r"C:\Users\marcostulio\Desktop\dc3\plots"
+                    base_folder = r"C:\Users\marcostulio\Desktop\dc3-wss\dc3\plots"
                 
                 output_folder = os.path.join(base_folder, f"gifs_epoca_{time_generate_gif}")
                 os.makedirs(output_folder, exist_ok=True)            
