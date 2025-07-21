@@ -221,6 +221,19 @@ class Problem_DC_WSS:
         return self._qty_samples
 
     # def Cost
+    
+    
+    def obj_fn_Original(self, y, args):
+        
+        log_cost = opt_func.OptimizationLog()
+        
+        y = y.detach().cpu().numpy()
+        
+        result = torch.tensor([opt_func.Cost(i, self.d, log_cost, 3) for i in y])
+        
+        return result
+    
+    
     def obj_fn_Autograd(self, y, args):
         
         #start_time = time.time()
@@ -433,7 +446,7 @@ class Problem_DC_WSS:
 
         # Escala os tempos normalizados para [0, 23.8] e durações para [0.1, 5.0]
         start_times = out2[:, :qty] * 23.8
-        durations = out2[:, qty:] * (5.0 - 0.1) + 0.1
+        durations = out2[:, qty:] * (5.0 - 0.001) + 0.001
 
         # Ordena os horários de início e ajusta as durações na mesma ordem
         start_times_sorted, sorted_idx = torch.sort(start_times, dim=1)
@@ -444,7 +457,7 @@ class Problem_DC_WSS:
         for i in range(1, qty):
             prev_end = adjusted_start_times[i - 1] + durations_sorted[:, i - 1 : i]
             current_start = torch.max(
-                start_times_sorted[:, i : i + 1], prev_end + 0.05
+                start_times_sorted[:, i : i + 1], prev_end + 0.001
             )  # Adiciona intervalo mínimo de 0.05
             adjusted_start_times.append(current_start)
 
@@ -458,7 +471,7 @@ class Problem_DC_WSS:
 
         # Trunca valores finais para garantir domínio válido
         adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
-        durations_sorted = torch.clamp(durations_sorted, 0.1, 5.0)
+        durations_sorted = torch.clamp(durations_sorted, 0.001, 5.0)
 
         return torch.cat([adjusted_start_times, durations_sorted], dim=1)
 

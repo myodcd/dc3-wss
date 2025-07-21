@@ -31,7 +31,7 @@ class CostAutograd(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        CALL_COUNTER['CostAutograd'] += 1
+        #CALL_COUNTER['CostAutograd'] += 1
         #print(f'[COST BACKWARD] Access #{CALL_COUNTER["CostAutograd"]}')
         #time_start_costautgrad = time.time()
         y, = ctx.saved_tensors

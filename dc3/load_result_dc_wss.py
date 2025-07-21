@@ -19,9 +19,9 @@ def get_experiment_dirs(path_prefix):
     exper_dirs = {}
 
 
-    exper_dirs['acopf'] = 'ACOPF-57-0-0.5-0.7-0.0833-0.0833'
+    #exper_dirs['acopf'] = 'ACOPF-57-0-0.5-0.7-0.0833-0.0833'
     
-    exper_dirs['dc_wss'] = 'utils.Problem_DC_WSS_object_at_0x000002119F19A9C0'
+    exper_dirs['dc_wss'] = 'utils.Problem_DC_WSS_object_at_0x0000020E2BAF7E60'
 
     for key in exper_dirs.keys():
         exper_dirs[key] = os.path.join(path_prefix, exper_dirs[key])

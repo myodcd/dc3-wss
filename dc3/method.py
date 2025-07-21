@@ -39,12 +39,16 @@ torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
+COMPUTER_RUN = 'personal'  # 'personal' or 'server'
 
 SAVE_PLOT_Y_NEW = False
 SAVE_PLOT_GIF = False
-SAVE_PLOT_COST = True
-QTY_EPOCH_SAVE = 10
+SAVE_PLOT_COST = False # True
+QTY_EPOCH_SAVE = 40
 FIXED_Y_VALUE = False
+VALID_PLOT_COST = False
+TRAIN_PLOT_COST = False
+TEST_PLOT_COST = True
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -102,9 +106,9 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=50)
+    parser.add_argument('--qtySamples', type=int, default=30)
     parser.add_argument('--fileName', type=str, default=None)   
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
     parser.add_argument('--softWeightEqFracStart', type=float,
         help='starting value of softWeightEqFrac')
@@ -271,7 +275,12 @@ def train_net(data, args, save_dir):
             if SAVE_PLOT_GIF:
                         
                 time_generate_gif = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                base_folder = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\plots"
+                
+                if COMPUTER_RUN == 'personal':
+                    base_folder = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\plots"
+                else:
+                    base_folder = r"C:\Users\marcostulio\Desktop\dc3\plots"
+                
                 output_folder = os.path.join(base_folder, f"gifs_epoca_{time_generate_gif}")
                 os.makedirs(output_folder, exist_ok=True)            
                 
@@ -287,7 +296,12 @@ def train_net(data, args, save_dir):
 
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
             
-            if SAVE_PLOT_COST:                          
+            
+            
+            
+            
+            
+            if SAVE_PLOT_COST and TRAIN_PLOT_COST:                          
                 for j in range(len(train_loss)):
                     y_val = Ynew_train[j].cpu().detach().numpy()
                     levels = data.gT_Original(Ynew_train[j].unsqueeze(0))[0][:-1].cpu().detach().numpy()
@@ -338,8 +352,12 @@ def train_net(data, args, save_dir):
             for name, param in solver_net.named_parameters():
                 
                 ######################################
-                print(f"{name}: {param.grad}")
-                #pass                                    
+                #print(f"{name}: {param.grad}")
+                pass                                    
+
+
+
+
                     
         # Média da loss durante a época
         avg_train_loss = np.mean(epoch_stats['train_loss'])
@@ -439,8 +457,10 @@ def train_net(data, args, save_dir):
     
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
         pickle.dump(stats, f)
-    with open(os.path.join(save_dir, 'solver_net.dict'), 'wb') as f:
-        torch.save(solver_net.state_dict(), f)
+        
+    # A SALVAR O MODELO
+#    with open(os.path.join(save_dir, f'solver_net_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}.dict'), 'wb') as f:
+#        torch.save(solver_net.state_dict(), f)
         
         if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq':
         
@@ -448,7 +468,7 @@ def train_net(data, args, save_dir):
     
     save_model = os.path.join('models')
     
-    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}_softWeight{args['softWeight']}.pt'), 'wb') as f:
+    with open(os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}.pt'), 'wb') as f:
          torch.save(solver_net.state_dict(), f)
 
 
@@ -463,7 +483,7 @@ def train_net(data, args, save_dir):
     if args['probType'] == 'dc_wss':
 
         # Testar resultado do modelo
-        path_model = os.path.join('models', f'model_{now}_dc{args['dc']}_samples{data.qty_samples}_epochs{args["epochs"]}_softWeight{args["softWeight"]}.pt')
+        path_model = os.path.join(save_model, f'model_{now}_dc{args['dc']}_samples{args['qtySamples']}_epochs{args["epochs"]}.pt')
         
         hiddenSize_ = args['hiddenSize']
         args_ = {'probType': 'dc_wss', 'hiddenSize': hiddenSize_, 'useCompl': False, 'corrMode': 'full'}
@@ -532,7 +552,29 @@ def eval_net(data, X, solver_net, args, prefix, stats):
 
     Ynew = grad_steps(data, X, Y, args)
     raw_end_time = time.time()
-
+    
+    
+    if SAVE_PLOT_COST and TEST_PLOT_COST and args['probType'] == 'dc_wss':    
+        
+        
+        for i in range(len(Ynew)):
+            
+            y_val = Ynew[i].cpu().detach().numpy()
+            levels = data.gT_Original(Ynew[i].unsqueeze(0))[0][:-1].cpu().detach().numpy()
+            cost = float(data.obj_fn_Autograd(Ynew[i].unsqueeze(0), args)[0])
+            
+            title = (
+                f"Y new from {prefix.upper()}\n"
+                f"Sample: {i}\n"
+                f"Y new: {np.array2string(y_val, precision=2, separator=', ')}\n"
+                f"Levels: {np.array2string(levels, precision=2, separator=', ')}\n"
+                f"Cost: € {cost:.2f}"
+            
+            )
+            
+            plot_nivel_tanque_new(args, y_val, cost, save_plot=True, title=title, sample=i)
+            
+            
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
     
     dict_agg(stats, make_prefix('time'), end_time - start_time, op='sum')
@@ -604,6 +646,7 @@ def total_loss(data, X, Y, args, i):
 
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
+        #obj_cost = data.obj_fn_Original(Y, args)
     else:
         obj_cost = data.obj_fn_Original(Y, args)
     
@@ -617,19 +660,17 @@ def total_loss(data, X, Y, args, i):
     if args['probType'] == 'dc_wss':
         
         # Somente com restricao de desigualdade
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+        #result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
         #result = obj_cost + args['softWeight'] * ineq_cost
-
+        #result = obj_cost
+        
+        result = obj_cost + 0.5 * ineq_cost
+        
         
     else:
         # Com equações de igualdade e desigualdade
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
         result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
-    
-    
-    
-    
-    #plot_simple(Y[2].cpu().detach().numpy(), 0, args, 2, n_sample=2)
     
     return result
 
@@ -650,9 +691,9 @@ def grad_steps(data, X, Y, args, epoch=None):
             assert False, "Partial correction not available without completion."
         Y_new = Y
         old_Y_step = 0       
-        print('')                
-        print(f'-- GradSteps -- | Qty {str(Y.shape[0])}')
-        for i in tqdm(range(num_steps+1)):            
+        #print('')                
+        #print(f'-- GradSteps -- | Qty {str(Y.shape[0])}')
+        for i in range(num_steps+1):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       

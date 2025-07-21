@@ -1,5 +1,7 @@
 import numpy as np
 
+COMPUTER_RUN = 'personal'  # 'personal' or 'server'
+
 class data_system:
     def __init__(self,n_dc,n_points_t):
         ### Dados simulação WSS ###
@@ -35,12 +37,25 @@ class data_system:
         self.n_points_tank=n_points_t #nº de pontos a avaliar dentro de cada DC para cada tanque
         self.flag_pat=0
 
-#        self.EpanetFile='Bomba-deposito_v1.inp'  
-        self.EpanetFile = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\Bomba-deposito_v1.inp"
-        self.flag_t_inicio=0
-        self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
-        self.nomerpt=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\report.rpt"
-        self.nomebin=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\output.bin"
+
+        if COMPUTER_RUN == 'personal':
+
+    #        self.EpanetFile='Bomba-deposito_v1.inp'  
+            self.EpanetFile = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\Bomba-deposito_v1.inp"
+            self.flag_t_inicio=0
+            self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
+            self.nomerpt=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\report.rpt"
+            self.nomebin=r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\output.bin"
+
+        else:
+
+    #        self.EpanetFile='Bomba-deposito_v1.inp'  
+            self.EpanetFile = r"C:\Users\marcostulio\Desktop\dc3\Bomba-deposito_v1.inp"
+            self.flag_t_inicio=0
+            self.flag_tariff_inicio=0 #flag para assinalar simulações que não começam as 0 horas (p.e. Van Zyl) 
+            self.nomerpt=r"C:\Users\marcostulio\Desktop\dc3\report.rpt"
+            self.nomebin=r"C:\Users\marcostulio\Desktop\dc3\output.bin"
+
 
         ### Dados otimização ###    
         self.ftype=3

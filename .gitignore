@@ -3,6 +3,9 @@
 
 .dc3/plots/
 
+dc3/plots
+
+
 ### macOS ###
 # General
 .DS_Store
