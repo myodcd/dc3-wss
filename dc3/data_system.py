@@ -5,7 +5,7 @@ import numpy as np
 class data_system:
     def __init__(self,n_dc,n_points_t):
         
-        computer_run = 'server'  # 'personal' or 'server'
+        computer_run = 'personal'  # 'personal' or 'server'
         ### Dados simulação WSS ###
         self.n_pumps=1
         self.n_pipes=0

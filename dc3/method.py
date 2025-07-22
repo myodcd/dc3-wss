@@ -39,7 +39,7 @@ torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
-COMPUTER_RUN = 'server'  # 'personal' or 'server'
+COMPUTER_RUN = 'personal'  # 'personal' or 'server'
 
 SAVE_PLOT_Y_NEW = False
 SAVE_PLOT_GIF = False
@@ -106,7 +106,7 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=30)
+    parser.add_argument('--qtySamples', type=int, default=50)
     parser.add_argument('--fileName', type=str, default=None)   
     parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
@@ -203,6 +203,9 @@ def train_net(data, args, save_dir):
     y1_new_history = []
     y2_new_history = [] 
 
+
+    objective_history = []
+    ineq_penalty_history = []
     
     for i in tqdm(range(nepochs)):
         epoch_stats = {}
@@ -240,38 +243,22 @@ def train_net(data, args, save_dir):
                     plot_simple(Yhat_train[j].cpu().detach().numpy(), 000, args, 0, n_sample=j, title_comment='Initial Y New')
                 
 ########################################################################
-            
-            # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
-            if FIXED_Y_VALUE:
-                
-                Yhat_train = torch.tensor(
-                    [
-                                                
-                     [1.37, 4.27, 12.63, 17.19, 20.17,  2.85, 4.13,  4.51, 2.92,  3.63],
-
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-                     #[13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
-
-#                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404]
-
-                    ]
-                ).requires_grad_(True)  
-                
-            #Y_FIXED_VALUES = False          
-
-########################################################################            
+     
 
             Ynew_train = grad_steps(data, Xtrain, Yhat_train, args, epoch=i) # 1. Forward pass                             
             # Generate GIF
+            
+            
+
+            # Calcule os termos separadamente
+            obj_cost = data.obj_fn_Autograd(Ynew_train, args)
+            ineq_dist = data.ineq_dist(Xtrain, Ynew_train, args)
+            ineq_cost = torch.norm(ineq_dist, dim=1)
+
+            # Salve a média de cada termo
+            objective_history.append(obj_cost.mean().item())
+            ineq_penalty_history.append(ineq_cost.mean().item())
+            
             if SAVE_PLOT_GIF:
                         
                 time_generate_gif = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -353,6 +340,7 @@ def train_net(data, args, save_dir):
                 
                 ######################################
                 #print(f"{name}: {param.grad}")
+                #print(name, param.grad.abs().mean().item())
                 pass                                    
 
 
@@ -376,7 +364,7 @@ def train_net(data, args, save_dir):
         test_eval_values.append(avg_test_eval)
 
 
-        print(f"[Epoch {i+1}] Train Loss: {avg_train_loss:.4f} | Valid Loss: {avg_valid_loss:.4f} | Test Loss: {avg_test_loss:.4f} | Time Elapsed: {np.mean(epoch_stats['valid_time'])}")
+        #print(f"[Epoch {i+1}] Train Loss: {avg_train_loss:.4f} | Valid Loss: {avg_valid_loss:.4f} | Test Loss: {avg_test_loss:.4f} | Time Elapsed: {np.mean(epoch_stats['valid_time'])}")
 
         
         if args['probType'] == 'dc_wss':
@@ -415,6 +403,21 @@ def train_net(data, args, save_dir):
                 pickle.dump(stats, f)
             with open(os.path.join(save_dir, 'solver_net.dict'), 'wb') as f:
                 torch.save(solver_net.state_dict(), f)
+
+
+    # Após o treinamento, faça o gráfico:
+    plt.figure()
+    plt.plot(objective_history, label='Função Objetivo')
+    plt.plot(ineq_penalty_history, label='Penalidade Desigualdade')
+    plt.xlabel('Época')
+    plt.ylabel('Valor')
+    plt.title('Evolução: Objetivo vs Penalidade de Desigualdade')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join('plots', 'objective_ineq_curve.png'))
+    plt.show()
+
 
     now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')    
 
@@ -647,6 +650,9 @@ def total_loss(data, X, Y, args, i):
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
         #obj_cost = data.obj_fn_Original(Y, args)
+        
+
+            
     else:
         obj_cost = data.obj_fn_Original(Y, args)
     
@@ -654,6 +660,8 @@ def total_loss(data, X, Y, args, i):
         ineq_dist = data.ineq_dist(Y, Y, args)
     else:
         ineq_dist = data.ineq_dist(X, Y, args)
+        #ineq_violation = torch.relu(data.ineq_dist(X, Y, args))  # Apenas partes que violam
+        #ineq_cost2 = ineq_violation.pow(2).sum(dim=1)  # Soma por amostra        
 
     ineq_cost = torch.norm(ineq_dist, dim=1)
         
@@ -661,10 +669,19 @@ def total_loss(data, X, Y, args, i):
         
         # Somente com restricao de desigualdade
         #result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-        #result = obj_cost + args['softWeight'] * ineq_cost
-        #result = obj_cost
         
-        result = obj_cost + 0.5 * ineq_cost
+        
+        
+        
+        #ineq_violation = torch.relu(data.ineq_dist(X, Y, args))  # Só penaliza violações
+        #ineq_cost = ineq_violation.pow(2).sum(dim=1)  # Soma quadrática das violações
+
+
+
+
+        #result = obj_cost + args['softWeight'] * ineq_cost
+
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
         
         
     else:
@@ -690,6 +707,8 @@ def grad_steps(data, X, Y, args, epoch=None):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
+        #Y_new = Y.clone().detach().requires_grad_(True)
+
         old_Y_step = 0       
         #print('')                
         #print(f'-- GradSteps -- | Qty {str(Y.shape[0])}')
@@ -698,6 +717,9 @@ def grad_steps(data, X, Y, args, epoch=None):
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
                 if args['probType'] == 'dc_wss':                                                             
+                    #Y_new = Y_new.clone().detach().required_grad_(True) # Clone to avoid modifying the original Y_new
+                    
+                    
                     ineq_step = data.ineq_grad(X, Y_new, args)   
                                         
                     mid_point = ineq_step.shape[1] // 2

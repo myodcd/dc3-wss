@@ -37,11 +37,11 @@ def method_default_args(prob_type):
         
         
     elif 'dc_wss' in prob_type:
-        defaults['epochs'] = 10
+        defaults['epochs'] = 50
         defaults['batchSize'] = 200 # 16
         defaults['lr'] = 1e-3 # 1e-4
         defaults['hiddenSize'] = 200
-        defaults['softWeight'] = 1e-4       # use 100 if useCompl=False
+        defaults['softWeight'] = 500       # use 100 if useCompl=False
         defaults['softWeightEqFrac'] = 0.5
         
         defaults['softWeightEqFracStart'] =  0.2 # 1.7 # 0.2
@@ -50,7 +50,7 @@ def method_default_args(prob_type):
 
         defaults['useCompl'] = False
         defaults['useTrainCorr'] = True
-        defaults['useTestCorr'] = True
+        defaults['useTestCorr'] = False
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
         
         
