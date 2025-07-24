@@ -571,6 +571,33 @@ def Cost(x, d, log, flag):
         if(flag_sol==0):
             log(x,timeInc,tanks,pumps,CostT,d)
 
+
+        
+        ###### INICIO - CUSTO TARIFAS #####
+
+        #tar_beg = [2, 4, 1, 2, 3, 12]
+        #tar_end = [2, 6, 7, 9, 12, 24]
+        #tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
+#
+        #x_arr = np.array(x)
+        #start_times = x_arr[:5]
+        #durations = x_arr[5:]
+#
+        #custo_tarifario_extra = 0.0
+#
+        #for start, dur in zip(start_times, durations):
+        #    task_start = float(start)
+        #    task_end = float(start + dur)
+        #    for beg, end, val in zip(tar_beg, tar_end, tariff_value):
+        #        overlap = max(0.0, min(task_end, end) - max(task_start, beg))
+        #        custo_tarifario_extra += overlap * val
+
+        # Converta para tensor e some ao custo hidráulico
+
+        ###### fim - CUSTO TARIFAS #####
+
+        #CostT += torch.tensor(custo_tarifario_extra, dtype=CostT.dtype)
+
     return CostT
 
 

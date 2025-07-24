@@ -106,7 +106,7 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=50)
+    parser.add_argument('--qtySamples', type=int, default=20)
     parser.add_argument('--fileName', type=str, default=None)   
     parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
@@ -114,6 +114,7 @@ def main():
         help='starting value of softWeightEqFrac')
     parser.add_argument('--softWeightEqFracDuration', type=float, 
         help='duration of softWeightEqFrac')
+    parser.add_argument('--alpha_tariff', type=float)
      
     args = parser.parse_args()
     args = vars(args) # change to dictionary
@@ -251,7 +252,8 @@ def train_net(data, args, save_dir):
             
 
             # Calcule os termos separadamente
-            obj_cost = data.obj_fn_Autograd(Ynew_train, args)
+            #obj_cost = data.obj_fn_Autograd(Ynew_train, args)
+            obj_cost = data.obj_fn_Original(Ynew_train, args)
             ineq_dist = data.ineq_dist(Xtrain, Ynew_train, args)
             ineq_cost = torch.norm(ineq_dist, dim=1)
 
@@ -404,6 +406,7 @@ def train_net(data, args, save_dir):
             with open(os.path.join(save_dir, 'solver_net.dict'), 'wb') as f:
                 torch.save(solver_net.state_dict(), f)
 
+    now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  
 
     # Após o treinamento, faça o gráfico:
     plt.figure()
@@ -415,11 +418,10 @@ def train_net(data, args, save_dir):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(os.path.join('plots', 'objective_ineq_curve.png'))
+    plt.savefig(os.path.join('plots', f'objective_ineq_curve_{now}.png'))
     plt.show()
 
-
-    now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')    
+  
 
     # Gráfico das perdas
     plt.figure()
@@ -650,8 +652,6 @@ def total_loss(data, X, Y, args, i):
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
         #obj_cost = data.obj_fn_Original(Y, args)
-        
-
             
     else:
         obj_cost = data.obj_fn_Original(Y, args)
@@ -667,23 +667,12 @@ def total_loss(data, X, Y, args, i):
         
     if args['probType'] == 'dc_wss':
         
-        # Somente com restricao de desigualdade
-        #result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-        
-        
-        
-        
-        #ineq_violation = torch.relu(data.ineq_dist(X, Y, args))  # Só penaliza violações
-        #ineq_cost = ineq_violation.pow(2).sum(dim=1)  # Soma quadrática das violações
+
+        tariff_cost = data.calc_tariff_cost(Y, args)
 
 
-
-
-        #result = obj_cost + args['softWeight'] * ineq_cost
-
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-        
-        
+        result = obj_cost + args['alpha_tariff'] * tariff_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+                
     else:
         # Com equações de igualdade e desigualdade
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)

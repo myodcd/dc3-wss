@@ -220,7 +220,37 @@ class Problem_DC_WSS:
     def qty_samples(self):
         return self._qty_samples
 
-    # def Cost
+    def calc_tariff_cost(self, X, args):
+        # X é batch_size x 10 (5 start times + 5 durations)
+        # Tarifas fixas (você pode colocar no args também, se quiser)
+        tar_beg = [2, 4, 1, 2, 3, 12]
+        tar_end = [2, 6, 7, 9, 12, 24]
+        tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
+
+        batch_size = X.shape[0]
+        cost_batch = torch.zeros(batch_size, device=X.device, dtype=X.dtype)
+
+        start_times = X[:, :5]
+        durations = X[:, 5:]
+
+        for i in range(6):  # para cada faixa tarifária
+            beg = tar_beg[i]
+            end = tar_end[i]
+            val = tariff_value[i]
+
+            # Calcula overlap de cada tarefa com a faixa tarifária
+            task_start = start_times
+            task_end = start_times + durations
+
+            # overlap = max(0, min(task_end, end) - max(task_start, beg))
+            overlap = torch.clamp(torch.min(task_end, torch.tensor(end)) - torch.max(task_start, torch.tensor(beg)), min=0)
+
+            # soma o custo parcial dessa faixa
+            cost_batch += (overlap * val).sum(dim=1)
+
+        return cost_batch  # tensor com custo tarifário por amostra do batch
+
+
     
     
     def obj_fn_Original(self, y, args):
@@ -236,19 +266,8 @@ class Problem_DC_WSS:
     
     def obj_fn_Autograd(self, y, args):
         
-        #start_time = time.time()
-                
-        #log_cost = opt_func.OptimizationLog()
-        
-        #y = y.detach().cpu().numpy()
-        
-        #result = torch.tensor([opt_func.Cost(i, self.d, log_cost, 3) for i in y])
 
         result = autograd_pt.CostAutograd.apply(y, self.d, opt_func)
-        
-        #print('COST_AUTOGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
-        
-        #print('%%%%%%%%%')
         
         return result
     
@@ -564,6 +583,7 @@ class Problem_Non_Linear:
         return "Problem_Non_Linear-{}-{}-{}-{}".format(
             str(self.ydim), str(self.nineq), str(self.neq), str(self.num)
         )
+
 
     def obj_fn_Original(self, x, args):
 
