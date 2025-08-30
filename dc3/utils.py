@@ -86,19 +86,19 @@ def create_gif_from_plots(nr: int, base_folder: str, output_folder: str, duracao
 
 
 
-def create_combined_gif(Y_shape_0, pasta: str, pasta_saida: str, duracao: int = 1000):
+def create_combined_gif(Y_shape_0, base_folder: str, output_folder: str, duracao: int = 1000):
     imagens_por_nr = []
 
     for nr in range(Y_shape_0):
         padrao = re.compile(rf"plot_Y_sample_nr{nr}_iteration_.*\.png")
-        arquivos = [f for f in os.listdir(pasta) if padrao.fullmatch(f)]
+        arquivos = [f for f in os.listdir(base_folder) if padrao.fullmatch(f)]
 
         def extrai_indice(nome):
             match = re.search(r"iteration_nr(\d+)", nome)
             return int(match.group(1)) if match else 0
 
         arquivos.sort(key=extrai_indice)
-        caminhos = [os.path.join(pasta, nome) for nome in arquivos]
+        caminhos = [os.path.join(base_folder, nome) for nome in arquivos]
         imagens = [Image.open(caminho) for caminho in caminhos]
         imagens_por_nr.append(imagens)
 
@@ -120,7 +120,7 @@ def create_combined_gif(Y_shape_0, pasta: str, pasta_saida: str, duracao: int = 
         quadros_comb.append(combinado)
 
     if quadros_comb:
-        output = os.path.join(pasta_saida, f"gif_combined_all_nr.gif")
+        output = os.path.join(output_folder, f"gif_combined_all_nr.gif")
         quadros_comb[0].save(
             output,
             save_all=True,
@@ -220,39 +220,7 @@ class Problem_DC_WSS:
     def qty_samples(self):
         return self._qty_samples
 
-    def calc_tariff_cost(self, X, args):
-        # X é batch_size x 10 (5 start times + 5 durations)
-        # Tarifas fixas (você pode colocar no args também, se quiser)
-        tar_beg = [2, 4, 1, 2, 3, 12]
-        tar_end = [2, 6, 7, 9, 12, 24]
-        tariff_value = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
 
-        batch_size = X.shape[0]
-        cost_batch = torch.zeros(batch_size, device=X.device, dtype=X.dtype)
-
-        start_times = X[:, :5]
-        durations = X[:, 5:]
-
-        for i in range(6):  # para cada faixa tarifária
-            beg = tar_beg[i]
-            end = tar_end[i]
-            val = tariff_value[i]
-
-            # Calcula overlap de cada tarefa com a faixa tarifária
-            task_start = start_times
-            task_end = start_times + durations
-
-            # overlap = max(0, min(task_end, end) - max(task_start, beg))
-            overlap = torch.clamp(torch.min(task_end, torch.tensor(end)) - torch.max(task_start, torch.tensor(beg)), min=0)
-
-            # soma o custo parcial dessa faixa
-            cost_batch += (overlap * val).sum(dim=1)
-
-        return cost_batch  # tensor com custo tarifário por amostra do batch
-
-
-    
-    
     def obj_fn_Original(self, y, args):
         
         log_cost = opt_func.OptimizationLog()
@@ -266,28 +234,31 @@ class Problem_DC_WSS:
     
     def obj_fn_Autograd(self, y, args):
         
+        #start_time = time.time()
+                
+        #log_cost = opt_func.OptimizationLog()
+        
+        #y = y.detach().cpu().numpy()
+        
+        #result = torch.tensor([opt_func.Cost(i, self.d, log_cost, 3) for i in y])
 
         result = autograd_pt.CostAutograd.apply(y, self.d, opt_func)
         
-        return result
-    
-
-    def gT_Original(self, y):
-
-        #start_time = time.time()
-
-        log_cost = opt_func.OptimizationLog()
+        #print('COST_AUTOGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
         
-        y = y.detach().cpu().numpy()
-        
-        gt = torch.tensor([opt_func.gT(i, self.d, 0, log_cost) for i in y])
-        
-        #print('GT_Original', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
         #print('%%%%%%%%%')
         
-        result = gt
-        
-        return result    
+        return result
+    
+    def gT_Original(self, y):
+        log_cost = opt_func.OptimizationLog()
+        y_t = y  # preserva dtype/device
+        y_np = y_t.detach().cpu().numpy()
+        gt_list = []
+        for i in y_np:
+            gt_list.append(opt_func.gT(i, self.d, 0, log_cost))
+        gt = torch.tensor(gt_list, dtype=y_t.dtype, device=y_t.device)
+        return gt
     
     def gT_Autograd(self, y, args):
 
@@ -298,12 +269,10 @@ class Problem_DC_WSS:
 
     def g_TempLog_Original(self, y):
         
-        #start_time = time.time()        
+     
         y = y.detach().cpu().numpy()
         
         g_templog_list = torch.tensor([-opt_func.g_TempLog(i, self.d) for i in y])
-        #print('GTempLog_Original', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
-        #print('%%%%%%%%%')
 
         return g_templog_list
 
@@ -424,10 +393,6 @@ class Problem_DC_WSS:
 
         result = torch.cat([J_pos, J_neg], dim=1)
 
-        #print('JAC_X_AUTOGRAD', time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time)))
-        #print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-        #print('')
-        
         return result
 
     
@@ -458,7 +423,9 @@ class Problem_DC_WSS:
 
         return ineq_jac.transpose(1, 2).bmm(ineq_dist.unsqueeze(-1)).squeeze(-1)
 
-    def process_output(self, X, out):
+
+
+    def process_output_original(self, X, out):
         out2 = nn.Sigmoid()(out)  # Normaliza a saída para [0, 1]
 
         qty = out2.shape[1] // 2  # Quantidade de duty cycles
@@ -494,6 +461,24 @@ class Problem_DC_WSS:
 
         return torch.cat([adjusted_start_times, durations_sorted], dim=1)
 
+
+    def overlap_penalty(self, start_times, durations):
+        """
+        Penaliza sobreposição entre ciclos.
+        start_times, durations: [batch, n_cycles]
+        Retorna: penalidade total por batch (shape: [batch])
+        """
+        batch_size, n = start_times.shape
+        penalty = torch.zeros(batch_size, device=start_times.device, dtype=start_times.dtype)
+        for i in range(n):
+            for j in range(i + 1, n):
+                end_i = start_times[:, i] + durations[:, i]
+                end_j = start_times[:, j] + durations[:, j]
+                latest_start = torch.max(start_times[:, i], start_times[:, j])
+                earliest_end = torch.min(end_i, end_j)
+                overlap = torch.clamp(earliest_end - latest_start, min=0)
+                penalty += overlap
+        return penalty
 
 ###################################################################
 

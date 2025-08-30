@@ -10,6 +10,9 @@ def method_default_args(prob_type):
     #defaults['nonconvexEx'] = 10000
     defaults['saveAllStats'] = True
     defaults['resultsSaveFreq'] = 50
+    
+    
+    defaults['computer_type'] = 'personal'
 
 
 
@@ -39,29 +42,48 @@ def method_default_args(prob_type):
     elif 'dc_wss' in prob_type:
         defaults['epochs'] = 10
         defaults['batchSize'] = 200 # 16
-        defaults['lr'] = 1e-3 # 1e-4
+        defaults['lr'] = 1e-4 # 1e-4
         defaults['hiddenSize'] = 200
-        defaults['softWeight'] = 500       # use 100 if useCompl=False
-        defaults['softWeightEqFrac'] = 0.5
+        defaults['softWeight'] = 1000       # use 100 if useCompl=False
+        #defaults['softWeightEqFrac'] = 0.5
+        
+        
+        defaults['softWeightEqFrac'] =  0.3 # RODADA 1
+        
+        #defaults['softWeightEqFrac'] =  0.4 # RODADA 1
+        
+        #defaults['softWeightEqFrac'] =  0.5 # RODADA 2
+        
+        #defaults['softWeightEqFrac'] =  0.55 # RODADA 3
+        
+        #defaults['softWeightEqFrac'] =  0.6 # RODADA 4
+        
+        #defaults['softWeightEqFrac'] =  0.65 # RODADA 5
+        
+        #defaults['softWeightEqFrac'] =  0.7 # RODADA 6
+
+        #defaults['softWeightEqFrac'] =  0.75 # RODADA 7
+
+        #defaults['softWeightEqFrac'] =  0.8 # RODADA 8
+        
         
         defaults['softWeightEqFracStart'] =  0.2 # 1.7 # 0.2
+        #defaults['softWeightEqFracStart'] =  0.4 # 1.7 # 0.2
         defaults['softWeightEqFracDuration'] = 0.8 # 1.1 # 0.8
         
-
         defaults['useCompl'] = False
         defaults['useTrainCorr'] = True
-        defaults['useTestCorr'] = False
+        defaults['useTestCorr'] = True
         defaults['corrMode'] = 'full'    # use 'full' if useCompl=False
         
         defaults['corrTrainSteps'] = 80 # 80
-        defaults['corrTestMaxSteps'] = 0 # 40 # 60
+        defaults['corrTestMaxSteps'] = 40 # 40 # 60
         
         defaults['corrEps'] = 1e-4
-        defaults['corrLr'] = 1e-3         # use 1e-5 if useCompl=False        
+        defaults['corrLr'] = 0.1         # use 1e-5 if useCompl=False        
         
         defaults['corrMomentum'] = 0.5 
         
-        defaults['alpha_tariff'] = 500
         
     elif 'nonlinear_2ineq' in prob_type:
         defaults['epochs'] = 100

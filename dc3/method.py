@@ -39,16 +39,15 @@ torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
-COMPUTER_RUN = 'personal'  # 'personal' or 'server'
+FIXED_Y_VALUE = False
 
 SAVE_PLOT_Y_NEW = False
 SAVE_PLOT_GIF = False
-SAVE_PLOT_COST = False # True
+SAVE_PLOT_COST = True # True
 QTY_EPOCH_SAVE = 40
-FIXED_Y_VALUE = False
 VALID_PLOT_COST = False
 TRAIN_PLOT_COST = False
-TEST_PLOT_COST = True
+TEST_PLOT_COST = False
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -106,7 +105,7 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=20)
+    parser.add_argument('--qtySamples', type=int, default=30)
     parser.add_argument('--fileName', type=str, default=None)   
     parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
@@ -114,7 +113,7 @@ def main():
         help='starting value of softWeightEqFrac')
     parser.add_argument('--softWeightEqFracDuration', type=float, 
         help='duration of softWeightEqFrac')
-    parser.add_argument('--alpha_tariff', type=float)
+    parser.add_argument('--computer_type', type=str)
      
     args = parser.parse_args()
     args = vars(args) # change to dictionary
@@ -173,6 +172,7 @@ def main():
     # Run method
     train_net(data, args, save_dir)
 
+
 def train_net(data, args, save_dir):
         
     time_trainning_start = time.time()
@@ -208,7 +208,8 @@ def train_net(data, args, save_dir):
     objective_history = []
     ineq_penalty_history = []
     
-    for i in tqdm(range(nepochs)):
+    #for i in tqdm(range(nepochs)):
+    for i in range(nepochs):
         epoch_stats = {}
 
         # Get valid loss
@@ -227,45 +228,58 @@ def train_net(data, args, save_dir):
                            
             Xtrain = Xtrain[0].to(DEVICE)
             start_time = time.time()
-            
-
-########################################################################
-            
-            #print('Begin Y hat')
-            #y_hat_start_time = time.time()
+            solver_net.zero_grad()
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
-            
-            #print('Time Y Yhat_train ', time.strftime("%H:%M:%S", time.gmtime(time.time() - y_hat_start_time)))
-            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+        ########################################################################
+
+            # UTILIZADO PARA TREINAR UM Y ESPECÍFICO
+            if FIXED_Y_VALUE:
+                
+                Yhat_train = torch.tensor(
+                    [
+                    [11.0394, 11.3124, 11.3400, 11.4856, 13.5568,  3.9546,  2.2934,  4.6573, 2.9885,  2.6506],
+                                                
+                    [ 1.2621,  8.2478, 11.8904, 12.0048, 12.4628,  0.7087,  4.2336,  2.4109, 4.0444,  2.1954],
+
+                     [ 8.2433,  9.3392, 14.2442, 15.7811, 17.8647,  1.2968,  0.5593,  1.5385, 2.5607,  1.2267],
+
+                     [ 7.9705, 10.4392, 10.9540, 12.0336, 14.3340,  2.3835,  1.6596,  2.6133, 2.6821,  1.7713],
+
+                    [ 2.8068, 10.2983, 16.2900, 19.1183, 21.8492,  1.9350,  4.7681,  3.9097,1.8972,  3.7358],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+                     [13.9925, 17.8876, 18.6809, 21.6833, 22.9596,  3.5851,  0.7832,  2.8925, 1.1663,  0.9404],
+
+
+
+                    [ 4.3271,  7.6628,  7.7788,  8.4799, 17.8769,  3.6407,  3.9312,  3.3874,
+          1.0554,  3.8233]
+
+                    ]
+                ).requires_grad_(True)  
+
+
+
             if SAVE_PLOT_Y_NEW:
 
                 for j in range(Yhat_train.shape[0]):
                     
                     plot_simple(Yhat_train[j].cpu().detach().numpy(), 000, args, 0, n_sample=j, title_comment='Initial Y New')
-                
-########################################################################
-     
 
-            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args, epoch=i) # 1. Forward pass                             
-            # Generate GIF
-            
-            
 
-            # Calcule os termos separadamente
-            #obj_cost = data.obj_fn_Autograd(Ynew_train, args)
-            obj_cost = data.obj_fn_Original(Ynew_train, args)
-            ineq_dist = data.ineq_dist(Xtrain, Ynew_train, args)
-            ineq_cost = torch.norm(ineq_dist, dim=1)
+            ynew_start_time = time.time()
+            Ynew_train = grad_steps(data, Xtrain, Yhat_train, args, epoch=i)
+            print('Ynew time ', time.strftime("%H:%M:%S", time.gmtime(time.time() - ynew_start_time)))
 
-            # Salve a média de cada termo
-            objective_history.append(obj_cost.mean().item())
-            ineq_penalty_history.append(ineq_cost.mean().item())
             
             if SAVE_PLOT_GIF:
+                
+                base_folder = ''
                         
                 time_generate_gif = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 
-                if COMPUTER_RUN == 'personal':
+                if args['computer_type'] == 'personal':
                     base_folder = r"C:\Users\mtcd\Documents\Codes\dc3-wss\dc3\plots"
                 else:
                     base_folder = r"C:\Users\marcostulio\Desktop\dc3-wss\dc3\plots"
@@ -283,13 +297,20 @@ def train_net(data, args, save_dir):
             
 ########################################################################            
 
+            train_loss_start_time = time.time()
+
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
+            train_loss.sum().backward() 
+            solver_opt.step() # 4. Performe gradiente descent       
+
+
+            print('Train loss time', time.strftime("%H:%M:%S", time.gmtime(time.time() - train_loss_start_time)))
             
-            
-            
-            
-            
-            
+            #print('Y hat ', Yhat_train)
+            #print('Y new', Ynew_train)
+            print('Cost Function: ', data.obj_fn_Autograd(Ynew_train, args))
+            print('Train Loss: ', train_loss.data)
+                        
             if SAVE_PLOT_COST and TRAIN_PLOT_COST:                          
                 for j in range(len(train_loss)):
                     y_val = Ynew_train[j].cpu().detach().numpy()
@@ -308,72 +329,18 @@ def train_net(data, args, save_dir):
                     )
                     plot_nivel_tanque_new(args, Ynew_train[j], train_loss[j], save_plot=True, title=title, sample=j)
                             
-            
-########################################################################
-            # OBTENHO A FUNCAO DE PERDA
-            ##### DEMORA MAIOR ESTÁ NESTE TRECHO #####
-            #print('Begin loss backward')
-            #time_start_backward = time.time()    
-            solver_opt.zero_grad() # 0. Optimizer zero grad
-             # 3. Performe backpropagation on the loss with respect to
-            train_loss.sum().backward() 
-            #print('Time backward ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_backward)))
-            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
-
-
-########################################################################
-
-            # USO O GRADIENTE PARA OTIMIZAR
-            #time_start_solveropt = time.time()
-            #print('Begin solver_opt')
-            solver_opt.step() # 4. Performe gradiente descent            
-            #print('Time solver_opt ', time.strftime("%H:%M:%S", time.gmtime(time.time() - time_start_solveropt)))
-            #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
-########################################################################          
+     
    
             train_time = time.time() - start_time
             dict_agg(epoch_stats, 'train_loss', train_loss.detach().cpu().numpy())
             dict_agg(epoch_stats, 'train_time', train_time, op='sum')
 
-
-            for name, param in solver_net.named_parameters():
-                
-                ######################################
-                #print(f"{name}: {param.grad}")
-                #print(name, param.grad.abs().mean().item())
-                pass                                    
-
-
-
-
-                    
-        # Média da loss durante a época
-        avg_train_loss = np.mean(epoch_stats['train_loss'])
-        avg_valid_loss = np.mean(epoch_stats['valid_loss'])
-        avg_test_loss = np.mean(epoch_stats['test_loss'])
-
-
         avg_valid_eval = np.mean(epoch_stats['valid_eval'])
         avg_test_eval = np.mean(epoch_stats['test_eval'])
-        
-        train_losses.append(avg_train_loss)
-        valid_losses.append(avg_valid_loss)
-        test_losses.append(avg_test_loss)        
+     
 
         valid_eval_values.append(avg_valid_eval)
         test_eval_values.append(avg_test_eval)
-
-
-        #print(f"[Epoch {i+1}] Train Loss: {avg_train_loss:.4f} | Valid Loss: {avg_valid_loss:.4f} | Test Loss: {avg_test_loss:.4f} | Time Elapsed: {np.mean(epoch_stats['valid_time'])}")
-
-        
-        if args['probType'] == 'dc_wss':
-        
-            #plot_nivel_tanque_new(args, Ynew_train[0].cpu().detach().numpy(), data.obj_fn_Autograd(Ynew_train, args)[0].cpu().detach().numpy(), save_plot=True, show=False)
-
-            pass
             
         print(
             'Epoch {}: train loss {:.4f}, eval {:.4f}, dist {:.4f}, ineq max {:.4f}, ineq mean {:.4f}, ineq num viol {:.4f}, steps {}, time {:.4f}'.format(
@@ -383,9 +350,8 @@ def train_net(data, args, save_dir):
                 np.mean(epoch_stats['valid_steps']), np.mean(epoch_stats['valid_time'])
             )
         )
-        #print('Y new [0]: ', Ynew_train[0].cpu().detach().numpy())
+
         print('----')
-        print('')
         print('')
         y1_new_history.append(np.mean(Ynew_train[0].cpu().detach().numpy()))
         y2_new_history.append(np.mean(Ynew_train[1].cpu().detach().numpy()))
@@ -408,42 +374,13 @@ def train_net(data, args, save_dir):
 
     now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  
 
-    # Após o treinamento, faça o gráfico:
-    plt.figure()
-    plt.plot(objective_history, label='Função Objetivo')
-    plt.plot(ineq_penalty_history, label='Penalidade Desigualdade')
-    plt.xlabel('Época')
-    plt.ylabel('Valor')
-    plt.title('Evolução: Objetivo vs Penalidade de Desigualdade')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join('plots', f'objective_ineq_curve_{now}.png'))
-    plt.show()
-
-  
-
-    # Gráfico das perdas
-    plt.figure()
-    plt.plot(train_losses, label='Train')
-    plt.plot(valid_losses, label='Valid')
-    plt.plot(test_losses, label='Test')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Loss curve')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join('plots',f'loss_curve_{args['simpleEx']}_epochs_{args['epochs']}_{now}.png'))
-    plt.show()
-
     # Gráfico da função objetivo (eval)
     plt.figure()
     plt.plot(valid_eval_values, label='Eval - Valid')
     plt.plot(test_eval_values, label='Eval - Test')
     plt.xlabel('Epoch')
     plt.ylabel('Obj fn')
-    plt.title('Evolution obj fn (eval)')
+    plt.title(f'Evolution obj fn (eval) - Samples: {args["qtySamples"]} - Epochs: {args["epochs"]} - SW: {args["softWeight"]} - SWEF: {args["softWeightEqFrac"]}')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -457,9 +394,7 @@ def train_net(data, args, save_dir):
     if args['probType'] == 'nonlinear_2ineq':
 
         plot_nonlinear_2ineq_evolution(data, y1_new_history, y2_new_history, os.path.join('plots',f'plot_{now}_ex_{args['simpleEx']}_epochs_{args['epochs']}.png'))
-        
-    
-    
+            
     with open(os.path.join(save_dir, 'stats.dict'), 'wb') as f:
         pickle.dump(stats, f)
         
@@ -505,7 +440,7 @@ def train_net(data, args, save_dir):
             input_data = torch.tensor([[1,8,12,18,3,3,3.0,2.5]])
             #input_data = np.array(input_data, dtype=np.float32)
         elif args['dc'] == 5:
-            input_data = torch.tensor([[0, 4.8, 9.6, 14.4, 19.2, 1, 1, 1, 1, 1]])
+            input_data = torch.tensor([[1, 4, 7, 10., 14.5, 2, 2.5, 2., 2., 1.]])
             #input_data = np.array(input_data, dtype=np.float32)
             
         output_data = newModel(input_data)
@@ -525,7 +460,6 @@ def train_net(data, args, save_dir):
         print('#####')
         print('Resultado: ',total_cost )
         print('Avaliation finished')
-
 
         plot_nivel_tanque_new(args, output_data[0].cpu().detach().numpy(), total_cost, save_plot=True)
 
@@ -550,17 +484,29 @@ def eval_net(data, X, solver_net, args, prefix, stats):
 
     start_time = time.time()
     Y = solver_net(X)
+
     base_end_time = time.time()
+
+    #if args['probType'] == 'dc_wss':
+
+    #    Y = solver_net.process_output_differentiable(X, Y)
+    #    Y = solver_net.process_output_sorted(Y)
+    #    if DEBUG_PROCESSING:
+    #        assert_processed(Y, f"{prefix}:Y após process")
 
     Ycorr, steps = grad_steps_all(data, X, Y, args)
     end_time = time.time()
 
-    Ynew = grad_steps(data, X, Y, args)
+
+    #if args['probType'] == 'dc_wss':
+    #    Ycorr = solver_net.process_output_sorted(Ycorr)
+
+    Ynew = grad_steps(data, X, Y, args, epoch=-1) if args['useTestCorr'] else Y
+    #if DEBUG_PROCESSING and args['probType'] == 'dc_wss':
+    #    assert_processed(Ynew, f"{prefix}:Ynew antes de métricas")
     raw_end_time = time.time()
     
-    
-    if SAVE_PLOT_COST and TEST_PLOT_COST and args['probType'] == 'dc_wss':    
-        
+    if SAVE_PLOT_COST and TEST_PLOT_COST and args['probType'] == 'dc_wss':            
         
         for i in range(len(Ynew)):
             
@@ -581,6 +527,8 @@ def eval_net(data, X, solver_net, args, prefix, stats):
             
             
     dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
+    
+    
     
     dict_agg(stats, make_prefix('time'), end_time - start_time, op='sum')
     dict_agg(stats, make_prefix('steps'), np.array([steps]))
@@ -640,53 +588,45 @@ def eval_net(data, X, solver_net, args, prefix, stats):
     dict_agg(stats, make_prefix('raw_ineq_num_viol_2'),
              torch.sum(data.ineq_dist(X, Ynew, args) > 100 * eps_converge, dim=dim).detach().cpu().numpy())
 
-        
+            
+           
     return stats
 
 
 
+
+
 def total_loss(data, X, Y, args, i):
-    
-    dim = 0 if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq' else 1
+    dim = 0 if args['probType'] in ('nonlinear', 'nonlinear_2ineq') else 1
 
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
-        #obj_cost = data.obj_fn_Original(Y, args)
-            
     else:
         obj_cost = data.obj_fn_Original(Y, args)
-    
-    if args['probType'] == 'nonlinear' or args['probType'] == 'nonlinear_2ineq':
+
+    if args['probType'] in ('nonlinear', 'nonlinear_2ineq'):
         ineq_dist = data.ineq_dist(Y, Y, args)
     else:
         ineq_dist = data.ineq_dist(X, Y, args)
-        #ineq_violation = torch.relu(data.ineq_dist(X, Y, args))  # Apenas partes que violam
-        #ineq_cost2 = ineq_violation.pow(2).sum(dim=1)  # Soma por amostra        
 
-    ineq_cost = torch.norm(ineq_dist, dim=1)
-        
+    ineq_cost = torch.norm(ineq_dist, dim=dim)
+
+
     if args['probType'] == 'dc_wss':
-        
 
-        tariff_cost = data.calc_tariff_cost(Y, args)
-
-
-        result = obj_cost + args['alpha_tariff'] * tariff_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-                
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
     else:
         # Com equações de igualdade e desigualdade
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
-    
+        result = obj_cost \
+            + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost \
+            + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+
     return result
 
 
-
-def grad_steps(data, X, Y, args, epoch=None):
-
-        
-    take_grad_steps = args['useTrainCorr']
-    
+def grad_steps(data, X, Y, args, epoch=None):        
+    take_grad_steps = args['useTrainCorr']    
     if take_grad_steps:
         lr = args['corrLr']
         num_steps = args['corrTrainSteps']
@@ -696,27 +636,33 @@ def grad_steps(data, X, Y, args, epoch=None):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
-        #Y_new = Y.clone().detach().requires_grad_(True)
-
         old_Y_step = 0       
-        #print('')                
-        #print(f'-- GradSteps -- | Qty {str(Y.shape[0])}')
+        Y_step_zeros = torch.tensor([999])
+        count_y_steps = 0
         for i in range(num_steps+1):            
             if partial_corr:
                 Y_step = data.ineq_partial_grad(X, Y_new)
             else:       
                 if args['probType'] == 'dc_wss':                                                             
-                    #Y_new = Y_new.clone().detach().required_grad_(True) # Clone to avoid modifying the original Y_new
+
+                    if Y_step_zeros.sum() != 0:
+                        
+                        ineq_step = data.ineq_grad(X, Y_new, args)   
+                                            
+                        mid_point = ineq_step.shape[1] // 2
+                        
+                        new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
+                        new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
+                        
+                        Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
+                        
+                        
+                        Y_step_zeros = Y_step.clone()
+                        
+                        
+                        count_y_steps += 1
                     
                     
-                    ineq_step = data.ineq_grad(X, Y_new, args)   
-                                        
-                    mid_point = ineq_step.shape[1] // 2
-                    
-                    new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
-                    new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
-                    
-                    Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
                      
                 else:
                     ineq_step = data.ineq_grad(X, Y_new)                
@@ -725,20 +671,16 @@ def grad_steps(data, X, Y, args, epoch=None):
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
             
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
-                            
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:                            
                 histories = [[] for _ in range(Y.shape[0])]
-                #for j in range(len(Y) // 2):
                 for j in range(len(Y)):
                     histories[j].append(-Y_step[j].detach().numpy())                                        
             
             new_Y_step = lr * Y_step + momentum * old_Y_step            
 
-
             Y_new = Y_new - new_Y_step
 
-            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
-                
+            if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:                
                 
                 for j in range(Y.shape[0]):
                     
@@ -750,25 +692,8 @@ def grad_steps(data, X, Y, args, epoch=None):
                         
                         plot_simple(results=Y_new[j].cpu().detach().numpy(), iteration=i, args=args, y_steps=histories[j], n_sample=j, total_iteration=args['corrTrainSteps'], epoch=epoch)
                         
-                
-
-
             old_Y_step = new_Y_step   
         
-        
-
-        # Diretório onde os plots estão salvos
-        #plot_dir = "C:\\Users\\mtcd\\Documents\\Codes\\dc3-wss\\dc3\\plots"
-        plot_dir = os.path.join('plots')
-
-        # Cria o GIF com os arquivos que começam com "plot_simple_nr0_epochNr"
-        
-        if i % QTY_EPOCH_SAVE == 0 and len(data.trainX) == len(Y) and SAVE_PLOT_Y_NEW:
-            for i in range(Y.shape[0]):
-                pass
-                #gif_filename = os.path.join('plots', f"training_progress_nr{i}.gif")
-                #utils.create_gif_from_plots(plot_dir, gif_filename, prefix=f"plot_simple_nr{i}_epochNr")
-                    
         return Y_new
        
     else:
@@ -792,8 +717,7 @@ def grad_steps_all(data, X, Y, args):
         Y_new = Y
         i = 0
         old_Y_step = 0
-        old_ineq_step = 0
-        old_eq_step = 0
+
         with torch.no_grad():
             
             while (  i == 0 or ( args['probType'] != 'dc_wss' ) and torch.max(torch.abs(data.eq_resid(X, Y_new))) > eps_converge  or
@@ -831,8 +755,9 @@ def grad_steps_all(data, X, Y, args):
         return Y, 0
 
 
-######### Models         
+######### Models     
          
+
 class NNSolver(nn.Module):
     def __init__(self, data, args): 
         super().__init__()
@@ -860,20 +785,22 @@ class NNSolver(nn.Module):
         x = x.float()
  
         out = self.net(x)
-        #print('OUT ', out.requires_grad, out.grad_fn)  # depois da rede
+
         if self._args['useCompl']:
             result = self._data.complete_partial(x, out)
             return result
         else:
             
             if self._args['probType'] == 'dc_wss':
-                
-                
-                result = self._data.process_output(x, out)            
-            
+                                
+                result = self._data.process_output_original(x, out)             
             
             return result   
 
-
 if __name__=='__main__':
     main()
+    
+    
+    
+    
+
