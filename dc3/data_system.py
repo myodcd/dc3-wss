@@ -20,7 +20,7 @@ class data_system:
         self.hmax=[8]   
         self.h0=[4]   
         self.units_flow=0 # 0 -> CMH AND 1 -> LPS
-        self.num_dc=3
+        self.num_dc=5
         
         self.flag_naive=0
         self.flag_def_pattern=0 # -> flag para criação de novo .inp

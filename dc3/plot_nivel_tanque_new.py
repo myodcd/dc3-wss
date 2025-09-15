@@ -31,7 +31,7 @@ def plot_nivel_tanque_new(args,
     # --- build tariff vector ---
     tar_duration  = [2, 4, 1, 2, 3, 12]
     tariff_value  = [0.0737, 0.06618, 0.0737, 0.10094, 0.18581, 0.10094]
-    hours         = np.arange(0, 24, 0.1)
+    hours         = np.arange(0, 23.999, 0.1)
     tariff_by_hour = np.zeros_like(hours)
     start = 0
     for duration, val in zip(tar_duration, tariff_value):

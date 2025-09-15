@@ -291,7 +291,7 @@ class Problem_DC_WSS:
     def ineq_dist(self, x, y, args):
 
         ineq_dist = torch.relu(self.ineq_resid(x, y, args))
-
+        
         return ineq_dist
 
     def get_yvars(self, y, args):
@@ -316,6 +316,15 @@ class Problem_DC_WSS:
         g_x_min = self.timemin - g_x
 
         resids = torch.cat([gt_max, gt_min, g_x_max, g_x_min, g_tlog], dim=1)
+
+
+        #for i in range(y.shape[0]):
+            
+        #    plot_simple.plot_simple(y[i].cpu().detach().numpy(), 000, args, 0, #n_sample=1,title_comment=f'gt_max: {gt_max[i]} \n gt_min: {gt_min[i]}')
+                                
+            
+
+
 
         return resids
 
@@ -412,9 +421,6 @@ class Problem_DC_WSS:
         result = torch.cat([jac_gT, jac_x, jac_TempLog], dim=1)
 
 
-        #result = torch.cat([jac_gT, jac_x, jac_TempLog.unsqueeze(0).repeat(jac_gT.shape[0], 1, 1)], dim=1)
-
-
         return result
 
     def ineq_grad(self, x, y, args):
@@ -431,7 +437,7 @@ class Problem_DC_WSS:
         qty = out2.shape[1] // 2  # Quantidade de duty cycles
 
         # Escala os tempos normalizados para [0, 23.8] e durações para [0.1, 5.0]
-        start_times = out2[:, :qty] * 23.8
+        start_times = out2[:, :qty] * 23.9
         durations = out2[:, qty:] * (5.0 - 0.001) + 0.001
 
         # Ordena os horários de início e ajusta as durações na mesma ordem
@@ -452,33 +458,171 @@ class Problem_DC_WSS:
         # Garante que nenhum ciclo ultrapasse o final do dia
         max_end = adjusted_start_times + durations_sorted
         durations_sorted = torch.where(
-            max_end > 23.8, 23.8 - adjusted_start_times, durations_sorted
+            max_end > 23.9, 23.9 - adjusted_start_times, durations_sorted
         )
 
         # Trunca valores finais para garantir domínio válido
-        adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
-        durations_sorted = torch.clamp(durations_sorted, 0.001, 5.0)
+        #adjusted_start_times = torch.clamp(adjusted_start_times, 0, 23.8)
+        #durations_sorted = torch.clamp(durations_sorted, 0.001, 5.0)
 
         return torch.cat([adjusted_start_times, durations_sorted], dim=1)
 
 
-    def overlap_penalty(self, start_times, durations):
+# ...existing code...
+    def process_output_original_parametric1(self, X, out):
         """
-        Penaliza sobreposição entre ciclos.
-        start_times, durations: [batch, n_cycles]
-        Retorna: penalidade total por batch (shape: [batch])
+        Versão diferenciável sem uso de sort/max:
+        - Garante ordem via somas cumulativas de gaps positivos.
+        - Durações em [0.001, 5.0].
+        - Ajusta (comprime) inícios se último término exceder 23.9 sem alterar durações.
         """
-        batch_size, n = start_times.shape
-        penalty = torch.zeros(batch_size, device=start_times.device, dtype=start_times.dtype)
-        for i in range(n):
-            for j in range(i + 1, n):
-                end_i = start_times[:, i] + durations[:, i]
-                end_j = start_times[:, j] + durations[:, j]
-                latest_start = torch.max(start_times[:, i], start_times[:, j])
-                earliest_end = torch.min(end_i, end_j)
-                overlap = torch.clamp(earliest_end - latest_start, min=0)
-                penalty += overlap
-        return penalty
+        DAY_MAX = 23.9
+        MIN_DUR = 0.001
+        MAX_DUR = 5.0
+        MIN_GAP = 0.001
+
+        B, D = out.shape
+        qty = D // 2
+        raw_gaps = out[:, :qty]
+        raw_durs = out[:, qty:]
+
+        # Gaps positivos (softplus) + mínimo
+        gaps = F.softplus(raw_gaps) + MIN_GAP                # [B, qty]
+
+        # Durações com limite superior (sigmoid) + mínimo
+        durations = torch.sigmoid(raw_durs) * (MAX_DUR - MIN_DUR) + MIN_DUR  # [B, qty]
+
+        # Inícios cumulativos
+        start_times = torch.cumsum(gaps, dim=1)  # crescente
+
+        # Ajuste se extrapolar o dia (escala só os inícios)
+        last_start = start_times[:, -1]
+        last_end = last_start + durations[:, -1]
+        # fator que garante last_start_scaled + last_duration <= DAY_MAX
+        alpha = (DAY_MAX - durations[:, -1]) / (last_start + 1e-6)
+        alpha = torch.clamp(alpha, max=1.0).unsqueeze(1)  # não expande se já dentro
+        start_times = start_times * alpha  # comprime intervalos mantendo proporções
+
+        return torch.cat([start_times, durations], dim=1)
+# ...existing code...
+
+
+    def process_output_original_parametric2(self, X, out):
+        """
+        Parametrização suave diferenciável sem sort/max:
+        Estrutura do vetor out (dim = 2 * qty):
+            - Primeira metade (qty):
+                * índice 0: parâmetro para primeiro início (>=0)
+                * índices 1..qty-1: parâmetros para gaps após cada ciclo (entre o fim do anterior e o início do próximo)
+            - Segunda metade (qty): parâmetros de duração
+        Construção:
+            start_0 = softplus(raw_start_0)
+            gaps_end_i = softplus(raw_gap_i) + MIN_GAP
+            durations_i = sigmoid(raw_dur_i) * (MAX_DUR - MIN_DUR) + MIN_DUR
+            increments_i = durations_{i} + gaps_end_{i+1}  (para i = 0..qty-2)
+            start_k = start_0 + cumsum(increments_0..k-1)
+        Garantias:
+            - Ordem crescente dos inícios
+            - Não sobreposição (cada incremento inclui duração anterior + gap)
+            - Compressão proporcional se último término > DAY_MAX (mantém não sobreposição)
+        """
+        DAY_MAX = 23.9
+        MIN_DUR = 0.001
+        MAX_DUR = 5.0
+        MIN_GAP = 0.001
+
+        B, D = out.shape
+        qty = D // 2
+        raw_pos = out[:, :qty]          # primeiro início + (qty-1) gaps-end
+        raw_dur = out[:, qty:]          # durações
+
+        # Durações em faixa
+        durations = torch.sigmoid(raw_dur) * (MAX_DUR - MIN_DUR) + MIN_DUR  # [B, qty]
+
+        # Primeiro início (>=0) e gaps (>= MIN_GAP)
+        first_start = F.softplus(raw_pos[:, 0:1])                           # [B,1]
+        gaps_end = F.softplus(raw_pos[:, 1:]) + MIN_GAP if qty > 1 else raw_pos.new_zeros((B,0))
+
+        if qty == 1:
+            start_times = first_start  # só um ciclo
+        else:
+            # increments = duração_i + gap_end_i  (para i=0..qty-2)
+            increments = durations[:, :-1] + gaps_end  # [B, qty-1]
+            cum_increments = torch.cumsum(increments, dim=1)                # [B, qty-1]
+            # start_0 já é first_start
+            start_rest = first_start + cum_increments                       # [B, qty-1]
+            start_times = torch.cat([first_start, start_rest], dim=1)       # [B, qty]
+
+        # Último término
+        last_end = start_times[:, -1] + durations[:, -1]
+        overflow = last_end > DAY_MAX
+
+        if overflow.any():
+            # Total span sem incluir duração final: span = start_last
+            # Precisamos escalar first_start e increments para caber antes do término final
+            # total_span = start_last + duration_last
+            start_last = start_times[:, -1]
+            total_span = start_last + durations[:, -1]
+            scale = (DAY_MAX - durations[:, -1]) / (start_last + 1e-8)      # [B]
+            scale = torch.where(overflow, torch.clamp(scale, max=1.0), torch.ones_like(scale))
+            scale = scale.unsqueeze(1)
+
+            # Reconstroi starts escalando first_start e increments proporcionalmente
+            first_start_scaled = first_start * scale
+            if qty > 1:
+                increments_scaled = increments * scale
+                cum_increments_scaled = torch.cumsum(increments_scaled, dim=1)
+                start_rest_scaled = first_start_scaled + cum_increments_scaled
+                start_times = torch.cat([first_start_scaled, start_rest_scaled], dim=1)
+            else:
+                start_times = first_start_scaled
+
+        return torch.cat([start_times, durations], dim=1)
+# ...existing code...
+
+
+
+# ...existing code...
+    def process_output_original_parametric3(self, X, out):
+        """
+        Parametrização suave diferenciável sem sort/max:
+        - Durações sem teto superior (>= MIN_DUR).
+        - Ordem e não sobreposição garantidas por gaps cumulativos.
+        - Se ultrapassar DAY_MAX, escala inícios e durações proporcionalmente.
+        """
+        DAY_MAX = 23.9
+        MIN_DUR = 0.001
+        MIN_GAP = 0.001
+
+        B, D = out.shape
+        qty = D // 2
+        raw_pos = out[:, :qty]   # [B, qty] -> first_start e gaps
+        raw_dur = out[:, qty:]   # [B, qty] -> durações
+
+        # Durações sem limite máximo (>= MIN_DUR)
+        durations = F.softplus(raw_dur) + MIN_DUR  # [B, qty]
+
+        # Primeiro início (>=0) e gaps (>= MIN_GAP)
+        first_start = F.softplus(raw_pos[:, 0:1])                         # [B,1]
+        gaps_end = F.softplus(raw_pos[:, 1:]) + MIN_GAP if qty > 1 else raw_pos.new_zeros((B, 0))
+
+        if qty == 1:
+            start_times = first_start
+        else:
+            # increments = dur_i + gap_{i+1}  (para i = 0..qty-2)
+            increments = durations[:, :-1] + gaps_end                     # [B, qty-1]
+            start_rest = first_start + torch.cumsum(increments, dim=1)    # [B, qty-1]
+            start_times = torch.cat([first_start, start_rest], dim=1)     # [B, qty]
+
+        # Ajuste para caber no horizonte: escala homogênea preserva não sobreposição
+        last_end = start_times[:, -1] + durations[:, -1]                  # [B]
+        alpha = torch.clamp(DAY_MAX / (last_end + 1e-8), max=1.0).unsqueeze(1)  # [B,1]
+        start_times = start_times * alpha
+        durations = durations * alpha
+
+        return torch.cat([start_times, durations], dim=1)
+# ...existing code...
+
 
 ###################################################################
 
@@ -648,7 +792,7 @@ class Problem_Non_Linear:
 
         return grad
 
-    def ineq_partial_grad_old(self, X, Y):
+    def ineq_partial_grad_old(self, X, Y, args):
         # Resíduo ajustado (clamp para respeitar desigualdades)
         x1 = X[:, 0]
         x2 = X[:, 1]
