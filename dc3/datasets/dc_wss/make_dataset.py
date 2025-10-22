@@ -72,10 +72,37 @@ def generate_dataset(nDutyCycles: int):
         with open(path, "wb") as f:
             pickle.dump(problem, f)
 
+def generate_fixed_dataset(vector, samples=20):
+    """
+    Gera 'samples' amostras idênticas ao vetor passado.
+    O vetor deve ter tamanho 2 * nDutyCycles: [times..., durations...].
+    """
+    if not isinstance(vector, (list, tuple)):
+        raise ValueError("vector deve ser uma lista ou tupla de floats.")
+
+    nDutyCycles = len(vector) // 2
+    if len(vector) != 2 * nDutyCycles:
+        raise ValueError(f"Tamanho inválido do vetor ({len(vector)}). Esperado 2 * nDutyCycles.")
+
+    # Instancia o sistema com nDutyCycles inferido
+    d = data_system([nDutyCycles], [0])
+
+    # Cria X com 'samples' cópias independentes do vetor
+    X = [list(vector) for _ in range(samples)]
+
+    problem = Problem_DC_WSS(d, X)
+    fname = f"dc_wss_dataset_dc{nDutyCycles}_fixed_ex{len(X)}"
+    path = (".\\" if os.name == "nt" else "./") + fname
+    with open(path, "wb") as f:
+        pickle.dump(problem, f)
+    print(f"Dataset salvo em: {path}")
 
 
 if __name__ == "__main__":
     # nDutyCycles = 2
     # generate_dataset(nDutyCycles)
+    
+    fixed_vector = [1.48, 1.87, 4.42, 7.31, 8.98, 0.18, 0.46, 0.97, 0.07, 1.33]
+    generate_fixed_dataset(fixed_vector, samples=20)    
     for i in range(3, 6):
         generate_dataset(i)

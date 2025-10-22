@@ -657,29 +657,7 @@ def gT(x,d,id,log): #Lower and Higher Water Level
         g1=np.concatenate((g1,g1_aux)) 
             
     elif(d.ftype==3):
-            # flag_sol=0
-            # log.solutions=[]
-            # if(len(log.solutions)!=0):
-            #     roundx=round_x(x,d)
-            #     # procurar solução
-            #     try:
-            #         idx=log.solutions.index(roundx)
-            #     except ValueError:
-            #         idx=-1
-    
-            #     if(idx!=-1):
-            #         flag_sol=1
-            #         tanks=log.tanks[idx]
-            #         timeInc=log.timeInc[idx]
-            #         log.n_tank+=1
-            # else:
-            #     roundx=round_x(x,d)
-            
-            # if(flag_sol==0):
-                # C=Cost(x,d,log,0)        
-                # idx=log.solutions.index(roundx)
-                # tanks=log.tanks[idx]
-                # timeInc=log.timeInc[idx]
+
             d,pumps,tanks,pipes,valves,timeInc,controls_epanet=EPA_API.EpanetSimulation(x,d,0)
             g1=[]
             for i in range(0,len(d.dc_pos)-1):
@@ -689,22 +667,12 @@ def gT(x,d,id,log): #Lower and Higher Water Level
                 g1=np.concatenate((g1,g1_aux[0:len(g1_aux)-1])) # h no inicio e fim de cada arranque
     
             g1=np.concatenate((g1, [g1_aux[-1]])) #Acrescentar as 24h
-            # print(id)
-            # print(x)
-            # print(g1)
+
 
     elif(d.ftype==1):
         g1=h_tmin(d,tanks['tank'+str(id)+'_h'],timeInc)
     
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as x_g:
-    #     np.savetxt(x_g,x*np.ones((1,len(x))),delimiter=";") 
 
-    # with open(r'Data Files\x_g1_T'+str(id)+'.csv','ab') as c:
-    #     np.savetxt(c,np.ones((1,1))*g1,delimiter=";") 
-    
-    # print('Water --> x_T'+id)
-    # print(x)
-    # print(g1)
     return g1
 
 

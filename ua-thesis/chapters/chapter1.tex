@@ -1,60 +1,35 @@
-\chapter{Introduction}%
-
+\chapter{Introduction}
 
 \section{Background}
 
-\begin{comment}
+Water is a finite and essential resource for human existence. Due to its vital importance, it requires effective control and monitoring of its use. However, beyond the management of consumption, attention must also be given to the energy demand and operational costs associated with water supply to the population.
 
-Um recurso finito e essencial para existência humana é a água. Por tratar-se de um item de extrema importância, é necessário que haja um controle e monitoramento eficaz de seu uso. Mas não só do seu uso mas da energia e custos relacionados ao seu fornecimento à população.
+In recent years, several technologies have emerged to enhance water management and reduce operational costs. Examples include the application of Machine Learning algorithms to forecast consumption, the use of sensor networks for continuous monitoring, and the calibration of hydraulic models to improve system accuracy.
 
-Hoje temos acesso a diversas tecnologias que podem ser utilizadas para otimizar o uso da água e reduzir custos, como por exemplo, algoritmos de Machine Learning para prever o consumo de água, a utilização de sensores para monitorar o consumo, a calibração dos modelos hidráulicos, entre outros.
+In Water Supply Systems (WSS), cost optimization remains a complex challenge. It involves multiple interdependent factors, such as network topology, water demand variability, and reservoir configuration. Furthermore, the presence of uncertainty and noise in measurement data—often incomplete or imprecise—makes accurate modeling and optimization even more difficult.
 
-Nos WSS (Water Supply Systems), a otimização de custos é um desafio, pois é necessário considerar diversos fatores, como a topologia da rede, a demanda de água, a localização dos reservatórios. Outra dificuldade está na consideração da incerteza dos dados devido a muitos casos, os dados coletados são imprecisos ou incompletos.
+From a computational perspective, many of the limitations once imposed by data scarcity and processing complexity have been mitigated. The advent of the Internet of Things (IoT) and the widespread availability of cloud computing now allow the collection and real-time processing of large volumes of data. This so-called “Big Data” can be exploited to train advanced Machine Learning models capable of supporting decision-making and improving cost efficiency in WSS operations.
 
-No campo computacional, a complexidade de cálculos ou a falta de dados gerados na fonte não são grandes desafios como eram a alguns anos atrás. Com a IoT (Internet of Things) e a computação em nuvem, é possível coletar e processar uma grande quantidade de dados em tempo real. Esta quantidade de dados (Big Data) pode ser utilizada para treinar algoritmos de Machine Learning e otimizar custos em WSS. 
-
-Diante destes desafios, a tecnologia é uma aliada nestes vários aspectos a serem tratados. 
-
-
-\end{comment}
-
-A finite and essential resource for human existence is water. Because it is of utmost importance, effective control and monitoring of its use are required. Moreover, it is necessary to consider not only its usage but also the energy and costs related to supplying it to the population.
-
-Nowadays, various technologies can be employed to optimize water usage and reduce costs, such as Machine Learning algorithms to predict consumption, the use of sensors to monitor it, hydraulic model calibration, among others.
-
-In WSS (Water Supply Systems), cost optimization is challenging because several factors must be considered, including network topology, water demand, and reservoir location. Another difficulty stems from data uncertainty, as in many cases, the collected data are inaccurate or incomplete.
-
-In the computational field, the complexity of calculations or the lack of source-generated data are no longer as significant hurdles as they were a few years ago. With IoT (Internet of Things) and cloud computing, it is possible to collect and process vast amounts of data in real time. This dataset (Big Data) can be used to train Machine Learning algorithms and optimize costs in WSS.
-
-Given these challenges, technology is an ally in addressing the various aspects involved.
+In this context, technology becomes a fundamental ally for addressing the various challenges involved in the management and optimization of water distribution systems.
 
 \section{Aim}
 
-\begin{comment}
-Na literatura, encontram-se implementações no uso de diversos algoritmos de Machine Learning para simular e otimizar custos de sistemas de abastecimento de água.
+Several studies in the literature report the use of different Machine Learning algorithms to simulate and optimize the operation of water supply systems, focusing primarily on minimizing energy consumption and operational costs.
 
-A proposta do presente artigos é utilizar o algoritmo DC3 (Deep Constraint Completion and Correction), como forma de apresentar um novo método para simulação e otimização e comparar os resultados obtidos com os algoritmos já existentes, utilizando como fontes de dados os sistemas de abastecimento de água de Fontinha e Ronqueira.
-    
-\end{comment}
-
-
-In the literature, there are implementations that use various Machine Learning algorithms to simulate and optimize costs in water supply systems.
-
-The goal of this article is to employ the DC3 (Deep Constraint Completion and Correction) algorithm as a new method for simulation and optimization and to compare the results obtained with existing algorithms, using the Fontinha and Ronqueira water supply systems as data sources.
+The present dissertation proposes the use of the DC3 (Deep Constraint Completion and Correction) algorithm as a novel approach to cost optimization in water supply systems. The method will be applied to the Fontinha and Ronqueira systems, enabling the comparison of its performance with existing optimization algorithms. The main contribution lies in evaluating the ability of DC3 to handle hard constraints while maintaining feasible and near-optimal solutions.
 
 \section{Reading guide}
-This work is structured into 5 chapters:
+
+This work is organized into five chapters:
 
 \begin{itemize}
-
-\item Chapter 1: Introduction to the theme, addressing its importance, the problems to be solved, as well as a possible solution, the aim of the work, and the structure of the dissertation.
-
-\item Chapter 2: Literature review. It includes hydraulic simulation using the EPANET tool, the use of Deep Learning in water supply systems, optimization, hard constraints, and the optimization process.
-
-\item Chapter 3: Methodology used for cost optimization in water supply systems with the DC3 (Deep constraints correction and completion) algorithm.
-
-\item Chapter 4: Implementation of the techniques and interpretation of the results obtained in each of the observed case studies.
-
-\item Chapter 5: Presentation of conclusions summarizing all the work carried out and suggestions for future studies.
-
+    \item \textbf{Chapter 1} introduces the research topic, its relevance, the problem statement, and the overall aim of the dissertation, as well as an outline of its structure.
+    
+    \item \textbf{Chapter 2} presents a literature review covering hydraulic simulation with the EPANET tool, the application of Deep Learning in water supply systems, optimization approaches, hard constraints, and general optimization processes.
+    
+    \item \textbf{Chapter 3} describes the methodology developed for cost optimization in water supply systems using the DC3 (Deep Constraint Completion and Correction) algorithm.
+    
+    \item \textbf{Chapter 4} details the implementation of the proposed techniques and discusses the results obtained from each case study.
+    
+    \item \textbf{Chapter 5} provides the main conclusions, summarizing the key findings of the research and suggesting directions for future work.
 \end{itemize}

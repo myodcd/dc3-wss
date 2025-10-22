@@ -1,184 +1,92 @@
-\chapter{State of the Art}%
+\chapter{State of the Art}
 \label{chapter:state-of-the-art}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Introdução geral do capítulo.
+% Explica ao leitor o propósito da revisão de literatura e
+% como ela se conecta ao problema central da dissertação.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\noindent
+This chapter presents a comprehensive review of the current state of the art in the optimisation of water supply systems (WSS), with a particular focus on the integration of data-driven and physics-based approaches. 
+The objective is to establish the theoretical and methodological foundation for the application of the DC3 (Deep Constraint Completion and Correction) algorithm in cost optimisation of water pumping operations.
+
+First, the chapter introduces the main computational tools for hydraulic simulation, which serve as the data sources for optimisation and learning processes. 
+Next, it reviews the fundamental concepts of deep learning and its applications in water management systems. 
+The following sections explore optimisation methodologies, focusing on the role of hard constraints in guaranteeing operational feasibility. 
+Finally, the DC3 algorithm is introduced as an innovative learning method capable of addressing the limitations of conventional optimisation techniques.
+
+The chapter concludes with a simple illustrative example demonstrating how DC3 operates under nonlinear constraints, setting the stage for the methodological implementation described in Chapter~\ref{chap:methodology}.
 
 
 \section{Hydraulic Simulation}
 
-\begin{comment}
-Atualmente no mercado existem diversos simuladores hidráulicos que são utilizados para modelar sistemas de abastecimento de água. Dentre eles, podemos citar o EPANET, WaterGEMS, WaterCAD, entre outros. A simulação permite oferecer soluções rápidas e precisas para equações algébricas diferenciais usadas para desenvolver a representação matemática de um sistema de abastecimento de água\cite{rfc1}. O EPANET é um dos mais reconhecidos aplicativos na área de distribuição de água\cite{rfc4}, amplamente utilizaddo e com muito sucesso\cite{rfc5} há mais de 20 anos\cite{rfc6} e é esta ferramenta a ser utilizada na simulação para obtenção dos dados necessários para a otimização.    
-\end{comment}
+Several hydraulic simulators are currently available for modelling and analysing water supply systems, including EPANET\cite{rfc4}, and WaterGEMS/WaterCAD \cite{rfc30}. These tools provide efficient numerical solutions for the system of differential-algebraic equations that describe the hydraulic and water-quality dynamics of pressurised distribution networks \cite{rfc1}.
 
+Among these, EPANET stands out as one of the most recognised and widely adopted open-source tools for water distribution modelling \cite{rfc4}. Developed by the U.S. Environmental Protection Agency, EPANET has been successfully applied for more than two decades \cite{rfc5, rfc6}. It enables the simulation of both steady-state and extended-period hydraulic behaviour, supporting the evaluation of flow, pressure, head loss, and water quality over time. 
 
-Currently, there are several hydraulic simulators on the market used to model water supply systems, such as EPANET, WaterGEMS, and WaterCAD. Simulation provides quick and accurate solutions to differential algebraic equations for developing a mathematical representation of a water supply system \cite{rfc1}. EPANET is one of the most recognized applications in water distribution \cite{rfc4}, widely used and quite successful \cite{rfc5} for over 20 years \cite{rfc6}.
-
+In this research, EPANET is used to generate the hydraulic data necessary for the optimisation framework. Its flexibility and computational efficiency make it suitable for integration with machine learning and deep optimisation methods, such as the one proposed in this dissertation.
 
 \section{Deep Learning}
 
+\subsection{Neural Networks}
 
-\subsection{Neural network}
+The fundamental concept of artificial neural networks (ANNs) was first introduced in 1943 as a mathematical abstraction of the biological neuron \cite{rfc23}. A typical ANN architecture consists of layers of interconnected units (neurons), each performing a weighted summation of its inputs followed by a nonlinear activation. 
 
-The main concept of neural networks (NN) was proposed and introduced as a mathematical model of an artificial neuron in 1943 \cite{rfc23}.
+Let $x_i$ be the input vector, $w_{ij}$ the connection weights, and $b_j$ the bias of neuron $j$. The pre-activation and activation are computed as:
+\[
+z_j = \sum_i w_{ij}x_i + b_j, \qquad a_j = \phi(z_j),
+\]
+where $\phi(\cdot)$ is the activation function. Common activation functions include the sigmoid, hyperbolic tangent, rectified linear unit (ReLU), and Gaussian error linear unit (GELU).
 
-Basics components of a neural network architecture are neurons, activations, biases, weight and layers - in order to define the multilayer perceptron (MLP) model \cite{rfc23}.
-
-
-## INCLUIR FORMULA ## 
-The most basic component of the neural network is the neuron and consists of two simple operations: the preactivation zi of a neuron is a linear aggregation of incoming signals, where each signal is weighted by Wij and biased by bi. Each neuron then fires or not according to the weighted and biased evidence, according to the values of the preactivation zi, and produces an activation.
-
-The scalar-valued function is called the activation function and acts independently on each component of the preactivation vector. 
-
-Taken together, these neurons form a layer \cite{rfc27}.
-
-For the activation function, the most common are the sigmoid, tanh, sin, linear, ReLU, GELU and other functions.
+The combination of multiple layers allows neural networks to approximate highly nonlinear mappings between inputs and outputs, forming the foundation for more advanced models in deep learning \cite{rfc27}.
 
 \subsection{Deep Learning}
 
-Deep learning is a name for a specific class of artificial neural networks, which in turn are a special class of machine learning algorithms, applicable to natural language processing, computer vision, robotics and many more.\cite{rfc22}
+Deep Learning (DL) is a subfield of machine learning based on deep neural architectures capable of automatically extracting hierarchical features from large and complex datasets. Unlike traditional machine learning methods, which rely on handcrafted feature extraction, deep learning models learn these representations directly from raw data through backpropagation \cite{rfc22, rfc23, rfc24}.
 
-Traditional Machine Learning algorithms use handwritten feature extraction to train algorithms, while Deep Learning algorithms use modern techniques to extract these features in an automatic fashion.\cite{rfc23}
+The scalability of deep learning has been enhanced by advances in parallel computing (GPUs), cloud-based training platforms, and open-source frameworks such as TensorFlow, PyTorch, and Keras. These developments have enabled DL models to achieve state-of-the-art performance across domains including natural language processing, computer vision, and control systems \cite{rfc26}.
 
-It has been demonstrated unequivocally that multilayered artificial neural architectures can learn complex, non-linear functional mappings, given sufficient computational resources and training data. Importantly,unlike more traditional approaches, their results scale with training data\cite{rfc24}.
+\subsection{Deep Learning in Water Supply Systems}
 
-Deep learning provides a black-box method to learn from complex, high-dimensional data in order to infer robust and scalable insights, minimizing the degree of manual work required \cite{rfc23}. A feature that sets deep learning apart from its broader field of machine learning is the use of multilayer models that lead to a higher-level representation of the underlying data sources \cite{rfc24}.
+The growing demand for energy efficiency and sustainability in water supply systems (WSS) has accelerated the use of data-driven approaches such as Machine Learning (ML) and Deep Learning (DL) for optimisation, monitoring, and predictive control.
 
-Neural networks are capable of learning by changing the distribution of weights it is possible to approximate a function representative of the patterns in the input. The key idea is to re-stimulate the black-box using new excitation (data) until a sufficiently well-structured representation is achieved. Each stimulation redistributes the neural weights in the right direction, given the learning algorithm involved is appropriate for use, until the error inapproximation with respect to some well-defined metricis below a practitioner-defined lower bound. Learning then,is the aggregation of avariable length of causal chains of neural computations \cite{rfc26} seeking to approximate a certain pattern recognition task through linear/nonlinear modulation of the activation of the neurons across the architecture.
-
-The use of Deep Learning has grown tremendously in the last few years with the rise of GPUs, big data, cloud providers such as Amazon Web Services (AWS), Microsoft Azure and Google Cloud, and frameworks such as PyTorch, Keras, TensorFlow and many others. In addition to this, large companies share algorithms trained on huge datasets, thus helping startups to build state-of-the-art systems on several use cases with little effort \cite{rfc23}.
-
-
-\subsection{Deep Learning in WSS}
-
-
-\begin{comment}
-A crescente demanda por eficiência e sustentabilidade nos sistemas de abastecimento de água tem impulsionado o uso de Machine Learning (ML) e Deep Learning (DL) como ferramentas inovadoras para otimização, monitoramento e controle dessas redes. Com os dados obtidos por ferramentas como EPANET, é possível treinar modelos de aprendizado de máquina para prever o comportamento do sistema e otimizar o uso de recursos.
-
-Há diversos papers abordando o uso de Deep Learning em sistemas de abastecimento e distribuição de água para prever detecção de anomalias\cite{rfc12}, prever pressão na rede de suprimento de água\cite{rfc11}, detecção de vazamentos\cite{rfc13}, agendamento inteligente para ligar e desligar a bomba, de acordo com o monitoramento em tempo real\cite{rfc9} entre outros.
-    
-\end{comment}
-
-
-
-
-
-The increasing demand for efficiency and sustainability in water supply systems has driven the use of Machine Learning and Deep Learning as innovative tools for optimization, monitoring, and control of these networks. With data obtained from tools like EPANET, it is possible to train machine learning models to predict system behavior and optimize resource usage.
-
-There are several papers addressing the use of Deep Learning in water supply and distribution systems to predict anomaly detection \cite{rfc12}, predict pressure in the water supply network \cite{rfc11}, detect leaks \cite{rfc13}, and smart scheduling to turn the pump on and off according to real-time monitoring \cite{rfc9}, among others.
-
-
-\section{Optimization in WSS}
-
-\begin{comment}
-
-De uma forma mais técnica, diz-se que a otimização é o processo de maximizar ou minimizar a função-objetivo requerida enquanto são satisfeitas determinadas restrições.\cite{rfc21}
-
-Estações de bombeamento de abastecimento de água são um elemento indispensável de qualquer sistema de abastecimento de água. Elas fornecem não apenas o suprimento de água para cada recipiente, mas também a pressão necessária na rede de abastecimento de água para fins de combate a incêndio. O custo da energia é um dos componentes mais importantes do preço da água tratada.\cite{rfc7}
-
-O principal objetivo para otimização é o custo operacional, que compreende o custo da energia elétrica e o custo de manutenção das bombas.\cite{rfc2} Os sistemas de bombeamento consomem a maior quantidade de energia em sistemas de abastecimento de água, geralmente respondendo por mais de 80\% do consumo total de energia.\cite{rfc8}
-
-A otimização do custo de energia em sistemas de abastecimento de água pode ser alcançada por meio de várias medidas, como substituição de bombas, mudança na operação da estação de bombeamento, modernização do sistema de tubulações, modelagem computacional de mudanças na operação da rede e seleção de soluções que garantam os melhores efeitos econômicos e técnicos.\cite{rfc7}
-
-A otimização dos WSS apresenta inúmeras aplicações, mas é crucial enfatizar a importância da otimização do agendamento de bombas devido ao considerável consumo de energia associado a este componente essencial do WSS (Cost efficiency in water supply systems: An applied review on optimization models for the pump scheduling problem)
-
-Os sistemas de bombeamento têm um potencial significativo para melhorias de eficiência energética. Em muitos casos, a otimização das operações consideram a velocidade dixa da bombas e a economia de custos pode ser obtida utilizando o padrão de variação do custo da tarifa de energia elétrica ao longo do dia.\cite{rfc8}
-
-As variações horárias na demanda de água durante o dia são muito maiores em comparação à demanda média diária. Para um consumidor doméstico, a necessidade de água é maior durante as horas da manhã e da noite do que a demanda do meio-dia. Durante os horários de pico, o custo de energia é 2 a 3 vezes mais caro do que durante os horários de consumo mínimo.
-
-Uma solução técnica para essa redução pode ser uma diminuição na potência de bombeamento (mesmo parando bombas se for possível) durante os horários de pico, juntamente com uma entrega extensiva fora desses horários. Consequentemente, os sistemas de distribuição devem ser equipados com tanques de armazenamento.
-
-
-\end{comment}
-
-Optimization is applied in many systems and situations, thus making it an important paradigm in technology. When we try to optimize, we either minimize (resource consumption, cost) or maximize (profit, system performance) \cite{rfc19}.
-
-
-In a more technical sense, optimization is said to be the process of maximizing or minimizing the required objective function while satisfying certain constraints \cite{rfc21}.
-
-Water supply pumping stations are an indispensable element of any water supply system. They not only provide the water supply to each container but also the necessary pressure in the water supply network for firefighting purposes. The cost of energy is one of the most important components of the price of treated water \cite{rfc7}.
-
-The main objective for optimization is the operational cost, which encompasses the cost of electric power and pump maintenance \cite{rfc2}. Pumping systems consume the largest amount of energy in water supply systems, generally accounting for more than 80\% of the total energy consumption \cite{rfc8}.
-
-Energy cost optimization in water supply systems can be achieved through several measures, such as pump replacement, changes in pumping station operations, pipe system modernization, computational modeling of network operation changes, and the selection of solutions that ensure the best economic and technical effects \cite{rfc7}.
-
-WSS optimization has numerous applications, but it is crucial to highlight the importance of pump scheduling optimization due to the considerable energy consumption associated with this essential WSS component \cite{rfc20}.
-
-Pumping systems have significant potential for energy efficiency improvements. In many cases, operations optimization considers fixed pump speed, and cost savings can be obtained by using the variation in electricity tariff rates throughout the day \cite{rfc8}.
-
-Hourly variations in water demand during the day are much higher compared to the average daily demand. For a household consumer, water demand is higher during morning and evening hours than midday. During peak hours, energy costs can be 2 to 3 times more expensive than during off-peak hours.
-
-A technical solution for this reduction may involve decreasing pumping power (even stopping pumps if possible) during peak hours, along with extensive delivery outside these hours. Consequently, distribution systems must be equipped with storage tanks.
-
-
-
-\subsection{Mathematical formulation}
-
-Mathematical optimization models ate mathematical representations of real-world problems that aim to find the best solution among a set of available alternatives.\cite{rfc28}
-
-\begin{equation}\label{optimization}
-\textrm{minimise} f(x)
-\end{equation}
-
-\begin{equation}\label{optimization_g}
-\textrm{subject to:} g(x) \le 0
-\end{equation}
-
-
-\begin{equation}\label{optimization_h}
-h(x) = 0
-\end{equation}
-
-Where $x$ represents a vector of decision variables or control variables that effect the operation of the water system. The decision variables $x$ might represent pump flow rates, valve settings, reservoir release, or the allocation of the water resources over time. $f(x)$ is the objective function, and $g(x)$ is the inequality constraints, and $h(x)$ is the equality constraints.
-
-In operational water management, inequality constraints(\ref{optimization_g}) can specify ranges of feasible system states, such as the capacity limits of pumps and turbines or the upper and lower volume limits of a reservoir. Equality constraints (\ref{optimization_h}) are often represented by system equations, such as a water balance equation. A constraint violation makes the solution infeasible.
-
-Due to its complexity, there are some common optimization problems that are fundamental for our understanding:
-
+Using data generated by hydraulic simulators like EPANET or collected via SCADA systems, DL models can learn to predict hydraulic states, identify anomalies, and optimise control actions. Recent studies highlight several promising applications: 
 \begin{itemize}
-\item Linearity and convexity: a linear optimization problem has a linear objective function and constraints, with the optimal solution always at a corner of the feasible region. This allows for efficient solution methods. Convex functions have a single minimum and no local minima, making them easier to minimize. A problem is convex if the objective function and inequality constraints are convex, while equality constraints are affine transformations.
-
-\item Continuous and discrete problems: a continuous problem has variables that can take any real value within a range, while a discrete problem includes variables like integers or Booleans with a finite set of values. Discrete variables are used for on/off decisions or to approximate nonlinear functions piecewise. These problems are generally harder to solve than continuous ones, so minimizing discrete variables balances model accuracy and computation time.
-
-\item Linear programming: linear programming (LP) is used for problems with linear objectives and constraints, solving them efficiently with polynomial runtime. In water management, reservoir optimization is a common LP application. To leverage LP’s advantages, models are often linearized, even at the cost of accuracy. This can be done through linear approximations or piecewise linear methods, commonly used in model predictive control (MPC), where frequent updates help mitigate accuracy loss.
-
-\item Nonlinear problems: nonlinear problems occur when any part of the optimization (objective or constraints) is nonlinear. They may be convex or non-convex, and can be continuous or discrete. Generally, convex continuous problems are less complex to solve than non-convex discrete ones.
-
-\item Integer linear programming: integer linear programming (ILP), or mixed integer programming (MIP), is used when some or all decision variables are restricted to discrete values. MIP is commonly applied in hydropower scheduling and pumping optimization. It is also useful for solving piecewise linear approximations of nonlinear equations.
+    \item anomaly detection in water distribution systems \cite{rfc12};
+    \item pressure prediction using hybrid models such as CNN-GRU with attention mechanisms \cite{rfc11};
+    \item leak detection using convolutional networks and kriging interpolation \cite{rfc13};
+    \item real-time intelligent pump scheduling based on consumption forecasting and tariff variations \cite{rfc9}.
 \end{itemize}
 
+Although these approaches show excellent predictive capability, they typically do not guarantee compliance with physical or operational constraints. This limitation motivates the integration of constraint-aware deep learning techniques—such as the DC3 algorithm—for fast approximate solutions to optimisation problems.
 
-\section{Hard Constraints}
 
-\begin{comment}
-    
-Hard constraints é um termo utilizado para verificar se certas propriedades são satisfeitas para resolução de problemas de otimização.\cite{rfc16} São como regras não negociáveis.
 
-A satisfação das restrições corresponde à aplicação dos limites de segurança operacional e à adesão às leis físicas, sendo de suma importância\cite{rfc15}.
 
-Algoritmos de aprendizado baseados em gradiente permitem otimizar os parâmetros de redes para aproximar qualquer modelo desejado. No entanto, apesar da existência de vários algoritmos avançados de otimização, a questão de impor restrições estritas de igualdade durante o treinamento não foi suficientemente abordada\cite{rfc10}.
+\section{Optimisation in Water Supply Systems}
 
-Aplicar solucionadores tradicionais para otimização geral restrita, como SQP\cite{rfc18}, a redes neurais pode ser não trivial. Como os métodos tradicionais expressam restrições como uma função de parâmetros aprendíveis, essa formulação se torna extremamente dimensional, não linear e não convexa no contexto de redes neurais\cite{rfc10}.
+Optimisation plays a fundamental role in engineering systems, aiming to minimise or maximise an objective function subject to a set of operational constraints \cite{rfc19}. In water supply systems, the primary goal is often the reduction of energy costs associated with pumping operations while maintaining required service levels and hydraulic feasibility \cite{rfc7, rfc8}.
 
-Em operações de sistemas de abastecimento de água é restringida por requisitos mínimos de pressão; limitações de capacidade impostas por bombas, dutos e tanques; e um conjunto de restriçõies hidráulicas. As restrições hidráulicas que dão origem a complexas formulações mistas inteiras e não lineares. A primeira classe de métodos impõe restrições de pressão e capacidade explicitamente, enquanto as restrições hidráulicas são inlcuídas implicitamente por meio de ferramentas de simulação de rede de água, como o EPANET. \cite{rfc17}
+Water supply pumping stations are responsible for the majority of energy consumption in WSS—often exceeding 80\% of total operational costs \cite{rfc8}. Energy cost optimisation can therefore significantly enhance the economic and environmental sustainability of utilities. Typical optimisation strategies include pump replacement, schedule reconfiguration, and dynamic operation aligned with time-varying electricity tariffs \cite{rfc20}.
 
-\end{comment}
+A general optimisation problem can be formulated as follows:
 
-Hard constraints is a term used to check whether certain properties are satisfied for solving optimization problems.\cite{rfc16} They are like non-negotiable rules.
+\begin{equation}
+\begin{aligned}
+\min_{x} \quad & f(x) \\
+\text{s.t.} \quad & g(x) \le 0, \\
+& h(x) = 0,
+\end{aligned}
+\end{equation}
+where $f(x)$ is the objective function (e.g., energy cost), $g(x)$ and $h(x)$ represent inequality and equality constraints, respectively. In the WSS context, these constraints enforce hydraulic limits such as pressure bounds, reservoir capacities, and operational schedules.
 
-Meeting constraints corresponds to applying operational safety limits and adhering to physical laws, which is of great importance.\cite{rfc15}
+Optimisation problems in water systems can be linear or nonlinear, convex or non-convex, and may involve continuous or discrete decision variables. Common techniques include linear programming (LP), nonlinear programming (NLP), and mixed-integer programming (MIP). Recent approaches have also incorporated hybrid or metaheuristic methods to handle large-scale nonlinear formulations efficiently \cite{rfc29}.
 
-Gradient-based learning algorithms allow optimizing network parameters to approximate any desired model. However, despite the existence of several advanced optimization algorithms, the issue of imposing strict equality constraints during training has not been sufficiently addressed.\cite{rfc10}
+\section{Hard Constraints and Constrained Learning}
 
-Applying traditional solvers for general constrained optimization, such as SQP\cite{rfc18}, to neural networks can be non-trivial. Since traditional methods express constraints as a function of learnable parameters, this formulation becomes extremely high-dimensional, non-linear, and non-convex in the context of neural networks.\cite{rfc10}
+Hard constraints refer to non-negotiable physical or operational rules that must be strictly satisfied in optimisation problems \cite{rfc16}. In WSS, these include pressure limits, storage capacities, and energy availability. Violation of such constraints can lead to hydraulic infeasibility or system failure \cite{rfc17}.
 
-Water supply system operations are constrained by minimum pressure requirements; capacity limitations imposed by pumps, pipes, and tanks; and a set of hydraulic constraints. These hydraulic constraints give rise to complex mixed-integer and non-linear formulations. The first class of methods explicitly imposes pressure and capacity constraints, while hydraulic constraints are implicitly included through water network simulation tools, such as EPANET.\cite{rfc17}
-
-\section{Optimization Process}
-
-\subsection{Mathematical Formulation}
-
-\subsection{Optimization Methods}
-
-The new methodology combines the use of
-trigger levels with pump scheduling to optimize pump operations by maximizing off-peak
-tariff period pumping and minimizing pumping head. 
+Traditional gradient-based learning methods are efficient for unconstrained optimisation but often struggle to enforce strict equality or inequality constraints \cite{rfc10}. Applying classical constrained solvers, such as Sequential Quadratic Programming (SQP), to deep neural models is non-trivial due to the high-dimensional, nonlinear, and non-convex parameter spaces involved \cite{rfc18}.
+To address these challenges, constraint-aware learning frameworks have been developed. These include Physics-Informed Neural Networks (PINNs) and Constrained Neural Fields, which embed physical relationships into the learning process \cite{rfc15, rfc10, rfc16}. Among these, the DC3 (Deep Constraint Completion and Correction) algorithm provides a general mechanism to ensure feasibility throughout both training and inference.
 

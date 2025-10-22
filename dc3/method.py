@@ -35,20 +35,36 @@ import warnings
 import datetime
 
 
+np.set_printoptions(suppress=True)
+
+def fmt_array(a, decimals=2):
+    """
+    Formata arrays/tensores sem notação científica, com 'decimals' casas.
+    """
+    a = np.asarray(a, dtype=float)
+    return np.array2string(
+        a,
+        separator=', ',
+        formatter={'float_kind': lambda x: f"{x:.{decimals}f}"}
+    )
+    
+
 torch.set_printoptions(precision=4, sci_mode=False)
 
 warnings.filterwarnings("ignore")
 
 FIXED_Y_VALUE = False
 
-SAVE_PLOT_Y_NEW = False
+SAVE_PLOT_Y_NEW = True
 SAVE_PLOT_GIF = False
 SAVE_PLOT_COST = True # True
-QTY_EPOCH_SAVE = 20
+QTY_EPOCH_SAVE = 5
 VALID_PLOT_COST = False
 TRAIN_PLOT_COST = False
 TEST_PLOT_COST = False
 
+SAVE_PLOT_INEQ_DIST_FOR_TOTAL_LOSS_VALIDATION = False
+SAVE_PLOT_INEQ_DIST_FOR_TOTAL_LOSS_TRAINING = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #DEVICE = torch.device('xpu' if torch.xpu.is_available() else DEVICE)
@@ -105,7 +121,7 @@ def main():
         help='how frequently (in terms of number of epochs) to save stats to file')
     parser.add_argument('--dc', type=int, default=5,
         help='number of duty cycles')
-    parser.add_argument('--qtySamples', type=int, default=30)
+    parser.add_argument('--qtySamples', type=int)
     parser.add_argument('--fileName', type=str, default=None)   
     parser.add_argument('--epochs', type=int,
         help='number of neural network epochs')
@@ -113,13 +129,23 @@ def main():
         help='starting value of softWeightEqFrac')
     parser.add_argument('--softWeightEqFracDuration', type=float, 
         help='duration of softWeightEqFrac')
-    parser.add_argument('--computer_type', type=str)
+    parser.add_argument('--computer_type', type=str),
+    parser.add_argument('--corrLrStartPart', type=float),
+    parser.add_argument('--corrLrEndPart', type=float),
+    parser.add_argument('--corrMomentumStartPart', type=float),
+    parser.add_argument('--corrMomentumEndPart', type=float)
+    
      
     args = parser.parse_args()
     args = vars(args) # change to dictionary
         
     if args['fileName'] is None:
             args['fileName'] = f"dc_wss_dataset_dc{args['dc']}_ex{args['qtySamples']}"
+    
+    
+    if FIXED_Y_VALUE:
+        args['fileName'] = f'dc_wss_dataset_dc5_fixed_ex20'
+    
     
     defaults = default_args.method_default_args(args['probType'])
     
@@ -209,6 +235,37 @@ def train_net(data, args, save_dir):
         for Xvalid in valid_loader:
             Xvalid = Xvalid[0].to(DEVICE)
             eval_net(data, Xvalid, solver_net, args, 'valid', epoch_stats)
+
+            if SAVE_PLOT_INEQ_DIST_FOR_TOTAL_LOSS_VALIDATION:
+                # perdas desta avaliação (pode ser escalar ou vetor)
+                valid_losses = np.asarray(epoch_stats['valid_loss'])
+                for k in range(Xvalid.shape[0]):
+                    xi = Xvalid[k:k+1]  # shape [1, xdim]
+                    Yhat_value = solver_net(xi)  # [1, ydim]
+                    Ynew_value = grad_steps(data, xi, Yhat_value, args, epoch=i)  # [1, ydim]
+
+                    ineq_dist_val = torch.norm(data.ineq_dist(xi, Ynew_value, args), dim=1).item()
+
+                    ynew_np = Ynew_value[0].detach().cpu().numpy()
+                    levels_np = data.gT_Original(Ynew_value)[0][:-1].detach().cpu().numpy()
+
+                    # se for vetor, usa índice k; se for escalar, usa o valor único
+                    cost_penalty = float(valid_losses[k] if valid_losses.ndim > 0 else valid_losses)
+
+                    title = (
+                        f"Ineq dist for total loss\n"
+                        f"Validation Sample: {k}\n"
+                        f"Epoch: {i+1}\n"
+                        f"Ineq cost: {ineq_dist_val:.4f}\n"
+                        f"Y new: {fmt_array(ynew_np, 2)}\n"
+                        f"Levels: {fmt_array(levels_np, 2)}\n"
+                        f"Obj_cost: € {data.obj_fn_Autograd(Ynew_value, args)[0]:.2f}\n"
+                        f"Formula: obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost"
+                    )
+
+                    plot_nivel_tanque_new(args, ynew_np, cost_penalty, save_plot=True, title=title, sample=k, epoch=i)
+                    
+                print('')
                                     
         solver_net.eval()
         for Xtest in test_loader:
@@ -223,25 +280,20 @@ def train_net(data, args, save_dir):
             solver_net.zero_grad()
             Yhat_train = solver_net(Xtrain) # 1. Forward pass
 
-            # Para testar o gt_max e gt_min
-            #gt = data.ineq_resid(Yhat_train,Yhat_train,args)
 
-            #gt_max = gt[0:11]
-            #gt_min = gt[11:22]
             
             
-
-            #for k in range(Yhat_train.shape[0]):
-            
-            #    plot_simple(Yhat_train[k].cpu().detach().numpy(), 000, args, 0, n_sample=1,#title_comment=f'gt_max: {gt_max[k]} \n gt_min: {gt_min[k]}')
-                                
-                        
-            
-
-            if SAVE_PLOT_Y_NEW:
-
-
+            if FIXED_Y_VALUE:
+                fixed_vector = [1.48, 1.87, 4.42, 7.31, 8.98, 0.18, 0.46, 0.97, 0.07, 1.33]
+                # garante tamanho compatível (dc=5 -> 10 variáveis)
+                assert Yhat_train.shape[1] == len(fixed_vector), "fixed_vector com dimensão incorreta para o modelo."
+                fixed_row = torch.as_tensor(fixed_vector, device=Yhat_train.device, dtype=Yhat_train.dtype).unsqueeze(0)
+                # Repete a mesma linha para todo o batch
+                Yhat_train = fixed_row.repeat(Yhat_train.shape[0], 1)
                 
+                
+            
+            if SAVE_PLOT_Y_NEW:
 
                 for j in range(Yhat_train.shape[0]):
                     
@@ -285,6 +337,39 @@ def train_net(data, args, save_dir):
             train_loss_start_time = time.time()
 
             train_loss = total_loss(data, Xtrain, Ynew_train, args, i) # 2. Calculate de loss   
+            
+            
+            
+            if SAVE_PLOT_INEQ_DIST_FOR_TOTAL_LOSS_TRAINING:
+                
+                #for k in range(len(Ynew_train)):
+                Ynew_value = Ynew_train
+                ineq_dist = torch.norm(data.ineq_dist(Xtrain, Ynew_value, args),dim=1)
+                    #ineq_cost = torch.norm(data.ineq_dist(Yhat_value, Yhat_value, args), dim=0)
+                    
+                ineq_dist_matrix = data.ineq_dist(Xtrain, Ynew_value, args)
+                    
+                for k in range(len(Ynew_train)):
+                    
+                    title = (
+                        f"Ineq dist for total loss\n"
+                        f"Training Sample: {k}\n"
+                        f"Epoch: {i+1} \n"
+                        f"Ineq cost: {ineq_dist[k].item():.4f}\n"
+                        f"Y new: {fmt_array(Ynew_train[k].cpu().detach().numpy(), 2)}\n"
+                        f"Levels: {fmt_array(data.gT_Original(Ynew_train[k].unsqueeze(0))[0][:-1].cpu().detach().numpy(), 2)}\n"
+                        f"ineq_cost_matrix: {fmt_array(ineq_dist_matrix[k].cpu().detach().numpy(), 4)}\n"
+                        f"Obj_cost: € {data.obj_fn_Autograd(Ynew_train[k].unsqueeze(0), args)[0]:.2f}\n"
+                        f"Formula: obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost"
+                    )
+                    
+                    show_matrix = ineq_dist_matrix[k]
+                    
+                    plot_nivel_tanque_new(args, Ynew_train[k], train_loss[k], save_plot=True, title=title, sample=k, epoch=i)
+                    
+             
+                print('')            
+            
             train_loss.sum().backward() 
             solver_opt.step() # 4. Performe gradiente descent       
 
@@ -581,36 +666,28 @@ def eval_net(data, X, solver_net, args, prefix, stats):
     return stats
 
 
-
-
-
 def total_loss(data, X, Y, args, i):
     dim = 0 if args['probType'] in ('nonlinear', 'nonlinear_2ineq') else 1
 
     if args['probType'] == 'dc_wss':
         obj_cost = data.obj_fn_Autograd(Y, args)
+        # Penalização com gradiente (usa gT/g_TempLog autograd)
+        #ineq_dist = data.ineq_dist_autograd(X, Y, args)
+        ineq_dist = data.ineq_dist(X, Y, args)
+        ineq_cost = torch.norm(ineq_dist, dim=dim)
+        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
+        return result
     else:
         obj_cost = data.obj_fn_Original(Y, args)
-
-    if args['probType'] in ('nonlinear', 'nonlinear_2ineq'):
-        ineq_dist = data.ineq_dist(Y, Y, args)
-    else:
         ineq_dist = data.ineq_dist(X, Y, args)
-
-    ineq_cost = torch.norm(ineq_dist, dim=dim)
-
-
-    if args['probType'] == 'dc_wss':
-
-        result = obj_cost + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost
-    else:
-        # Com equações de igualdade e desigualdade
+        ineq_cost = torch.norm(ineq_dist, dim=dim)
         eq_cost = torch.norm(data.eq_resid(X, Y).unsqueeze(1), dim=1)
         result = obj_cost \
             + args['softWeight'] * (1 - args['softWeightEqFrac']) * ineq_cost \
             + args['softWeight'] * args['softWeightEqFrac'] * eq_cost
+        return result
 
-    return result
+
 
 
 def grad_steps(data, X, Y, args, epoch=None):        
@@ -624,10 +701,10 @@ def grad_steps(data, X, Y, args, epoch=None):
         if partial_corr and not partial_var:
             assert False, "Partial correction not available without completion."
         Y_new = Y
-        old_Y_step = 0       
+        old_Y_step = torch.zeros_like(Y)       
         for i in range(num_steps):            
             if partial_corr:
-                Y_step = data.ineq_partial_grad(X, Y_new)
+                Y_step = data.ineq_partial_grad(X, Y_new, args)
             else:       
                 if args['probType'] == 'dc_wss':
                         
@@ -641,7 +718,7 @@ def grad_steps(data, X, Y, args, epoch=None):
                     Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)                    
                      
                 else:
-                    ineq_step = data.ineq_grad(X, Y_new)                
+                    ineq_step = data.ineq_grad(X, Y_new, args)                
                     eq_step = data.eq_grad(X, Y_new)
                                 
                     Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
@@ -652,7 +729,7 @@ def grad_steps(data, X, Y, args, epoch=None):
                 for j in range(len(Y)):
                     histories[j].append(-Y_step[j].detach().numpy())                                        
             
-            new_Y_step = lr * Y_step + momentum * old_Y_step            
+            new_Y_step = lr * Y_step + momentum * old_Y_step        
 
             Y_new = Y_new - new_Y_step
 
@@ -676,12 +753,12 @@ def grad_steps(data, X, Y, args, epoch=None):
         return Y
     
 
-
+# ...existing code...
 # Used only at test time, so let PyTorch avoid building the computational graph
 def grad_steps_all(data, X, Y, args):
     take_grad_steps = args['useTestCorr']
     if take_grad_steps:
-        lr = args['corrLr']       
+        lr = args['corrLr']
         eps_converge = args['corrEps']
         max_steps = args['corrTestMaxSteps']
         momentum = args['corrMomentum']
@@ -691,44 +768,34 @@ def grad_steps_all(data, X, Y, args):
             assert False, "Partial correction not available without completion."
         Y_new = Y
         i = 0
-        old_Y_step = 0
+        old_Y_step = torch.zeros_like(Y)  # was 0
 
         with torch.no_grad():
-            
             while (  i == 0 or ( args['probType'] != 'dc_wss' ) and torch.max(torch.abs(data.eq_resid(X, Y_new))) > eps_converge  or
                            torch.max(data.ineq_dist(X, Y_new, args)) > eps_converge) and i < max_steps:
                 if partial_corr:
-                    Y_step = data.ineq_partial_grad(X, Y_new)
+                    Y_step = data.ineq_partial_grad(X, Y_new, args)
                 else:
-                    
                     if args['probType'] == 'dc_wss':
                         ineq_step = data.ineq_grad(X, Y_new, args)
-                    
                         mid_point = ineq_step.shape[1] // 2
-                        
-                        new_Y_step_start = ( 1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
-                        new_Y_step_end = ( 1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
-                        
+                        new_Y_step_start = (1 - args['softWeightEqFracStart']) * ineq_step[:, :mid_point]
+                        new_Y_step_end   = (1 - args['softWeightEqFracDuration']) * ineq_step[:, mid_point:]
                         Y_step = torch.cat([new_Y_step_start, new_Y_step_end], dim=1)
-
                     else:
-                        
                         ineq_step = data.ineq_grad(X, Y_new, args)
                         eq_step = data.eq_grad(X, Y_new)
                         Y_step = (1 - args['softWeightEqFrac']) * ineq_step + args['softWeightEqFrac'] * eq_step
 
-                
-                new_Y_step = lr * Y_step + momentum * old_Y_step
+                new_Y_step = lr * Y_step  + momentum * old_Y_step
 
                 Y_new = Y_new - new_Y_step
-
                 old_Y_step = new_Y_step
                 i += 1
 
         return Y_new, i
     else:
         return Y, 0
-
 
 ######### Models     
          
@@ -763,14 +830,18 @@ class NNSolver(nn.Module):
 
         if self._args['useCompl']:
             result = self._data.complete_partial(x, out)
-            return result
+            
         else:
             
             if self._args['probType'] == 'dc_wss':
                                 
                 #result = self._data.process_output_original(x, out)             
             
-                result = self._data.process_output_original_parametric2(x, out)
+                result = self._data.process_output_original(x, out)
+                
+            else:
+                
+                result = self._data.process_output(x, out)
             
             return result   
 

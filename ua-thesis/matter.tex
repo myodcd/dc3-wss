@@ -25,10 +25,13 @@
 \usepackage{ifthen}
 \def\useoverleaf{0}  % change to non-zero (for instance, 1) to enable it
 
-\makeatletter
-\newcommand{\makecoverfile}[0]{%
-  \immediate\write18{latexmk -pdf cover.tex}%
-}
+
+
+% INCLUIR NOVAMENTE
+%\makeatletter
+%\newcommand{\makecoverfile}[0]{%
+%  \immediate\write18{latexmk -pdf cover.tex}%
+%}
 \makeatother
 
 % For PDF merging
@@ -117,7 +120,7 @@
 \usepackage{todonotes}
 
 % Setup bibliography with Biber using IEEE style for proper UTF-8 support
-\usepackage[backend=biber, style=ieee, sorting=none, natbib=true, mincitenames=1, maxcitenames=2]{biblatex}
+\usepackage[backend=biber, style=ieee, sorting=nyt, natbib=true, mincitenames=1, maxcitenames=2]{biblatex}
 \bibliography{bib/rfc.bib}
 
 % Use acronyms
@@ -205,6 +208,7 @@
 
 
 
+
 % Use the built-in division styling
 \headstyles{memman}
 
@@ -241,9 +245,9 @@
 
 % Fix the numbering scheme by having a ghost style for page numbering
 \pagenumbering{Alph}
-
-\ifthenelse{\equal{\useoverleaf}{0}}{}{\makecoverfile{}}%
-\setcounter{page}{0}\includepdf[pages=-]{cover.pdf}
+% INCLUIR NOVAMENTE
+%\ifthenelse{\equal{\useoverleaf}{0}}{}{\makecoverfile{}}%
+%\setcounter{page}{0}\includepdf[pages=-]{cover.pdf}
 
 % Uncomment to enable English
 %\selectlanguage{english}
@@ -333,16 +337,19 @@
 
 % Initial document tables start here: TOC, LOF, LOT, Glossary
 % Table of contents with slightly smaller font
-\cleardoublepage
-{\small\tableofcontents}
+% INCLUIR NOVAMENTE
+%\cleardoublepage
+%{\small\tableofcontents}
 
 % List of figures with slightly smaller font
-\clearpage
-{\small\listoffigures}
+% INCLUIR NOVAMENTE
+%\clearpage
+%\small\listoffigures}
 
 % List of tables with slightly smaller font
-\clearpage
-{\small\listoftables}
+% INCLUIR NOVAMENTE
+%\clearpage
+%{\small\listoftables}
 
 % List of code snippets
 
@@ -367,8 +374,9 @@
   \oldchapter#1{#2}
 }
 
+% INCLUIR NOVAMENTE
 % Print Glossary
-{\small\include{glossary}}
+%{\small\include{glossary}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Main document starts here
@@ -383,7 +391,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Uncomment to add further chapters
-\include{chapters/chapter1}
+%\include{chapters/chapter1} % INCLUIR NOVAMENTE
 \include{chapters/chapter2}
 \include{chapters/chapter3}
 \include{chapters/chapter4}
@@ -405,7 +413,7 @@
 \renewcommand{\bibfont}{\footnotesize}
 % Redefine References name to Portuguese
 % Change if you are using english
-\defbibheading{bibliography}[Bibiliography]{
+\defbibheading{bibliography}[Bibliography]{
 	\chapter{#1}
 }
 \SingleSpacing
@@ -421,6 +429,7 @@
 \mainmatterWithoutReset
 \appendix
 
-\include{chapters/appendix-more}
+% INCLUIR NOVAMENTE
+%\include{chapters/appendix-more}
 
 \end{document}

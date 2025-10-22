@@ -288,6 +288,32 @@ class Problem_DC_WSS:
 
         return y
 
+
+    def ineq_resid_autograd(self, x, y, args):
+        """
+        Igual a ineq_resid, porém usando versões Autograd para permitir gradiente na loss.
+        """
+        gt = self.gT_Autograd(y, args)                 # diferenciado
+        g_tlog = self.g_TempLog_Autograd(y)            # diferenciado
+        g_x = self.g_x_Autograd(y, args)               # aqui é identidade
+
+        gt_max = gt - self.hmax
+        gt_min = self.hmin - gt
+
+        g_x_max = g_x - self.timemax
+        g_x_min = self.timemin - g_x
+
+        resids = torch.cat([gt_max, gt_min, g_x_max, g_x_min, g_tlog], dim=1)
+        return resids
+
+    def ineq_dist_autograd(self, x, y, args):
+        """
+        Versão autograd da distância de desigualdades (ReLU dos resíduos).
+        Use esta na loss para treinar.
+        """
+        return torch.relu(self.ineq_resid_autograd(x, y, args))
+    
+    
     def ineq_dist(self, x, y, args):
 
         ineq_dist = torch.relu(self.ineq_resid(x, y, args))
@@ -321,12 +347,28 @@ class Problem_DC_WSS:
         #for i in range(y.shape[0]):
             
         #    plot_simple.plot_simple(y[i].cpu().detach().numpy(), 000, args, 0, #n_sample=1,title_comment=f'gt_max: {gt_max[i]} \n gt_min: {gt_min[i]}')
-                                
-            
-
 
 
         return resids
+    
+    
+    # Desconsiderando o 11º elemento do GT
+    def ineq_dist_gt(self, x, y, args):
+
+        gt, g_x, g_tlog = self.get_yvars(y, args)
+
+        gt = gt[:, :10]
+        
+        gt_max = gt - self.hmax
+        gt_min = self.hmin - gt
+        
+        g_x_max = g_x - self.timemax
+        g_x_min = self.timemin - g_x
+
+        resids = torch.cat([gt_max, gt_min, g_x_max, g_x_min, g_tlog], dim=1)
+
+
+        return resids        
 
     def jac_gT_Original(self, y):
 
@@ -526,7 +568,7 @@ class Problem_DC_WSS:
             - Não sobreposição (cada incremento inclui duração anterior + gap)
             - Compressão proporcional se último término > DAY_MAX (mantém não sobreposição)
         """
-        DAY_MAX = 23.9
+        DAY_MAX = 23.999
         MIN_DUR = 0.001
         MAX_DUR = 5.0
         MIN_GAP = 0.001
@@ -623,6 +665,49 @@ class Problem_DC_WSS:
         return torch.cat([start_times, durations], dim=1)
 # ...existing code...
 
+    def process_output_original_parametric4(self, X, out):
+        """
+        Gera [start_times, durations] respeitando os parâmetros de data_system (self.d):
+        - Horizonte diário = sum(self.d.t_hor_2F) horas.
+        - Duração mínima = self.d.epsF_d.
+        - Gap mínimo entre ciclos = self.d.epsF_i.
+        - Sem limite máximo de duração (usa softplus).
+        - Garante ordem e não sobreposição; se ultrapassar o horizonte, escala
+          starts e durações proporcionalmente para caber.
+        """
+        # Parâmetros do sistema (em horas)
+        DAY_MAX = float(np.sum(self.d.t_hor_2F)) if hasattr(self.d, "t_hor_2F") else 24.0
+        MIN_DUR = float(getattr(self.d, "epsF_d", 0.001))
+        MIN_GAP = float(getattr(self.d, "epsF_i", 0.001))
+
+        B, D = out.shape
+        qty = D // 2  # número de DCs inferido do vetor de saída
+
+        raw_pos = out[:, :qty]   # first_start e gaps
+        raw_dur = out[:, qty:]   # durações
+
+        # Durações >= MIN_DUR (sem teto máximo)
+        durations = F.softplus(raw_dur) + MIN_DUR  # [B, qty]
+
+        # Primeiro início (>=0) e gaps (>= MIN_GAP)
+        first_start = F.softplus(raw_pos[:, 0:1])                        # [B,1]
+        gaps_end = F.softplus(raw_pos[:, 1:]) + MIN_GAP if qty > 1 else raw_pos.new_zeros((B, 0))
+
+        if qty == 1:
+            start_times = first_start
+        else:
+            # increments = dur_i + gap_{i+1}  (i = 0..qty-2)
+            increments = durations[:, :-1] + gaps_end                    # [B, qty-1]
+            start_rest = first_start + torch.cumsum(increments, dim=1)   # [B, qty-1]
+            start_times = torch.cat([first_start, start_rest], dim=1)    # [B, qty]
+
+        # Se o último término passa do horizonte, escala tudo para caber (preserva não sobreposição)
+        last_end = start_times[:, -1] + durations[:, -1]                 # [B]
+        alpha = torch.clamp(DAY_MAX / (last_end + 1e-8), max=1.0).unsqueeze(1)  # [B,1]
+        start_times = start_times * alpha
+        durations = durations * alpha
+
+        return torch.cat([start_times, durations], dim=1)
 
 ###################################################################
 
@@ -808,7 +893,7 @@ class Problem_Non_Linear:
         # Retornar gradientes ajustados
         return Y
 
-    def ineq_partial_grad(self, X, Y):
+    def ineq_partial_grad(self, X, Y, args):
         # Assumindo que as duas variáveis são "parciais"
         grad_x1 = 1.5 * X[:, 0]  # Derivada em relação a x1
         grad_x2 = 0.5 * X[:, 1]  # Derivada em relação a x2

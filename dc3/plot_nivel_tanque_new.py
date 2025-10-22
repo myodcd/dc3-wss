@@ -12,7 +12,8 @@ def plot_nivel_tanque_new(args,
                           save_plot: bool = False,
                           show: bool = False,
                           title=None,
-                          sample=None
+                          sample=None,
+                          epoch=None
                           ):
     """
     Plots pump schedule, tank level, and tariff curve,
@@ -126,7 +127,7 @@ def plot_nivel_tanque_new(args,
 
     if save_plot:
         os.makedirs('plots', exist_ok=True)
-        filename = f"plot_cost_nr_{str(sample)}_dc{args['dc']}_{now}.png"
+        filename = f"plot_cost_nr_{str(sample)}_dc{args['dc']}_epoch_{epoch}_{now}.png"
         plt.savefig(
             os.path.join('plots', filename),
             dpi=300,
